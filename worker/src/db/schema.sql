@@ -117,6 +117,92 @@ CREATE TABLE IF NOT EXISTS equipment_logs (
 CREATE INDEX IF NOT EXISTS idx_equipment_lab ON equipment(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);
 
+-- F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
+-- Calibration Schedule are identically shaped per-lab schedules, kept as
+-- separate tables since they're separate official forms.
+CREATE TABLE IF NOT EXISTS maintenance_schedule_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  item_no INTEGER NOT NULL,
+  equipment_name_description TEXT NOT NULL,
+  serial_number TEXT,
+  frequency TEXT,
+  location TEXT,
+  scheduled_date TEXT,
+  actual_date TEXT,
+  remarks TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS calibration_schedule_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  item_no INTEGER NOT NULL,
+  equipment_name_description TEXT NOT NULL,
+  serial_number TEXT,
+  frequency TEXT,
+  location TEXT,
+  scheduled_date TEXT,
+  actual_date TEXT,
+  remarks TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_maint_sched_lab ON maintenance_schedule_items(laboratory_id);
+CREATE INDEX IF NOT EXISTS idx_calib_sched_lab ON calibration_schedule_items(laboratory_id);
+
+-- F-LAB-004 Equipment Work Request (the official per-request form) and
+-- F-LAB-005 Equipment Monitoring Sheet (the per-lab log of those same
+-- requests) are two views over one underlying record.
+CREATE TABLE IF NOT EXISTS work_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  request_no TEXT NOT NULL UNIQUE,  -- EWR-YYYY-###, auto-generated
+  equipment_name_description TEXT NOT NULL,
+  serial_number TEXT,
+  date_requested TEXT NOT NULL,     -- YYYY-MM-DD
+  date_needed TEXT,
+  nature_of_request TEXT,           -- "Preventive" | "Repair" | "Calibration"
+  detailed_description TEXT,
+  requested_by TEXT,
+  approved_by TEXT,
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected'
+  date_completed TEXT,
+  remarks TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_work_req_lab ON work_requests(laboratory_id);
+
+-- F-LAB-007 Borrowing Request Form: one request per borrowing event, with a
+-- list of items/equipment borrowed and their condition when returned.
+CREATE TABLE IF NOT EXISTS borrowing_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  borrower_name TEXT NOT NULL,
+  department_unit TEXT,
+  date_needed TEXT,
+  purpose TEXT,
+  return_date TEXT,
+  approved_by TEXT,
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Approved' | 'Returned'
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS borrowing_request_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  borrowing_request_id INTEGER NOT NULL REFERENCES borrowing_requests(id) ON DELETE CASCADE,
+  item_no INTEGER NOT NULL,
+  description TEXT NOT NULL,
+  equipment_id_text TEXT,   -- "Equipment ID (if applicable)" -- free text, item may not be tagged equipment
+  returned_condition TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_borrow_req_lab ON borrowing_requests(laboratory_id);
+CREATE INDEX IF NOT EXISTS idx_borrow_req_items_req ON borrowing_request_items(borrowing_request_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);

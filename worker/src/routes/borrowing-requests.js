@@ -1,0 +1,175 @@
+import { Hono } from 'hono';
+import { dbAll, dbGet, dbRun } from '../db/helpers.js';
+import { requireAuth } from '../middleware/auth.js';
+
+// F-LAB-007 Borrowing Request Form: a borrowing event (who, purpose, dates)
+// plus a list of items/equipment borrowed and their condition on return.
+const borrowingRequests = new Hono();
+borrowingRequests.use('*', requireAuth);
+
+const SELECT = `
+  SELECT b.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
+  FROM borrowing_requests b
+  JOIN laboratories l ON l.id = b.laboratory_id
+  JOIN departments d ON d.id = l.department_id
+`;
+
+function labAccessibleToUser(user, lab) {
+  if (!lab) return false;
+  if (user.role === 'admin') return true;
+  return Number(lab.department_id) === Number(user.department_id) && lab.status === 'approved';
+}
+
+function userCanAccessRow(user, row) {
+  if (!row) return false;
+  if (user.role === 'admin') return true;
+  return Number(row.department_id) === Number(user.department_id) && row.lab_status === 'approved';
+}
+
+borrowingRequests.get('/', async (c) => {
+  const user = c.get('user');
+  const { laboratory_id } = c.req.query();
+  const clauses = [];
+  const params = [];
+
+  if (user.role !== 'admin') {
+    clauses.push('l.department_id = ?', "l.status = 'approved'");
+    params.push(user.department_id);
+  }
+  if (laboratory_id) {
+    clauses.push('b.laboratory_id = ?');
+    params.push(laboratory_id);
+  }
+
+  let sql = SELECT;
+  if (clauses.length) sql += ' WHERE ' + clauses.join(' AND ');
+  sql += ' ORDER BY b.created_at DESC';
+
+  return c.json(await dbAll(c.env.DB, sql, ...params));
+});
+
+borrowingRequests.get('/:id', async (c) => {
+  const user = c.get('user');
+  const row = await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', c.req.param('id'));
+  if (!row) return c.json({ error: 'Borrowing request not found' }, 404);
+  if (!userCanAccessRow(user, row)) {
+    return c.json({ error: 'You do not have access to this borrowing request' }, 403);
+  }
+  const items = await dbAll(
+    c.env.DB,
+    'SELECT * FROM borrowing_request_items WHERE borrowing_request_id = ? ORDER BY item_no',
+    row.id
+  );
+  return c.json({ ...row, items });
+});
+
+borrowingRequests.post('/', async (c) => {
+  const user = c.get('user');
+  const { laboratory_id, borrower_name, department_unit, date_needed, purpose, return_date, items } =
+    await c.req.json().catch(() => ({}));
+
+  if (!laboratory_id || !borrower_name?.trim()) {
+    return c.json({ error: 'laboratory_id and borrower_name are required' }, 400);
+  }
+
+  const lab = await dbGet(c.env.DB, 'SELECT * FROM laboratories WHERE id = ?', laboratory_id);
+  if (!labAccessibleToUser(user, lab)) {
+    return c.json({ error: 'You do not have access to that laboratory' }, 403);
+  }
+
+  const result = await dbRun(
+    c.env.DB,
+    `INSERT INTO borrowing_requests (laboratory_id, borrower_name, department_unit, date_needed, purpose, return_date, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    laboratory_id,
+    borrower_name.trim(),
+    department_unit?.trim() || null,
+    date_needed || null,
+    purpose?.trim() || null,
+    return_date || null,
+    user.id
+  );
+  const requestId = result.lastInsertRowid;
+
+  let itemNo = 1;
+  for (const item of items || []) {
+    if (!item.description?.trim()) continue;
+    await dbRun(
+      c.env.DB,
+      `INSERT INTO borrowing_request_items (borrowing_request_id, item_no, description, equipment_id_text)
+       VALUES (?, ?, ?, ?)`,
+      requestId,
+      itemNo++,
+      item.description.trim(),
+      item.equipment_id_text?.trim() || null
+    );
+  }
+
+  const created = await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', requestId);
+  const rows = await dbAll(
+    c.env.DB,
+    'SELECT * FROM borrowing_request_items WHERE borrowing_request_id = ? ORDER BY item_no',
+    requestId
+  );
+  return c.json({ ...created, items: rows }, 201);
+});
+
+borrowingRequests.put('/:id', async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id');
+  const existing = await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', id);
+  if (!existing) return c.json({ error: 'Borrowing request not found' }, 404);
+  if (!userCanAccessRow(user, existing)) {
+    return c.json({ error: 'You do not have access to this borrowing request' }, 403);
+  }
+
+  const { borrower_name, department_unit, date_needed, purpose, return_date, approved_by, status, items } =
+    await c.req.json().catch(() => ({}));
+
+  await dbRun(
+    c.env.DB,
+    `UPDATE borrowing_requests SET borrower_name = ?, department_unit = ?, date_needed = ?, purpose = ?,
+       return_date = ?, approved_by = ?, status = ? WHERE id = ?`,
+    borrower_name?.trim() || existing.borrower_name,
+    department_unit?.trim() ?? existing.department_unit,
+    date_needed ?? existing.date_needed,
+    purpose?.trim() ?? existing.purpose,
+    return_date ?? existing.return_date,
+    approved_by?.trim() ?? existing.approved_by,
+    status?.trim() || existing.status,
+    id
+  );
+
+  for (const item of items || []) {
+    if (!item.id) continue;
+    await dbRun(
+      c.env.DB,
+      `UPDATE borrowing_request_items SET returned_condition = ? WHERE id = ? AND borrowing_request_id = ?`,
+      item.returned_condition?.trim() || null,
+      item.id,
+      id
+    );
+  }
+
+  const updated = await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', id);
+  const rows = await dbAll(
+    c.env.DB,
+    'SELECT * FROM borrowing_request_items WHERE borrowing_request_id = ? ORDER BY item_no',
+    id
+  );
+  return c.json({ ...updated, items: rows });
+});
+
+borrowingRequests.delete('/:id', async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id');
+  const existing = await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', id);
+  if (!existing) return c.json({ error: 'Borrowing request not found' }, 404);
+  if (!userCanAccessRow(user, existing)) {
+    return c.json({ error: 'You do not have access to this borrowing request' }, 403);
+  }
+  await dbRun(c.env.DB, 'DELETE FROM borrowing_requests WHERE id = ?', id);
+  return c.body(null, 204);
+});
+
+export default borrowingRequests;

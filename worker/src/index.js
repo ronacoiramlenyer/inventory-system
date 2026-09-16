@@ -10,6 +10,9 @@ import transactionsRoutes from './routes/transactions.js';
 import dashboardRoutes from './routes/dashboard.js';
 import inventoryCountsRoutes from './routes/inventory-counts.js';
 import equipmentRoutes from './routes/equipment.js';
+import { maintenanceScheduleRoutes, calibrationScheduleRoutes } from './routes/schedules.js';
+import workRequestsRoutes from './routes/work-requests.js';
+import borrowingRequestsRoutes from './routes/borrowing-requests.js';
 
 const app = new Hono();
 
@@ -26,6 +29,10 @@ app.route('/api', transactionsRoutes); // /api/items/:itemId/stock-card, /api/it
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/inventory-counts', inventoryCountsRoutes);
 app.route('/api/equipment', equipmentRoutes);
+app.route('/api/maintenance-schedule', maintenanceScheduleRoutes);
+app.route('/api/calibration-schedule', calibrationScheduleRoutes);
+app.route('/api/work-requests', workRequestsRoutes);
+app.route('/api/borrowing-requests', borrowingRequestsRoutes);
 
 app.onError((err, c) => {
   console.error(err);

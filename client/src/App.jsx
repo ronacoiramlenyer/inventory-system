@@ -9,6 +9,14 @@ import LabStockCards from './pages/LabStockCards';
 import StockCard from './pages/StockCard';
 import LabEquipment from './pages/LabEquipment';
 import EquipmentMonitoringRecord from './pages/EquipmentMonitoringRecord';
+import MaintenanceSchedule from './pages/MaintenanceSchedule';
+import CalibrationSchedule from './pages/CalibrationSchedule';
+import LabWorkRequests from './pages/LabWorkRequests';
+import NewWorkRequest from './pages/NewWorkRequest';
+import WorkRequestDetail from './pages/WorkRequestDetail';
+import LabBorrowingRequests from './pages/LabBorrowingRequests';
+import NewBorrowingRequest from './pages/NewBorrowingRequest';
+import BorrowingRequestDetail from './pages/BorrowingRequestDetail';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
 import InventoryCountDetail from './pages/InventoryCountDetail';
@@ -44,6 +52,14 @@ function AppRoutes() {
         <Route path="laboratories/:id/stock-cards" element={<LabStockCards />} />
         <Route path="laboratories/:id/equipment" element={<LabEquipment />} />
         <Route path="equipment/:id" element={<EquipmentMonitoringRecord />} />
+        <Route path="laboratories/:id/maintenance-schedule" element={<MaintenanceSchedule />} />
+        <Route path="laboratories/:id/calibration-schedule" element={<CalibrationSchedule />} />
+        <Route path="laboratories/:id/work-requests/new" element={<NewWorkRequest />} />
+        <Route path="laboratories/:id/work-requests" element={<LabWorkRequests />} />
+        <Route path="work-requests/:id" element={<WorkRequestDetail />} />
+        <Route path="laboratories/:id/borrowing-requests/new" element={<NewBorrowingRequest />} />
+        <Route path="laboratories/:id/borrowing-requests" element={<LabBorrowingRequests />} />
+        <Route path="borrowing-requests/:id" element={<BorrowingRequestDetail />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
         <Route
