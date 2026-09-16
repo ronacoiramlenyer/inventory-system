@@ -54,7 +54,7 @@ export default function InventoryCounts() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Inventory Counts</h1>
+        <h1 className="text-2xl font-bold text-slate-800">F-LAB-010 Inventory Sheet</h1>
         <button
           onClick={startNew}
           disabled={creating || labs.length === 0}

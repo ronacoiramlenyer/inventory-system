@@ -25,7 +25,7 @@ export default function Layout() {
     { to: '/', label: 'Dashboard', end: true },
     { to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 },
     { to: '/items', label: 'Items' },
-    { to: '/inventory-counts', label: 'Inventory Counts' },
+    { to: '/inventory-counts', label: 'F-LAB-010 Inventory Sheet' },
     ...(user?.role === 'admin'
       ? [
           { to: '/departments', label: 'Departments' },
