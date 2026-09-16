@@ -100,6 +100,12 @@ export default function Items() {
               </option>
             ))}
           </select>
+          <Link
+            to={`/items/import${laboratoryFilter ? `?laboratory_id=${laboratoryFilter}` : ''}`}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+          >
+            Import Items
+          </Link>
           <button
             onClick={startNew}
             className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"

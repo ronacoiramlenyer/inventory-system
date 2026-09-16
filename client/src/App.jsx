@@ -10,6 +10,7 @@ import Departments from './pages/Departments';
 import Users from './pages/Users';
 import InventoryCounts from './pages/InventoryCounts';
 import InventoryCountDetail from './pages/InventoryCountDetail';
+import ImportItems from './pages/ImportItems';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -39,6 +40,7 @@ function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="laboratories" element={<Laboratories />} />
         <Route path="items" element={<Items />} />
+        <Route path="items/import" element={<ImportItems />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts" element={<InventoryCounts />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
