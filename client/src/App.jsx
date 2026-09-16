@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Laboratories from './pages/Laboratories';
 import LaboratoryDetail from './pages/LaboratoryDetail';
+import LabStockCards from './pages/LabStockCards';
 import StockCard from './pages/StockCard';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
@@ -38,6 +39,7 @@ function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="laboratories" element={<Laboratories />} />
         <Route path="laboratories/:id" element={<LaboratoryDetail />} />
+        <Route path="laboratories/:id/stock-cards" element={<LabStockCards />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
         <Route

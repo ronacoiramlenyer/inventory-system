@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
+import LabFormTabs from '../components/LabFormTabs';
 
 const emptyForm = {
   entry_date: new Date().toISOString().slice(0, 10),
@@ -62,7 +63,10 @@ export default function StockCard() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
-        <Link to={`/laboratories/${item.laboratory_id}`} className="text-sm text-slate-500 hover:text-slate-800">
+        <Link
+          to={`/laboratories/${item.laboratory_id}/stock-cards`}
+          className="text-sm text-slate-500 hover:text-slate-800"
+        >
           ← Back to {item.laboratory_name}
         </Link>
         <div className="space-x-2">
@@ -86,6 +90,8 @@ export default function StockCard() {
           </button>
         </div>
       </div>
+
+      <LabFormTabs laboratoryId={item.laboratory_id} active="stock-cards" />
 
       {showForm && (
         <form

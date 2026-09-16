@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { readSheet } from 'read-excel-file/universal';
 import api from '../api/client';
+import LabFormTabs from '../components/LabFormTabs';
 
 const normalize = (s) => String(s ?? '').trim().toLowerCase();
 let tempKeySeq = 0;
@@ -251,6 +252,8 @@ export default function InventoryCountDetail() {
           </button>
         </div>
       </div>
+
+      <LabFormTabs laboratoryId={count.laboratory_id} active="inventory-sheet" />
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
       {importSummary && <p className="text-sm text-slate-600 no-print">{importSummary}</p>}
