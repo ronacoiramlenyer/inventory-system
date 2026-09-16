@@ -1,20 +1,33 @@
 -- Laboratory Inventory Management System schema
 
+CREATE TABLE IF NOT EXISTS departments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,        -- e.g. "Science", "Computer"
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   full_name TEXT NOT NULL,
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'staff', -- 'admin' | 'staff'
+  department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL, -- required for staff, NULL for admin
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS laboratories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL UNIQUE,        -- e.g. "Science Laboratory"
-  department TEXT NOT NULL,         -- e.g. "Science", "Computer"
+  name TEXT NOT NULL,               -- e.g. "Science Laboratory 2"
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
   location TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'approved' | 'rejected'
+  requested_by INTEGER REFERENCES users(id),
+  reviewed_by INTEGER REFERENCES users(id),
+  reviewed_at TEXT,
+  rejection_reason TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(department_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS items (
@@ -45,6 +58,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
+CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
+CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);
 CREATE INDEX IF NOT EXISTS idx_items_lab ON items(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_txn_item ON transactions(item_id);
 CREATE INDEX IF NOT EXISTS idx_txn_date ON transactions(item_id, entry_date, id);
