@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const emptyForm = {
   laboratory_id: '',
@@ -13,6 +14,8 @@ const emptyForm = {
 };
 
 export default function Items() {
+  const { user } = useAuth();
+  const isAdmin = user.role === 'admin';
   const [searchParams, setSearchParams] = useSearchParams();
   const laboratoryFilter = searchParams.get('laboratory_id') || '';
 
@@ -29,7 +32,8 @@ export default function Items() {
   }
 
   useEffect(() => {
-    api.get('/laboratories').then((res) => setLabs(res.data));
+    // Only approved laboratories can hold items.
+    api.get('/laboratories', { params: { status: 'approved' } }).then((res) => setLabs(res.data));
   }, []);
 
   useEffect(loadItems, [laboratoryFilter]);
@@ -208,6 +212,7 @@ export default function Items() {
             <tr>
               <th className="px-4 py-2 text-left font-medium">Item</th>
               <th className="px-4 py-2 text-left font-medium">Laboratory</th>
+              {isAdmin && <th className="px-4 py-2 text-left font-medium">Department</th>}
               <th className="px-4 py-2 text-left font-medium">Category</th>
               <th className="px-4 py-2 text-right font-medium">Balance</th>
               <th className="px-4 py-2 text-left font-medium">UoM</th>
@@ -225,6 +230,7 @@ export default function Items() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{item.laboratory_name}</td>
+                  {isAdmin && <td className="px-4 py-3 text-slate-600">{item.department_name}</td>}
                   <td className="px-4 py-3 text-slate-600">{item.category}</td>
                   <td className={`px-4 py-3 text-right font-semibold ${low ? 'text-red-600' : 'text-slate-800'}`}>
                     {item.current_balance}
@@ -244,7 +250,7 @@ export default function Items() {
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={isAdmin ? 7 : 6} className="px-4 py-6 text-center text-slate-400">
                   No items found.
                 </td>
               </tr>

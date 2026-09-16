@@ -6,10 +6,19 @@ import Dashboard from './pages/Dashboard';
 import Laboratories from './pages/Laboratories';
 import Items from './pages/Items';
 import StockCard from './pages/StockCard';
+import Departments from './pages/Departments';
+import Users from './pages/Users';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/" replace />;
   return children;
 }
 
@@ -29,6 +38,22 @@ function AppRoutes() {
         <Route path="laboratories" element={<Laboratories />} />
         <Route path="items" element={<Items />} />
         <Route path="items/:id" element={<StockCard />} />
+        <Route
+          path="departments"
+          element={
+            <AdminRoute>
+              <Departments />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="users"
+          element={
+            <AdminRoute>
+              <Users />
+            </AdminRoute>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

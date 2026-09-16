@@ -11,19 +11,26 @@ router.post('/login', (req, res) => {
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  const user = db
+    .prepare(
+      `SELECT u.*, d.name AS department_name FROM users u
+       LEFT JOIN departments d ON d.id = u.department_id
+       WHERE u.username = ?`
+    )
+    .get(username);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
-  const token = jwt.sign(
-    { id: user.id, username: user.username, full_name: user.full_name, role: user.role },
-    JWT_SECRET,
-    { expiresIn: '12h' }
-  );
-  res.json({
-    token,
-    user: { id: user.id, username: user.username, full_name: user.full_name, role: user.role },
-  });
+  const payload = {
+    id: user.id,
+    username: user.username,
+    full_name: user.full_name,
+    role: user.role,
+    department_id: user.department_id,
+    department_name: user.department_name,
+  };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+  res.json({ token, user: payload });
 });
 
 router.get('/me', requireAuth, (req, res) => {

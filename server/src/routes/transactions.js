@@ -8,13 +8,26 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router({ mergeParams: true });
 router.use(requireAuth);
 
-function computeStockCard(itemId) {
-  const item = db
+function getItemWithLab(itemId) {
+  return db
     .prepare(
-      `SELECT i.*, l.name AS laboratory_name, l.department
-       FROM items i JOIN laboratories l ON l.id = i.laboratory_id WHERE i.id = ?`
+      `SELECT i.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
+       FROM items i
+       JOIN laboratories l ON l.id = i.laboratory_id
+       JOIN departments d ON d.id = l.department_id
+       WHERE i.id = ?`
     )
     .get(itemId);
+}
+
+function userCanAccessItem(user, item) {
+  if (!item) return false;
+  if (user.role === 'admin') return true;
+  return Number(item.department_id) === Number(user.department_id) && item.lab_status === 'approved';
+}
+
+function computeStockCard(itemId) {
+  const item = getItemWithLab(itemId);
   if (!item) return null;
 
   const rows = db
@@ -45,20 +58,29 @@ function computeStockCard(itemId) {
 }
 
 router.get('/items/:itemId/stock-card', (req, res) => {
-  const card = computeStockCard(req.params.itemId);
-  if (!card) return res.status(404).json({ error: 'Item not found' });
-  res.json(card);
+  const item = getItemWithLab(req.params.itemId);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  if (!userCanAccessItem(req.user, item)) {
+    return res.status(403).json({ error: 'You do not have access to this item' });
+  }
+  res.json(computeStockCard(req.params.itemId));
 });
 
 router.get('/items/:itemId/transactions', (req, res) => {
-  const card = computeStockCard(req.params.itemId);
-  if (!card) return res.status(404).json({ error: 'Item not found' });
-  res.json(card.entries);
+  const item = getItemWithLab(req.params.itemId);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  if (!userCanAccessItem(req.user, item)) {
+    return res.status(403).json({ error: 'You do not have access to this item' });
+  }
+  res.json(computeStockCard(req.params.itemId).entries);
 });
 
 router.post('/items/:itemId/transactions', (req, res) => {
-  const item = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.itemId);
+  const item = getItemWithLab(req.params.itemId);
   if (!item) return res.status(404).json({ error: 'Item not found' });
+  if (!userCanAccessItem(req.user, item)) {
+    return res.status(403).json({ error: 'You do not have access to this item' });
+  }
 
   const {
     entry_date,
@@ -107,6 +129,10 @@ router.post('/items/:itemId/transactions', (req, res) => {
 router.put('/transactions/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM transactions WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Transaction not found' });
+  const item = getItemWithLab(existing.item_id);
+  if (!userCanAccessItem(req.user, item)) {
+    return res.status(403).json({ error: 'You do not have access to this item' });
+  }
 
   const {
     entry_date,
@@ -140,6 +166,10 @@ router.put('/transactions/:id', (req, res) => {
 router.delete('/transactions/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM transactions WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Transaction not found' });
+  const item = getItemWithLab(existing.item_id);
+  if (!userCanAccessItem(req.user, item)) {
+    return res.status(403).json({ error: 'You do not have access to this item' });
+  }
   db.prepare('DELETE FROM transactions WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });

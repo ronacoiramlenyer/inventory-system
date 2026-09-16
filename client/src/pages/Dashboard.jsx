@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const isAdmin = user.role === 'admin';
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState('');
 
@@ -25,7 +28,19 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-slate-800">
+        {isAdmin ? 'Dashboard' : `${user.department_name} Dashboard`}
+      </h1>
+
+      {isAdmin && summary.pendingLaboratoryCount > 0 && (
+        <Link
+          to="/laboratories?status=pending"
+          className="block bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm hover:bg-amber-100 transition"
+        >
+          <span className="font-semibold">{summary.pendingLaboratoryCount}</span> laboratory
+          {summary.pendingLaboratoryCount === 1 ? '' : 'ies'} awaiting approval — review now →
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
@@ -48,7 +63,7 @@ export default function Dashboard() {
               <li key={lab.id} className="px-4 py-3 flex justify-between text-sm">
                 <div>
                   <p className="font-medium text-slate-800">{lab.name}</p>
-                  <p className="text-slate-500">{lab.department}</p>
+                  {isAdmin && <p className="text-slate-500">{lab.department_name}</p>}
                 </div>
                 <span className="text-slate-600">{lab.item_count} items</span>
               </li>

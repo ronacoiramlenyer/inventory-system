@@ -6,7 +6,12 @@ report per item.
 
 ## Features
 
-- Manage laboratories (department, name, location)
+- Multiple **departments** (Science, Computer, etc.), each with its own
+  **staff accounts** and its own **laboratories**
+- **Staff enroll laboratories** for their department; an **admin reviews and
+  approves or rejects** each request before it becomes active
+- Department-scoped access: staff only ever see and manage their own
+  department's laboratories and items; admins see and manage everything
 - Manage items per laboratory (unit of measure, category, reorder level)
 - Record stock movements (IN / OUT) with date, remarks, expiry date, invoice
   number, and handled-by signature
@@ -14,13 +19,27 @@ report per item.
 - Stock Card view per item, matching the traditional paper stock card layout,
   with a printable view (`window.print()`) and optional period-divider rows
   (e.g. "Year-end inventory")
-- Dashboard with totals, low-stock alerts, and recent transactions
-- Simple username/password authentication (JWT)
+- Dashboard with totals, low-stock alerts, recent transactions, and (for
+  admins) a pending-laboratory-approvals count
+- Username/password authentication (JWT) with `admin` / `staff` roles
+
+## Roles
+
+- **Admin** — manages departments and staff accounts, approves/rejects
+  laboratory enrollment requests, and has unrestricted access to every
+  department's laboratories, items, and stock cards.
+- **Staff** — belongs to exactly one department (assigned by an admin when
+  their account is created). Can enroll new laboratories for that
+  department (pending admin approval), and manage items/stock cards only
+  within their own department's approved laboratories.
+
+There is currently no self-service sign-up: an admin creates staff accounts
+from the **Staff Accounts** page and assigns each one to a department.
 
 ## Project structure
 
 ```
-server/   Express + SQLite (better-sqlite3) REST API
+server/   Express + SQLite (node:sqlite) REST API
 client/   React (Vite) frontend
 ```
 
@@ -43,8 +62,14 @@ A SQLite database is created automatically at `server/data/inventory.db` on
 first run, seeded with:
 
 - Admin login: `admin` / `admin123`
-- Sample laboratories: Science Laboratory, Computer Laboratory
-- A few sample items
+- Two departments (Science, Computer), each with one approved laboratory
+  and a few sample items
+- One staff login per department: `science_staff` / `staff123` and
+  `computer_staff` / `staff123`
+
+If you already had a database from before this multi-department update,
+delete `server/data/` and restart the backend so it reseeds with the new
+schema.
 
 Copy `.env.example` to `.env` to customize `PORT` / `JWT_SECRET`.
 
@@ -60,8 +85,12 @@ The Vite dev server proxies `/api` requests to `http://localhost:4000`.
 
 ## Data model
 
-- **Laboratory** — a lab/department (e.g. "Science Laboratory")
-- **Item** — a tracked item belonging to a laboratory, with an
+- **Department** — e.g. "Science", "Computer"
+- **User** — an admin (no department) or staff member (belongs to one
+  department)
+- **Laboratory** — belongs to a department; has a `status` of `pending`,
+  `approved`, or `rejected`, plus `requested_by`/`reviewed_by` fields
+- **Item** — a tracked item belonging to an approved laboratory, with an
   `initial_balance` and `reorder_level`
 - **Transaction** — a stock card entry: a date, `in_qty`/`out_qty`, remarks,
   optional expiry date/invoice number, and who handled it. The running

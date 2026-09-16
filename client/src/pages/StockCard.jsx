@@ -181,7 +181,7 @@ export default function StockCard() {
                 <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 w-40">
                   DEPARTMENT
                 </td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.department}</td>
+                <td className="border border-slate-300 px-3 py-1.5">{item.department_name}</td>
               </tr>
               <tr>
                 <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
