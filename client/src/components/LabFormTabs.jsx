@@ -3,16 +3,22 @@ import { Link } from 'react-router-dom';
 // One entry per F-LAB form available under a laboratory. Flip `ready` to true
 // and give it a real `to` once that form is actually built.
 const FORMS = [
-  { key: 'inventory-sheet', label: 'F-LAB-010 Inventory Sheet', to: (id) => `/laboratories/${id}`, ready: true },
-  { key: 'incident-report', label: 'F-LAB-009 Laboratory Incident Report', ready: false },
-  { key: 'waste-disposal-log', label: 'F-LAB-008 Waste Disposal Log', ready: false },
-  { key: 'borrowing-request', label: 'F-LAB-007 Borrowing Request Form', ready: false },
-  { key: 'stock-cards', label: 'F-LAB-006 Stock Card', to: (id) => `/laboratories/${id}/stock-cards`, ready: true },
-  { key: 'equipment-monitoring-sheet', label: 'F-LAB-005 Equipment Monitoring Sheet', ready: false },
-  { key: 'equipment-work-request', label: 'F-LAB-004 Equipment Work Request', ready: false },
-  { key: 'equipment-calibration-schedule', label: 'F-LAB-003 Equipment Calibration Schedule', ready: false },
-  { key: 'preventive-maintenance-schedule', label: 'F-LAB-002 Preventive Maintenance Schedule', ready: false },
-  { key: 'equipment-monitoring-record', label: 'F-LAB-001 Equipment Monitoring Record', ready: false },
+  { key: 'inventory-sheet', code: 'F-LAB-010', name: 'Inventory Sheet', to: (id) => `/laboratories/${id}`, ready: true },
+  { key: 'incident-report', code: 'F-LAB-009', name: 'Laboratory Incident Report', ready: false },
+  { key: 'waste-disposal-log', code: 'F-LAB-008', name: 'Waste Disposal Log', ready: false },
+  { key: 'borrowing-request', code: 'F-LAB-007', name: 'Borrowing Request Form', ready: false },
+  { key: 'stock-cards', code: 'F-LAB-006', name: 'Stock Card', to: (id) => `/laboratories/${id}/stock-cards`, ready: true },
+  { key: 'equipment-monitoring-sheet', code: 'F-LAB-005', name: 'Equipment Monitoring Sheet', ready: false },
+  { key: 'equipment-work-request', code: 'F-LAB-004', name: 'Equipment Work Request', ready: false },
+  { key: 'equipment-calibration-schedule', code: 'F-LAB-003', name: 'Equipment Calibration Schedule', ready: false },
+  { key: 'preventive-maintenance-schedule', code: 'F-LAB-002', name: 'Preventive Maintenance Schedule', ready: false },
+  {
+    key: 'equipment-monitoring-record',
+    code: 'F-LAB-001',
+    name: 'Equipment Monitoring Record',
+    to: (id) => `/laboratories/${id}/equipment`,
+    ready: true,
+  },
 ];
 
 export default function LabFormTabs({ laboratoryId, active }) {
@@ -23,21 +29,23 @@ export default function LabFormTabs({ laboratoryId, active }) {
           <Link
             key={form.key}
             to={form.to(laboratoryId)}
-            className={`shrink-0 px-3 py-2 text-sm font-medium border-b-2 -mb-px ${
+            className={`shrink-0 px-3 py-1.5 text-center border-b-2 -mb-px ${
               active === form.key
                 ? 'border-emerald-600 text-emerald-700'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
-            {form.label}
+            <div className="text-xs font-semibold leading-tight">{form.code}</div>
+            <div className="text-sm font-medium leading-tight">{form.name}</div>
           </Link>
         ) : (
           <span
             key={form.key}
             title="Not built yet"
-            className="shrink-0 px-3 py-2 text-sm font-medium border-b-2 border-transparent text-slate-300 cursor-not-allowed"
+            className="shrink-0 px-3 py-1.5 text-center border-b-2 border-transparent text-slate-300 cursor-not-allowed"
           >
-            {form.label}
+            <div className="text-xs font-semibold leading-tight">{form.code}</div>
+            <div className="text-sm font-medium leading-tight">{form.name}</div>
           </span>
         )
       )}

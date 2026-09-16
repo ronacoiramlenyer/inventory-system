@@ -7,6 +7,8 @@ import Laboratories from './pages/Laboratories';
 import LaboratoryDetail from './pages/LaboratoryDetail';
 import LabStockCards from './pages/LabStockCards';
 import StockCard from './pages/StockCard';
+import LabEquipment from './pages/LabEquipment';
+import EquipmentMonitoringRecord from './pages/EquipmentMonitoringRecord';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
 import InventoryCountDetail from './pages/InventoryCountDetail';
@@ -40,6 +42,8 @@ function AppRoutes() {
         <Route path="laboratories" element={<Laboratories />} />
         <Route path="laboratories/:id" element={<LaboratoryDetail />} />
         <Route path="laboratories/:id/stock-cards" element={<LabStockCards />} />
+        <Route path="laboratories/:id/equipment" element={<LabEquipment />} />
+        <Route path="equipment/:id" element={<EquipmentMonitoringRecord />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
         <Route

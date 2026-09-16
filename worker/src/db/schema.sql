@@ -91,6 +91,32 @@ CREATE TABLE IF NOT EXISTS inventory_count_items (
 CREATE INDEX IF NOT EXISTS idx_inv_counts_lab ON inventory_counts(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(inventory_count_id);
 
+-- F-LAB-001 Equipment Monitoring Record: non-consumable equipment (as opposed
+-- to the quantity-tracked `items`), each with its own service/maintenance log.
+CREATE TABLE IF NOT EXISTS equipment (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  name_description TEXT NOT NULL,
+  serial_number TEXT,
+  location TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS equipment_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+  entry_date TEXT NOT NULL,         -- YYYY-MM-DD
+  service_performed TEXT NOT NULL,  -- e.g. "Preventive", "Repair", "Calibration"
+  request_id TEXT,                  -- reference to an F-LAB-004 Equipment Work Request (free text for now)
+  status TEXT,
+  logged_by TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_equipment_lab ON equipment(laboratory_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);

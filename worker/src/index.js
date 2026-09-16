@@ -9,6 +9,7 @@ import itemsRoutes from './routes/items.js';
 import transactionsRoutes from './routes/transactions.js';
 import dashboardRoutes from './routes/dashboard.js';
 import inventoryCountsRoutes from './routes/inventory-counts.js';
+import equipmentRoutes from './routes/equipment.js';
 
 const app = new Hono();
 
@@ -24,6 +25,7 @@ app.route('/api/items', itemsRoutes);
 app.route('/api', transactionsRoutes); // /api/items/:itemId/stock-card, /api/items/:itemId/transactions, /api/transactions/:id
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/inventory-counts', inventoryCountsRoutes);
+app.route('/api/equipment', equipmentRoutes);
 
 app.onError((err, c) => {
   console.error(err);
