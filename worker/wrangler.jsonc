@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "inventory-system-api",
+  "main": "src/index.js",
+  "compatibility_date": "2025-01-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "inventory-system-db",
+      "database_id": "16584618-af06-4d7a-ad57-960e4b4994d9"
+    }
+  ]
+  // JWT_SECRET is intentionally not set here. For local dev, copy
+  // .dev.vars.example to .dev.vars (gitignored). For the deployed Worker,
+  // set it with `wrangler secret put JWT_SECRET` — see worker/README.md.
+}

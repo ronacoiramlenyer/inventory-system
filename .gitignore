@@ -4,4 +4,6 @@ build/
 .env
 *.log
 server/data/
+worker/.wrangler/
+.dev.vars
 .DS_Store

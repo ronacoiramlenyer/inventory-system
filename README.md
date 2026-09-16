@@ -39,9 +39,17 @@ from the **Staff Accounts** page and assigns each one to a department.
 ## Project structure
 
 ```
-server/   Express + SQLite (node:sqlite) REST API
-client/   React (Vite) frontend
+server/   Express + SQLite (node:sqlite) REST API — for local dev
+worker/   Cloudflare Worker (Hono + D1) — same API, for a real cloud deploy
+client/   React (Vite) frontend — works against either backend
 ```
+
+`server/` and `worker/` are two backends for the same app: identical routes
+and behavior, different runtimes. Use `server/` for local development (zero
+cloud setup). Use `worker/` when you want the app actually live on the
+internet — see [`worker/README.md`](./worker/README.md) for deploying it to
+Cloudflare (Workers + D1 for the API, Pages for the frontend). A D1 database
+has already been provisioned and seeded for this project.
 
 ## Getting started
 
