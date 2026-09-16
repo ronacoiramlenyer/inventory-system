@@ -1,1 +1,4 @@
 JWT_SECRET=dev-secret-change-me
+# Get a key at resend.com. Leave unset locally and the EWR email step will
+# just log a skip message instead of failing the request.
+RESEND_API_KEY=

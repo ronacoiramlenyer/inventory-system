@@ -5,6 +5,7 @@ import LabFormTabs from '../components/LabFormTabs';
 
 const STATUS_STYLES = {
   Pending: 'bg-amber-100 text-amber-700',
+  Filed: 'bg-indigo-100 text-indigo-700',
   Approved: 'bg-sky-100 text-sky-700',
   'In Progress': 'bg-sky-100 text-sky-700',
   Completed: 'bg-emerald-100 text-emerald-700',

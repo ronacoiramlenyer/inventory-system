@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
 
-const STATUS_OPTIONS = ['Pending', 'Approved', 'In Progress', 'Completed', 'Rejected'];
+const STATUS_OPTIONS = ['Pending', 'Filed', 'Approved', 'In Progress', 'Completed', 'Rejected'];
 
 export default function WorkRequestDetail() {
   const { id } = useParams();
+  const location = useLocation();
   const [req, setReq] = useState(null);
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
@@ -59,6 +60,18 @@ export default function WorkRequestDetail() {
       <LabFormTabs laboratoryId={req.laboratory_id} active="equipment-work-request" />
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
+
+      {location.state?.emailSent === true && (
+        <p className="no-print text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
+          Filed and emailed to the secretary.
+        </p>
+      )}
+      {location.state?.emailSent === false && (
+        <p className="no-print text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+          Filed, but the email to the secretary could not be sent ({location.state.emailError || 'unknown error'}).
+          Please notify them another way.
+        </p>
+      )}
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl">
         <div className="flex items-center justify-between mb-4">

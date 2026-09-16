@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { sendWorkRequestEmail } from '../lib/email.js';
 
 // F-LAB-004 Equipment Work Request (the official per-request form) and
 // F-LAB-005 Equipment Monitoring Sheet (the per-lab log of those requests)
@@ -99,8 +100,8 @@ workRequests.post('/', async (c) => {
     c.env.DB,
     `INSERT INTO work_requests
       (laboratory_id, request_no, equipment_name_description, serial_number, date_requested, date_needed,
-       nature_of_request, detailed_description, requested_by, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       nature_of_request, detailed_description, requested_by, status, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     laboratory_id,
     requestNo,
     equipment_name_description.trim(),
@@ -110,9 +111,13 @@ workRequests.post('/', async (c) => {
     nature_of_request?.trim() || null,
     detailed_description?.trim() || null,
     requested_by?.trim() || user.full_name,
+    // Submitting the EWR form means it's immediately filed and routed to the secretary.
+    'Filed',
     user.id
   );
-  return c.json(await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', result.lastInsertRowid), 201);
+  const created = await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', result.lastInsertRowid);
+  const emailResult = await sendWorkRequestEmail(c.env, created);
+  return c.json({ ...created, email_sent: emailResult.sent, email_error: emailResult.error }, 201);
 });
 
 workRequests.put('/:id', async (c) => {
