@@ -203,8 +203,8 @@ export default function InventoryCountDetail() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
-        <Link to={`/laboratories/${count.laboratory_id}`} className="text-sm text-slate-500 hover:text-slate-800">
-          ← Back to {count.laboratory_name}
+        <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">
+          ← Back to Laboratories
         </Link>
         <div className="space-x-2">
           {!readOnly && (
@@ -328,8 +328,11 @@ export default function InventoryCountDetail() {
                           onChange={(e) => updateRow(key, 'description', e.target.value)}
                         />
                       ) : (
-                        row.description
+                        <Link to={`/items/${row.item_id}`} className="text-emerald-700 hover:underline no-print">
+                          {row.description}
+                        </Link>
                       )}
+                      {!isNew && <span className="hidden print:inline">{row.description}</span>}
                     </td>
                     <td className="border border-slate-300 px-3 py-2">
                       {isNew ? (

@@ -29,6 +29,40 @@ function labAccessibleToUser(user, lab) {
   return Number(lab.department_id) === Number(user.department_id) && lab.status === 'approved';
 }
 
+async function createDraftCount(db, laboratoryId, preparedBy, createdBy) {
+  const items = await dbAll(
+    db,
+    `SELECT i.*, ${BALANCE_SUBQUERY} FROM items i WHERE i.laboratory_id = ? ORDER BY i.item_name`,
+    laboratoryId
+  );
+
+  const result = await dbRun(
+    db,
+    `INSERT INTO inventory_counts (laboratory_id, prepared_by, created_by) VALUES (?, ?, ?)`,
+    laboratoryId,
+    preparedBy,
+    createdBy
+  );
+  const countId = result.lastInsertRowid;
+
+  let itemNo = 1;
+  for (const item of items) {
+    await dbRun(
+      db,
+      `INSERT INTO inventory_count_items (inventory_count_id, item_id, item_no, description, unit, quantity_recorded)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      countId,
+      item.id,
+      itemNo++,
+      item.item_name,
+      item.unit_of_measure,
+      item.current_balance
+    );
+  }
+
+  return countId;
+}
+
 async function getCountWithAccess(db, id, user) {
   const count = await dbGet(db, COUNT_SELECT + ' WHERE ic.id = ?', id);
   if (!count) return { count: null, allowed: false };
@@ -60,6 +94,34 @@ inventoryCounts.get('/', async (c) => {
   return c.json(await dbAll(c.env.DB, sql, ...params));
 });
 
+// Returns the one current F-LAB-010 sheet for a laboratory: the latest count if
+// it's still a draft, or a freshly-started one if there isn't one yet or the
+// latest was already applied. This is the app's single point of entry for
+// viewing and adding items in a laboratory — there is no list of past sheets.
+inventoryCounts.get('/current', async (c) => {
+  const user = c.get('user');
+  const { laboratory_id } = c.req.query();
+  if (!laboratory_id) return c.json({ error: 'laboratory_id is required' }, 400);
+
+  const lab = await dbGet(c.env.DB, 'SELECT * FROM laboratories WHERE id = ?', laboratory_id);
+  if (!labAccessibleToUser(user, lab)) {
+    return c.json({ error: 'You do not have access to that laboratory' }, 403);
+  }
+
+  const latest = await dbGet(
+    c.env.DB,
+    'SELECT id, status FROM inventory_counts WHERE laboratory_id = ? ORDER BY created_at DESC LIMIT 1',
+    laboratory_id
+  );
+
+  let countId = latest?.id;
+  if (!latest || latest.status === 'applied') {
+    countId = await createDraftCount(c.env.DB, laboratory_id, user.full_name, user.id);
+  }
+
+  return c.json({ id: countId });
+});
+
 inventoryCounts.get('/:id', async (c) => {
   const user = c.get('user');
   const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
@@ -72,55 +134,6 @@ inventoryCounts.get('/:id', async (c) => {
     count.id
   );
   return c.json({ ...count, items });
-});
-
-inventoryCounts.post('/', async (c) => {
-  const user = c.get('user');
-  const { laboratory_id, prepared_by } = await c.req.json().catch(() => ({}));
-  if (!laboratory_id) return c.json({ error: 'laboratory_id is required' }, 400);
-
-  const lab = await dbGet(c.env.DB, 'SELECT * FROM laboratories WHERE id = ?', laboratory_id);
-  if (!labAccessibleToUser(user, lab)) {
-    return c.json({ error: 'You do not have access to that laboratory' }, 403);
-  }
-
-  const items = await dbAll(
-    c.env.DB,
-    `SELECT i.*, ${BALANCE_SUBQUERY} FROM items i WHERE i.laboratory_id = ? ORDER BY i.item_name`,
-    laboratory_id
-  );
-
-  const result = await dbRun(
-    c.env.DB,
-    `INSERT INTO inventory_counts (laboratory_id, prepared_by, created_by) VALUES (?, ?, ?)`,
-    laboratory_id,
-    prepared_by?.trim() || user.full_name,
-    user.id
-  );
-  const countId = result.lastInsertRowid;
-
-  let itemNo = 1;
-  for (const item of items) {
-    await dbRun(
-      c.env.DB,
-      `INSERT INTO inventory_count_items (inventory_count_id, item_id, item_no, description, unit, quantity_recorded)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      countId,
-      item.id,
-      itemNo++,
-      item.item_name,
-      item.unit_of_measure,
-      item.current_balance
-    );
-  }
-
-  const created = await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', countId);
-  const rows = await dbAll(
-    c.env.DB,
-    'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
-    countId
-  );
-  return c.json({ ...created, items: rows }, 201);
 });
 
 inventoryCounts.put('/:id', async (c) => {
