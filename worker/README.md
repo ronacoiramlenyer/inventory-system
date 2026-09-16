@@ -94,7 +94,7 @@ URL:
 cd ../client
 echo "VITE_API_URL=https://inventory-system-api.<your-subdomain>.workers.dev/api" > .env
 npm run build
-npx wrangler pages deploy dist --project-name=inventory-system
+npx wrangler pages deploy dist --project-name=lsgh-lab-inventory
 ```
 
 (First time, `wrangler pages deploy` will ask you to confirm/create the
