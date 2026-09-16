@@ -36,9 +36,35 @@ npx wrangler d1 execute inventory-system-db --local --file=./seed.local.sql
 
 ## Deploying for real
 
-This part needs your Cloudflare credentials, which this session doesn't
-have — you'll need to run these yourself (or hand me an API token and I can
-run them for you).
+This part needs Cloudflare credentials this session doesn't have (its
+network policy also blocks direct calls to Cloudflare's deploy API, so a
+token wouldn't help even if you shared one here). Two ways to finish it:
+
+### Option A: GitHub Actions (recommended, no terminal needed)
+
+`.github/workflows/deploy-cloudflare.yml` deploys both the Worker and the
+Pages site on every push to this branch (or via manual trigger). It needs
+two repository secrets, added at
+`github.com/<owner>/<repo>/settings/secrets/actions` → **New repository
+secret**:
+
+- `CLOUDFLARE_API_TOKEN` — a token with **Workers Scripts: Edit**,
+  **Cloudflare Pages: Edit**, **D1: Edit**, and **Account Settings: Read**
+  permissions (create one at
+  [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)).
+  If the deploy fails because the token can see multiple accounts, also add
+  a `CLOUDFLARE_ACCOUNT_ID` secret (found on the Cloudflare dashboard
+  overview page).
+- `JWT_SECRET` — any random string you make up; used to sign login tokens
+  for the deployed Worker.
+
+Once both secrets are set, push to this branch (or run the workflow
+manually from the **Actions** tab) and it deploys automatically. The
+Worker's live URL is auto-detected from `wrangler deploy`'s output and fed
+into the frontend build, and both URLs are printed in the workflow's job
+summary.
+
+### Option B: run wrangler yourself
 
 **1. Log in to Cloudflare** (opens a browser to authorize):
 

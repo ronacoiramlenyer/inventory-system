@@ -1,0 +1,72 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [claude/clever-tesla-dagr89]
+    paths:
+      - "worker/**"
+      - "client/**"
+      - ".github/workflows/deploy-cloudflare.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install worker dependencies
+        working-directory: worker
+        run: npm ci
+
+      - name: Set Worker JWT secret
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: echo "${{ secrets.JWT_SECRET }}" | npx wrangler secret put JWT_SECRET
+
+      - name: Deploy Worker
+        id: deploy_worker
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler deploy | tee deploy.log
+          WORKER_URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -n1)
+          if [ -z "$WORKER_URL" ]; then
+            echo "Could not find Worker URL in wrangler deploy output" >&2
+            exit 1
+          fi
+          echo "worker_url=$WORKER_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Build client
+        working-directory: client
+        env:
+          VITE_API_URL: ${{ steps.deploy_worker.outputs.worker_url }}/api
+        run: npm run build
+
+      - name: Deploy Pages site
+        id: deploy_pages
+        working-directory: client
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler pages deploy dist --project-name=inventory-system --branch=main
+
+      - name: Summary
+        run: |
+          echo "### Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: ${{ steps.deploy_worker.outputs.worker_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Frontend: see the wrangler pages deploy output above for the live URL" >> "$GITHUB_STEP_SUMMARY"
