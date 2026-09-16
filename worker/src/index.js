@@ -8,6 +8,7 @@ import laboratoriesRoutes from './routes/laboratories.js';
 import itemsRoutes from './routes/items.js';
 import transactionsRoutes from './routes/transactions.js';
 import dashboardRoutes from './routes/dashboard.js';
+import inventoryCountsRoutes from './routes/inventory-counts.js';
 
 const app = new Hono();
 
@@ -22,6 +23,7 @@ app.route('/api/laboratories', laboratoriesRoutes);
 app.route('/api/items', itemsRoutes);
 app.route('/api', transactionsRoutes); // /api/items/:itemId/stock-card, /api/items/:itemId/transactions, /api/transactions/:id
 app.route('/api/dashboard', dashboardRoutes);
+app.route('/api/inventory-counts', inventoryCountsRoutes);
 
 app.onError((err, c) => {
   console.error(err);

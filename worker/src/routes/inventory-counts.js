@@ -1,0 +1,231 @@
+import { Hono } from 'hono';
+import { dbAll, dbGet, dbRun } from '../db/helpers.js';
+import { requireAuth } from '../middleware/auth.js';
+
+const inventoryCounts = new Hono();
+inventoryCounts.use('*', requireAuth);
+
+const BALANCE_SUBQUERY = `
+  i.initial_balance
+  + COALESCE((SELECT SUM(t.in_qty) FROM transactions t WHERE t.item_id = i.id), 0)
+  - COALESCE((SELECT SUM(t.out_qty) FROM transactions t WHERE t.item_id = i.id), 0)
+  AS current_balance
+`;
+
+const COUNT_SELECT = `
+  SELECT ic.*, l.name AS laboratory_name, l.department_id, d.name AS department_name,
+    cu.full_name AS created_by_name, au.full_name AS applied_by_name,
+    (SELECT COUNT(*) FROM inventory_count_items ici WHERE ici.inventory_count_id = ic.id) AS item_count
+  FROM inventory_counts ic
+  JOIN laboratories l ON l.id = ic.laboratory_id
+  JOIN departments d ON d.id = l.department_id
+  LEFT JOIN users cu ON cu.id = ic.created_by
+  LEFT JOIN users au ON au.id = ic.applied_by
+`;
+
+function labAccessibleToUser(user, lab) {
+  if (!lab) return false;
+  if (user.role === 'admin') return true;
+  return Number(lab.department_id) === Number(user.department_id) && lab.status === 'approved';
+}
+
+async function getCountWithAccess(db, id, user) {
+  const count = await dbGet(db, COUNT_SELECT + ' WHERE ic.id = ?', id);
+  if (!count) return { count: null, allowed: false };
+  const allowed =
+    user.role === 'admin' ||
+    (Number(count.department_id) === Number(user.department_id) && true);
+  return { count, allowed };
+}
+
+inventoryCounts.get('/', async (c) => {
+  const user = c.get('user');
+  const { laboratory_id } = c.req.query();
+  const clauses = [];
+  const params = [];
+
+  if (user.role !== 'admin') {
+    clauses.push('l.department_id = ?');
+    params.push(user.department_id);
+  }
+  if (laboratory_id) {
+    clauses.push('ic.laboratory_id = ?');
+    params.push(laboratory_id);
+  }
+
+  let sql = COUNT_SELECT;
+  if (clauses.length) sql += ' WHERE ' + clauses.join(' AND ');
+  sql += ' ORDER BY ic.created_at DESC';
+
+  return c.json(await dbAll(c.env.DB, sql, ...params));
+});
+
+inventoryCounts.get('/:id', async (c) => {
+  const user = c.get('user');
+  const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
+  if (!count) return c.json({ error: 'Inventory count not found' }, 404);
+  if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+
+  const items = await dbAll(
+    c.env.DB,
+    'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
+    count.id
+  );
+  return c.json({ ...count, items });
+});
+
+inventoryCounts.post('/', async (c) => {
+  const user = c.get('user');
+  const { laboratory_id, prepared_by } = await c.req.json().catch(() => ({}));
+  if (!laboratory_id) return c.json({ error: 'laboratory_id is required' }, 400);
+
+  const lab = await dbGet(c.env.DB, 'SELECT * FROM laboratories WHERE id = ?', laboratory_id);
+  if (!labAccessibleToUser(user, lab)) {
+    return c.json({ error: 'You do not have access to that laboratory' }, 403);
+  }
+
+  const items = await dbAll(
+    c.env.DB,
+    `SELECT i.*, ${BALANCE_SUBQUERY} FROM items i WHERE i.laboratory_id = ? ORDER BY i.item_name`,
+    laboratory_id
+  );
+
+  const result = await dbRun(
+    c.env.DB,
+    `INSERT INTO inventory_counts (laboratory_id, prepared_by, created_by) VALUES (?, ?, ?)`,
+    laboratory_id,
+    prepared_by?.trim() || user.full_name,
+    user.id
+  );
+  const countId = result.lastInsertRowid;
+
+  let itemNo = 1;
+  for (const item of items) {
+    await dbRun(
+      c.env.DB,
+      `INSERT INTO inventory_count_items (inventory_count_id, item_id, item_no, description, unit, quantity_recorded)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      countId,
+      item.id,
+      itemNo++,
+      item.item_name,
+      item.unit_of_measure,
+      item.current_balance
+    );
+  }
+
+  const created = await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', countId);
+  const rows = await dbAll(
+    c.env.DB,
+    'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
+    countId
+  );
+  return c.json({ ...created, items: rows }, 201);
+});
+
+inventoryCounts.put('/:id', async (c) => {
+  const user = c.get('user');
+  const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
+  if (!count) return c.json({ error: 'Inventory count not found' }, 404);
+  if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+  if (count.status === 'applied') {
+    return c.json({ error: 'This count has already been applied and can no longer be edited' }, 400);
+  }
+
+  const { prepared_by, items } = await c.req.json().catch(() => ({}));
+
+  if (prepared_by?.trim()) {
+    await dbRun(c.env.DB, 'UPDATE inventory_counts SET prepared_by = ? WHERE id = ?', prepared_by.trim(), count.id);
+  }
+
+  for (const row of items || []) {
+    const existingRow = await dbGet(
+      c.env.DB,
+      'SELECT * FROM inventory_count_items WHERE id = ? AND inventory_count_id = ?',
+      row.id,
+      count.id
+    );
+    if (!existingRow) continue;
+
+    const actual = row.quantity_actual === '' || row.quantity_actual === undefined || row.quantity_actual === null
+      ? null
+      : Number(row.quantity_actual);
+    const variance = actual === null ? null : actual - existingRow.quantity_recorded;
+
+    await dbRun(
+      c.env.DB,
+      'UPDATE inventory_count_items SET quantity_actual = ?, variance = ?, remarks = ? WHERE id = ?',
+      actual,
+      variance,
+      row.remarks?.trim() || null,
+      existingRow.id
+    );
+  }
+
+  const updated = await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id);
+  const rows = await dbAll(
+    c.env.DB,
+    'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
+    count.id
+  );
+  return c.json({ ...updated, items: rows });
+});
+
+inventoryCounts.post('/:id/apply', async (c) => {
+  const user = c.get('user');
+  const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
+  if (!count) return c.json({ error: 'Inventory count not found' }, 404);
+  if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+  if (count.status === 'applied') {
+    return c.json({ error: 'This count has already been applied' }, 400);
+  }
+
+  const rows = await dbAll(
+    c.env.DB,
+    'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
+    count.id
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
+  for (const row of rows) {
+    if (!row.item_id || !row.variance) continue;
+    const inQty = row.variance > 0 ? row.variance : 0;
+    const outQty = row.variance < 0 ? Math.abs(row.variance) : 0;
+    await dbRun(
+      c.env.DB,
+      `INSERT INTO transactions (item_id, entry_date, in_qty, out_qty, remarks, handled_by, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      row.item_id,
+      today,
+      inQty,
+      outQty,
+      `Physical count adjustment (Inventory Sheet #${count.id})`,
+      count.prepared_by,
+      user.id
+    );
+  }
+
+  await dbRun(
+    c.env.DB,
+    `UPDATE inventory_counts SET status = 'applied', applied_at = ?, applied_by = ? WHERE id = ?`,
+    new Date().toISOString(),
+    user.id,
+    count.id
+  );
+
+  return c.json(await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id));
+});
+
+inventoryCounts.delete('/:id', async (c) => {
+  const user = c.get('user');
+  const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
+  if (!count) return c.json({ error: 'Inventory count not found' }, 404);
+  if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+  if (count.status === 'applied') {
+    return c.json({ error: 'Applied counts cannot be deleted' }, 400);
+  }
+  await dbRun(c.env.DB, 'DELETE FROM inventory_counts WHERE id = ?', count.id);
+  return c.body(null, 204);
+});
+
+export default inventoryCounts;

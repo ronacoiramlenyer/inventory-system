@@ -8,6 +8,8 @@ import Items from './pages/Items';
 import StockCard from './pages/StockCard';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
+import InventoryCounts from './pages/InventoryCounts';
+import InventoryCountDetail from './pages/InventoryCountDetail';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -38,6 +40,8 @@ function AppRoutes() {
         <Route path="laboratories" element={<Laboratories />} />
         <Route path="items" element={<Items />} />
         <Route path="items/:id" element={<StockCard />} />
+        <Route path="inventory-counts" element={<InventoryCounts />} />
+        <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
         <Route
           path="departments"
           element={

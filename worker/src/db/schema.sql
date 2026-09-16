@@ -58,6 +58,37 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- F-LAB-010 Inventory Sheet: a point-in-time physical count reconciled
+-- against the system's recorded balance. Descriptions/units/recorded
+-- quantities are snapshotted at creation time so a saved sheet doesn't
+-- change retroactively if items are later renamed or edited.
+CREATE TABLE IF NOT EXISTS inventory_counts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  prepared_by TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft', -- 'draft' | 'applied'
+  applied_at TEXT,
+  applied_by INTEGER REFERENCES users(id),
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS inventory_count_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  inventory_count_id INTEGER NOT NULL REFERENCES inventory_counts(id) ON DELETE CASCADE,
+  item_id INTEGER REFERENCES items(id) ON DELETE SET NULL,
+  item_no INTEGER NOT NULL,
+  description TEXT NOT NULL,
+  unit TEXT NOT NULL,
+  quantity_recorded INTEGER NOT NULL,
+  quantity_actual INTEGER,
+  variance INTEGER,
+  remarks TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_counts_lab ON inventory_counts(laboratory_id);
+CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(inventory_count_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);
