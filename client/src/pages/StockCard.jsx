@@ -62,8 +62,8 @@ export default function StockCard() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
-        <Link to="/items" className="text-sm text-slate-500 hover:text-slate-800">
-          ← Back to Items
+        <Link to={`/laboratories/${item.laboratory_id}`} className="text-sm text-slate-500 hover:text-slate-800">
+          ← Back to {item.laboratory_name}
         </Link>
         <div className="space-x-2">
           <button

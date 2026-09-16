@@ -203,8 +203,8 @@ export default function InventoryCountDetail() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
-        <Link to="/inventory-counts" className="text-sm text-slate-500 hover:text-slate-800">
-          ← Back to Inventory Counts
+        <Link to={`/laboratories/${count.laboratory_id}`} className="text-sm text-slate-500 hover:text-slate-800">
+          ← Back to {count.laboratory_name}
         </Link>
         <div className="space-x-2">
           {!readOnly && (
@@ -315,7 +315,7 @@ export default function InventoryCountDetail() {
                 const v = variance(row);
                 const key = row.id ?? row._key;
                 const isNew = !row.id; // not yet saved to the server
-                const canRemove = !readOnly && (isNew || row.created_new_item);
+                const canRemove = !readOnly && (isNew || !!row.created_new_item);
                 return (
                   <tr key={key} className={isNew ? 'bg-amber-50/50' : ''}>
                     <td className="border border-slate-300 px-3 py-2">{row.item_no}</td>

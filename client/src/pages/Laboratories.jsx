@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,6 +15,7 @@ export default function Laboratories() {
   const { user } = useAuth();
   const isAdmin = user.role === 'admin';
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [labs, setLabs] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -33,6 +34,15 @@ export default function Laboratories() {
   }
 
   useEffect(load, [statusFilter, departmentFilter]);
+
+  // A staff account with exactly one laboratory doesn't need a list — take
+  // them straight to it.
+  useEffect(() => {
+    if (!isAdmin && !statusFilter && !departmentFilter && labs.length === 1) {
+      navigate(`/laboratories/${labs[0].id}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [labs]);
   useEffect(() => {
     if (isAdmin) api.get('/departments').then((res) => setDepartments(res.data));
   }, []);
@@ -205,7 +215,11 @@ export default function Laboratories() {
           <tbody className="divide-y divide-slate-100">
             {labs.map((lab) => (
               <tr key={lab.id}>
-                <td className="px-4 py-3 font-medium text-slate-800">{lab.name}</td>
+                <td className="px-4 py-3 font-medium">
+                  <Link to={`/laboratories/${lab.id}`} className="text-emerald-700 hover:underline">
+                    {lab.name}
+                  </Link>
+                </td>
                 {isAdmin && <td className="px-4 py-3 text-slate-600">{lab.department_name}</td>}
                 <td className="px-4 py-3 text-slate-600">{lab.location}</td>
                 <td className="px-4 py-3">
@@ -219,15 +233,7 @@ export default function Laboratories() {
                     <p className="text-xs text-slate-400 mt-1">by {lab.requested_by_name}</p>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  {lab.status === 'approved' ? (
-                    <Link to={`/items?laboratory_id=${lab.id}`} className="text-emerald-700 hover:underline">
-                      {lab.item_count} items
-                    </Link>
-                  ) : (
-                    <span className="text-slate-400">{lab.item_count} items</span>
-                  )}
-                </td>
+                <td className="px-4 py-3 text-slate-600">{lab.item_count} items</td>
                 <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
                   {isAdmin && lab.status === 'pending' && (
                     <>

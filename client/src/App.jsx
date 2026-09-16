@@ -4,11 +4,10 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Laboratories from './pages/Laboratories';
-import Items from './pages/Items';
+import LaboratoryDetail from './pages/LaboratoryDetail';
 import StockCard from './pages/StockCard';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
-import InventoryCounts from './pages/InventoryCounts';
 import InventoryCountDetail from './pages/InventoryCountDetail';
 
 function ProtectedRoute({ children }) {
@@ -38,9 +37,8 @@ function AppRoutes() {
       >
         <Route index element={<Dashboard />} />
         <Route path="laboratories" element={<Laboratories />} />
-        <Route path="items" element={<Items />} />
+        <Route path="laboratories/:id" element={<LaboratoryDetail />} />
         <Route path="items/:id" element={<StockCard />} />
-        <Route path="inventory-counts" element={<InventoryCounts />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
         <Route
           path="departments"
