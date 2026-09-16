@@ -4,8 +4,20 @@ import { Link } from 'react-router-dom';
 // and give it a real `to` once that form is actually built.
 const FORMS = [
   { key: 'inventory-sheet', code: 'F-LAB-010', name: 'Inventory Sheet', to: (id) => `/laboratories/${id}`, ready: true },
-  { key: 'incident-report', code: 'F-LAB-009', name: 'Laboratory Incident Report', ready: false },
-  { key: 'waste-disposal-log', code: 'F-LAB-008', name: 'Waste Disposal Log', ready: false },
+  {
+    key: 'incident-report',
+    code: 'F-LAB-009',
+    name: 'Laboratory Incident Report',
+    to: (id) => `/laboratories/${id}/incident-reports`,
+    ready: true,
+  },
+  {
+    key: 'waste-disposal-log',
+    code: 'F-LAB-008',
+    name: 'Waste Disposal Log',
+    to: (id) => `/laboratories/${id}/waste-disposal-log`,
+    ready: true,
+  },
   {
     key: 'borrowing-request',
     code: 'F-LAB-007',

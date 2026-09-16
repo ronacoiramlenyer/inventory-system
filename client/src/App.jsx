@@ -17,6 +17,10 @@ import WorkRequestDetail from './pages/WorkRequestDetail';
 import LabBorrowingRequests from './pages/LabBorrowingRequests';
 import NewBorrowingRequest from './pages/NewBorrowingRequest';
 import BorrowingRequestDetail from './pages/BorrowingRequestDetail';
+import LabWasteDisposalLog from './pages/LabWasteDisposalLog';
+import LabIncidentReports from './pages/LabIncidentReports';
+import NewIncidentReport from './pages/NewIncidentReport';
+import IncidentReportDetail from './pages/IncidentReportDetail';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
 import InventoryCountDetail from './pages/InventoryCountDetail';
@@ -60,6 +64,10 @@ function AppRoutes() {
         <Route path="laboratories/:id/borrowing-requests/new" element={<NewBorrowingRequest />} />
         <Route path="laboratories/:id/borrowing-requests" element={<LabBorrowingRequests />} />
         <Route path="borrowing-requests/:id" element={<BorrowingRequestDetail />} />
+        <Route path="laboratories/:id/waste-disposal-log" element={<LabWasteDisposalLog />} />
+        <Route path="laboratories/:id/incident-reports/new" element={<NewIncidentReport />} />
+        <Route path="laboratories/:id/incident-reports" element={<LabIncidentReports />} />
+        <Route path="incident-reports/:id" element={<IncidentReportDetail />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
         <Route

@@ -13,6 +13,8 @@ import equipmentRoutes from './routes/equipment.js';
 import { maintenanceScheduleRoutes, calibrationScheduleRoutes } from './routes/schedules.js';
 import workRequestsRoutes from './routes/work-requests.js';
 import borrowingRequestsRoutes from './routes/borrowing-requests.js';
+import wasteDisposalLogRoutes from './routes/waste-disposal-log.js';
+import incidentReportsRoutes from './routes/incident-reports.js';
 
 const app = new Hono();
 
@@ -33,6 +35,8 @@ app.route('/api/maintenance-schedule', maintenanceScheduleRoutes);
 app.route('/api/calibration-schedule', calibrationScheduleRoutes);
 app.route('/api/work-requests', workRequestsRoutes);
 app.route('/api/borrowing-requests', borrowingRequestsRoutes);
+app.route('/api/waste-disposal-log', wasteDisposalLogRoutes);
+app.route('/api/incident-reports', incidentReportsRoutes);
 
 app.onError((err, c) => {
   console.error(err);

@@ -203,6 +203,44 @@ CREATE TABLE IF NOT EXISTS borrowing_request_items (
 CREATE INDEX IF NOT EXISTS idx_borrow_req_lab ON borrowing_requests(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_borrow_req_items_req ON borrowing_request_items(borrowing_request_id);
 
+-- F-LAB-008 Waste Disposal Log: a straightforward per-lab running log.
+CREATE TABLE IF NOT EXISTS waste_disposal_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  turnover_date TEXT NOT NULL,      -- YYYY-MM-DD
+  waste_description TEXT NOT NULL,
+  waste_classification TEXT,
+  quantity_volume TEXT,
+  disposal_method TEXT,
+  remarks TEXT,
+  received_by TEXT,
+  logged_by TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_waste_log_lab ON waste_disposal_logs(laboratory_id);
+
+-- F-LAB-009 Laboratory Incident Report: one record per incident.
+CREATE TABLE IF NOT EXISTS incident_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  incident_datetime TEXT NOT NULL,  -- free-form date & time of incident
+  class_name TEXT,
+  teacher TEXT,
+  incident_types TEXT,              -- comma-separated selections from the checkbox list
+  incident_type_other TEXT,
+  individuals_involved TEXT,
+  detailed_description TEXT,
+  immediate_actions_taken TEXT,
+  prepared_by TEXT,
+  designation TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_incident_reports_lab ON incident_reports(laboratory_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);
