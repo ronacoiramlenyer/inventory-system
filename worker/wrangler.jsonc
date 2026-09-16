@@ -13,7 +13,11 @@
   "vars": {
     // Where a filed F-LAB-004 Equipment Work Request gets emailed. Not
     // sensitive, so it's a plain var rather than a secret.
-    "SECRETARY_EMAIL": "nina.sabellano@lsgh.edu.ph"
+    "SECRETARY_EMAIL": "nina.sabellano@lsgh.edu.ph",
+    // Requires lsgh.edu.ph to be a verified sending domain in Resend
+    // (resend.com/domains) -- until then, sends will fail gracefully and the
+    // approver sees a "couldn't send" notice instead of a delivered email.
+    "EMAIL_FROM": "LSGH Lab Inventory <noreply@lsgh.edu.ph>"
   }
   // JWT_SECRET and RESEND_API_KEY are intentionally not set here. For local
   // dev, copy .dev.vars.example to .dev.vars (gitignored). For the deployed

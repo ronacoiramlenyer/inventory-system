@@ -16,7 +16,10 @@ export async function sendWorkRequestEmail(env, request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'LSGH Lab Inventory <onboarding@resend.dev>',
+        // Falls back to Resend's sandbox sender, which can only deliver to the
+        // Resend account's own address -- set EMAIL_FROM once a sending domain
+        // is verified in Resend so it can actually reach the secretary.
+        from: env.EMAIL_FROM || 'LSGH Lab Inventory <onboarding@resend.dev>',
         to: [env.SECRETARY_EMAIL],
         subject: `Equipment Work Request ${request.request_no} — ${request.equipment_name_description}`,
         html,
@@ -26,7 +29,11 @@ export async function sendWorkRequestEmail(env, request) {
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       console.error(`Resend API error ${res.status}: ${body}`);
-      return { sent: false, error: `Resend API error ${res.status}` };
+      const hint =
+        res.status === 403
+          ? 'sending domain not verified in Resend yet — see resend.com/domains'
+          : `Resend API error ${res.status}`;
+      return { sent: false, error: hint };
     }
     return { sent: true };
   } catch (err) {
