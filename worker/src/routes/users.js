@@ -11,6 +11,8 @@ const USER_SELECT = `
   FROM users u LEFT JOIN departments d ON d.id = u.department_id
 `;
 
+const VALID_ROLES = ['admin', 'staff', 'subject_coordinator'];
+
 users.get('/', async (c) => {
   const rows = await dbAll(c.env.DB, USER_SELECT + ' ORDER BY u.role DESC, u.full_name');
   return c.json(rows);
@@ -21,9 +23,9 @@ users.post('/', async (c) => {
   if (!full_name?.trim() || !username?.trim() || !password) {
     return c.json({ error: 'full_name, username and password are required' }, 400);
   }
-  const normalizedRole = role === 'admin' ? 'admin' : 'staff';
-  if (normalizedRole === 'staff' && !department_id) {
-    return c.json({ error: 'Staff accounts must be assigned a department' }, 400);
+  const normalizedRole = VALID_ROLES.includes(role) ? role : 'staff';
+  if (normalizedRole !== 'admin' && !department_id) {
+    return c.json({ error: 'Staff and Subject Coordinator accounts must be assigned a department' }, 400);
   }
   try {
     const passwordHash = bcrypt.hashSync(password, 10);
@@ -34,7 +36,7 @@ users.post('/', async (c) => {
       username.trim(),
       passwordHash,
       normalizedRole,
-      normalizedRole === 'staff' ? department_id : null
+      normalizedRole !== 'admin' ? department_id : null
     );
     const user = await dbGet(c.env.DB, USER_SELECT + ' WHERE u.id = ?', result.lastInsertRowid);
     return c.json(user, 201);
@@ -53,11 +55,11 @@ users.put('/:id', async (c) => {
   if (!existing) return c.json({ error: 'User not found' }, 404);
 
   const { full_name, role, department_id, password } = await c.req.json().catch(() => ({}));
-  const normalizedRole = role === 'admin' ? 'admin' : role === 'staff' ? 'staff' : existing.role;
-  const newDepartmentId = normalizedRole === 'staff' ? department_id ?? existing.department_id : null;
+  const normalizedRole = VALID_ROLES.includes(role) ? role : existing.role;
+  const newDepartmentId = normalizedRole !== 'admin' ? department_id ?? existing.department_id : null;
 
-  if (normalizedRole === 'staff' && !newDepartmentId) {
-    return c.json({ error: 'Staff accounts must be assigned a department' }, 400);
+  if (normalizedRole !== 'admin' && !newDepartmentId) {
+    return c.json({ error: 'Staff and Subject Coordinator accounts must be assigned a department' }, 400);
   }
   if (currentUser.id === Number(id) && normalizedRole !== 'admin') {
     return c.json({ error: 'You cannot demote your own admin account' }, 400);

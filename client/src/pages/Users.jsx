@@ -98,10 +98,11 @@ export default function Users() {
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
               <option value="staff">Staff</option>
+              <option value="subject_coordinator">Subject Coordinator</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-          {form.role === 'staff' && (
+          {form.role !== 'admin' && (
             <div className="col-span-2">
               <label className="block text-sm text-slate-600 mb-1">Department</label>
               <select
@@ -153,7 +154,9 @@ export default function Users() {
               <tr key={u.id}>
                 <td className="px-4 py-3 font-medium text-slate-800">{u.full_name}</td>
                 <td className="px-4 py-3 text-slate-600">{u.username}</td>
-                <td className="px-4 py-3 text-slate-600 capitalize">{u.role}</td>
+                <td className="px-4 py-3 text-slate-600">
+                  {u.role === 'subject_coordinator' ? 'Subject Coordinator' : u.role === 'admin' ? 'Admin' : 'Staff'}
+                </td>
                 <td className="px-4 py-3 text-slate-600">{u.department_name || '—'}</td>
                 <td className="px-4 py-3 text-right">
                   {u.id !== currentUser.id && (

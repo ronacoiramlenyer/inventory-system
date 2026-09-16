@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
   full_name TEXT NOT NULL,
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'staff', -- 'admin' | 'staff'
-  department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL, -- required for staff, NULL for admin
+  role TEXT NOT NULL DEFAULT 'staff', -- 'admin' | 'staff' | 'subject_coordinator'
+  department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL, -- required for staff/subject_coordinator, NULL for admin
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -66,7 +66,9 @@ export default function Layout() {
         </nav>
         <div className="px-4 py-4 border-t border-slate-800">
           <p className="text-sm font-medium">{user?.full_name}</p>
-          <p className="text-xs text-slate-400 capitalize mb-3">{user?.role}</p>
+          <p className="text-xs text-slate-400 mb-3">
+            {user?.role === 'subject_coordinator' ? 'Subject Coordinator' : user?.role === 'admin' ? 'Admin' : 'Staff'}
+          </p>
           <button
             onClick={handleLogout}
             className="w-full text-sm bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 transition"

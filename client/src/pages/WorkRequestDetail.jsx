@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 
-const STATUS_OPTIONS = ['Pending', 'Filed', 'Approved', 'In Progress', 'Completed', 'Rejected'];
+const STATUS_OPTIONS = ['Filed', 'In Progress', 'Completed', 'Rejected'];
 
 export default function WorkRequestDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const location = useLocation();
   const [req, setReq] = useState(null);
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [emailNotice, setEmailNotice] = useState(null);
 
   function load() {
     api.get(`/work-requests/${id}`).then((res) => {
       setReq(res.data);
       setForm({
         approved_by: res.data.approved_by || '',
-        status: res.data.status,
+        status: res.data.status === 'Pending' ? 'Filed' : res.data.status,
         date_completed: res.data.date_completed || '',
         remarks: res.data.remarks || '',
       });
@@ -26,6 +30,22 @@ export default function WorkRequestDetail() {
   }
 
   useEffect(load, [id]);
+
+  const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && Number(user.department_id) === Number(req.department_id)));
+
+  async function handleApprove() {
+    setError('');
+    setApproving(true);
+    try {
+      const { data } = await api.post(`/work-requests/${id}/approve`);
+      setEmailNotice({ sent: data.email_sent, error: data.email_error });
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to approve request');
+    } finally {
+      setApproving(false);
+    }
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -61,14 +81,19 @@ export default function WorkRequestDetail() {
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
-      {location.state?.emailSent === true && (
-        <p className="no-print text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
-          Filed and emailed to the secretary.
+      {location.state?.justSubmitted && req.status === 'Pending' && (
+        <p className="no-print text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+          Submitted — awaiting Subject Coordinator approval before it's filed and sent to the secretary.
         </p>
       )}
-      {location.state?.emailSent === false && (
+      {emailNotice?.sent === true && (
+        <p className="no-print text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
+          Approved, filed, and emailed to the secretary.
+        </p>
+      )}
+      {emailNotice?.sent === false && (
         <p className="no-print text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-          Filed, but the email to the secretary could not be sent ({location.state.emailError || 'unknown error'}).
+          Approved and filed, but the email to the secretary could not be sent ({emailNotice.error || 'unknown error'}).
           Please notify them another way.
         </p>
       )}
@@ -123,56 +148,87 @@ export default function WorkRequestDetail() {
           </tbody>
         </table>
 
-        <form onSubmit={handleSave} className="space-y-3 no-print">
-          <h3 className="font-semibold text-slate-700">Approval / Status</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Status</label>
-              <select
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Approved by (Subject Coordinator)</label>
-              <input
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={form.approved_by}
-                onChange={(e) => setForm({ ...form, approved_by: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Date Completed</label>
-              <input
-                type="date"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={form.date_completed}
-                onChange={(e) => setForm({ ...form, date_completed: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Remarks</label>
-              <input
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={form.remarks}
-                onChange={(e) => setForm({ ...form, remarks: e.target.value })}
-              />
-            </div>
+        {req.status === 'Pending' ? (
+          <div className="no-print">
+            {canApprove ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-2">
+                <p className="text-sm text-amber-800">
+                  Awaiting your approval as Subject Coordinator. Approving files this request and emails the
+                  secretary.
+                </p>
+                <button
+                  onClick={handleApprove}
+                  disabled={approving}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+                >
+                  {approving ? 'Approving…' : 'Approve & File to Secretary'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                Awaiting approval from the Subject Coordinator before this is filed and sent to the secretary.
+              </p>
+            )}
           </div>
-          <button
-            disabled={saving}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </form>
+        ) : canApprove ? (
+          <form onSubmit={handleSave} className="space-y-3 no-print">
+            <h3 className="font-semibold text-slate-700">Status</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Status</label>
+                <select
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Approved by (Subject Coordinator)</label>
+                <input
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={form.approved_by}
+                  onChange={(e) => setForm({ ...form, approved_by: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Date Completed</label>
+                <input
+                  type="date"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={form.date_completed}
+                  onChange={(e) => setForm({ ...form, date_completed: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Remarks</label>
+                <input
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={form.remarks}
+                  onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+                />
+              </div>
+            </div>
+            <button
+              disabled={saving}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </form>
+        ) : (
+          <div className="no-print text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 space-y-1">
+            <p>Status: {req.status}</p>
+            {req.approved_by && <p>Approved by: {req.approved_by}</p>}
+            {req.date_completed && <p>Date Completed: {req.date_completed}</p>}
+            {req.remarks && <p>Remarks: {req.remarks}</p>}
+          </div>
+        )}
 
         <div className="hidden print:block mt-4 text-sm">
           <p>Status: {req.status}</p>

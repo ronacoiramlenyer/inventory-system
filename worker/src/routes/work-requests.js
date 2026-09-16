@@ -28,6 +28,14 @@ function userCanAccessRow(user, row) {
   return Number(row.department_id) === Number(user.department_id) && row.lab_status === 'approved';
 }
 
+// Only an admin, or the Subject Coordinator of the request's own department,
+// may approve/file a request or otherwise change its status.
+function userCanApprove(user, row) {
+  if (!row) return false;
+  if (user.role === 'admin') return true;
+  return user.role === 'subject_coordinator' && Number(row.department_id) === Number(user.department_id);
+}
+
 async function nextRequestNo(db) {
   const year = new Date().getFullYear();
   const prefix = `EWR-${year}-`;
@@ -111,13 +119,36 @@ workRequests.post('/', async (c) => {
     nature_of_request?.trim() || null,
     detailed_description?.trim() || null,
     requested_by?.trim() || user.full_name,
-    // Submitting the EWR form means it's immediately filed and routed to the secretary.
-    'Filed',
+    // Awaits Subject Coordinator approval before it's filed and emailed to the secretary.
+    'Pending',
     user.id
   );
   const created = await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', result.lastInsertRowid);
-  const emailResult = await sendWorkRequestEmail(c.env, created);
-  return c.json({ ...created, email_sent: emailResult.sent, email_error: emailResult.error }, 201);
+  return c.json(created, 201);
+});
+
+// Subject Coordinator (or admin) approval: files the request and emails the secretary.
+workRequests.post('/:id/approve', async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id');
+  const existing = await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', id);
+  if (!existing) return c.json({ error: 'Work request not found' }, 404);
+  if (!userCanApprove(user, existing)) {
+    return c.json({ error: 'Only the Subject Coordinator for this department can approve this request' }, 403);
+  }
+  if (existing.status !== 'Pending') {
+    return c.json({ error: `This request is already ${existing.status}` }, 400);
+  }
+
+  await dbRun(
+    c.env.DB,
+    `UPDATE work_requests SET status = 'Filed', approved_by = ? WHERE id = ?`,
+    user.full_name,
+    id
+  );
+  const updated = await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', id);
+  const emailResult = await sendWorkRequestEmail(c.env, updated);
+  return c.json({ ...updated, email_sent: emailResult.sent, email_error: emailResult.error });
 });
 
 workRequests.put('/:id', async (c) => {
@@ -142,6 +173,10 @@ workRequests.put('/:id', async (c) => {
     remarks,
   } = await c.req.json().catch(() => ({}));
 
+  // Only a Subject Coordinator/admin can move the approval fields -- everyone
+  // else (the requester, other staff) can only edit the request's details.
+  const canApprove = userCanApprove(user, existing);
+
   await dbRun(
     c.env.DB,
     `UPDATE work_requests SET equipment_name_description = ?, serial_number = ?, date_needed = ?,
@@ -153,9 +188,9 @@ workRequests.put('/:id', async (c) => {
     nature_of_request?.trim() ?? existing.nature_of_request,
     detailed_description?.trim() ?? existing.detailed_description,
     requested_by?.trim() ?? existing.requested_by,
-    approved_by?.trim() ?? existing.approved_by,
-    status?.trim() || existing.status,
-    date_completed ?? existing.date_completed,
+    canApprove ? approved_by?.trim() ?? existing.approved_by : existing.approved_by,
+    canApprove ? status?.trim() || existing.status : existing.status,
+    canApprove ? date_completed ?? existing.date_completed : existing.date_completed,
     remarks?.trim() ?? existing.remarks,
     id
   );

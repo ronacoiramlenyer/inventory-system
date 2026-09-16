@@ -32,7 +32,7 @@ export default function NewWorkRequest() {
       const { data } = await api.post('/work-requests', { ...form, laboratory_id: id });
       navigate(`/work-requests/${data.id}`, {
         replace: true,
-        state: { emailSent: data.email_sent, emailError: data.email_error },
+        state: { justSubmitted: true },
       });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to submit request');
