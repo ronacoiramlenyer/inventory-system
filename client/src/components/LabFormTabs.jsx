@@ -23,32 +23,34 @@ const FORMS = [
 
 export default function LabFormTabs({ laboratoryId, active }) {
   return (
-    <div className="no-print flex gap-1 border-b border-slate-200 overflow-x-auto">
-      {FORMS.map((form) =>
-        form.ready ? (
-          <Link
-            key={form.key}
-            to={form.to(laboratoryId)}
-            className={`shrink-0 px-3 py-1.5 text-center border-b-2 -mb-px ${
-              active === form.key
-                ? 'border-emerald-600 text-emerald-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <div className="text-xs font-semibold leading-tight">{form.code}</div>
-            <div className="text-sm font-medium leading-tight">{form.name}</div>
-          </Link>
-        ) : (
-          <span
-            key={form.key}
-            title="Not built yet"
-            className="shrink-0 px-3 py-1.5 text-center border-b-2 border-transparent text-slate-300 cursor-not-allowed"
-          >
-            <div className="text-xs font-semibold leading-tight">{form.code}</div>
-            <div className="text-sm font-medium leading-tight">{form.name}</div>
-          </span>
-        )
-      )}
+    <div className="no-print bg-white border border-slate-200 rounded-xl p-3">
+      <div className="flex flex-wrap gap-2">
+        {FORMS.map((form) =>
+          form.ready ? (
+            <Link
+              key={form.key}
+              to={form.to(laboratoryId)}
+              className={`w-36 rounded-lg border px-3 py-2 text-center ${
+                active === form.key
+                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <div className="text-xs font-semibold leading-tight">{form.code}</div>
+              <div className="text-sm font-medium leading-tight">{form.name}</div>
+            </Link>
+          ) : (
+            <span
+              key={form.key}
+              title="Not built yet"
+              className="w-36 rounded-lg border border-slate-100 px-3 py-2 text-center text-slate-300 cursor-not-allowed"
+            >
+              <div className="text-xs font-semibold leading-tight">{form.code}</div>
+              <div className="text-sm font-medium leading-tight">{form.name}</div>
+            </span>
+          )
+        )}
+      </div>
     </div>
   );
 }
