@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS items (
   initial_balance INTEGER NOT NULL DEFAULT 0,
   reorder_level INTEGER NOT NULL DEFAULT 0,
   notes TEXT,
+  import_batch_id TEXT,             -- set when created via bulk Import Items, so a bad batch can be deleted together
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(laboratory_id, item_name)
 );
@@ -93,5 +94,6 @@ CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);
 CREATE INDEX IF NOT EXISTS idx_items_lab ON items(laboratory_id);
+CREATE INDEX IF NOT EXISTS idx_items_batch ON items(import_batch_id);
 CREATE INDEX IF NOT EXISTS idx_txn_item ON transactions(item_id);
 CREATE INDEX IF NOT EXISTS idx_txn_date ON transactions(item_id, entry_date, id);

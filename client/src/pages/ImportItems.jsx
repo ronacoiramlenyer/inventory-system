@@ -44,16 +44,33 @@ export default function ImportItems() {
   const [defaultUnit, setDefaultUnit] = useState('pcs');
   const [previewRows, setPreviewRows] = useState([]);
   const [importing, setImporting] = useState(false);
-  const [results, setResults] = useState(null); // { created, skipped: [{name, error}] }
+  const [results, setResults] = useState(null); // { batchId, created, skipped: [{name, error}] }
   const [error, setError] = useState('');
+  const [batches, setBatches] = useState([]);
+
+  function loadBatches() {
+    api.get('/items/import-batches').then((res) => setBatches(res.data));
+  }
 
   useEffect(() => {
     api.get('/laboratories', { params: { status: 'approved' } }).then((res) => {
       setLabs(res.data);
       if (!laboratoryId && res.data.length === 1) setLaboratoryId(String(res.data[0].id));
     });
+    loadBatches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handleDeleteBatch(batchId, itemCount) {
+    if (!confirm(`Delete all ${itemCount} item(s) from this import batch? This can't be undone.`)) return;
+    try {
+      await api.delete(`/items/import-batches/${batchId}`);
+      loadBatches();
+      if (results?.batchId === batchId) setResults(null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete batch');
+    }
+  }
 
   function handleParse() {
     setError('');
@@ -120,6 +137,7 @@ export default function ImportItems() {
   async function handleImport() {
     setImporting(true);
     setError('');
+    const batchId = crypto.randomUUID();
     const created = [];
     const skipped = [];
     for (const row of previewRows) {
@@ -132,14 +150,16 @@ export default function ImportItems() {
           category: row.category?.trim() || null,
           reorder_level: row.reorder_level,
           notes: row.notes?.trim() || null,
+          import_batch_id: batchId,
         });
         created.push(row.item_name);
       } catch (err) {
         skipped.push({ name: row.item_name, error: err.response?.data?.error || 'Failed' });
       }
     }
-    setResults({ created, skipped });
+    setResults({ batchId, created, skipped });
     setImporting(false);
+    loadBatches();
   }
 
   return (
@@ -332,12 +352,57 @@ export default function ImportItems() {
               </ul>
             </div>
           )}
-          <button
-            onClick={() => navigate(`/items?laboratory_id=${laboratoryId}`)}
-            className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
-          >
-            Go to Items
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate(`/items?laboratory_id=${laboratoryId}`)}
+              className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              Go to Items
+            </button>
+            {results.created.length > 0 && (
+              <button
+                onClick={() => handleDeleteBatch(results.batchId, results.created.length)}
+                className="bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium rounded-lg px-4 py-2"
+              >
+                Undo — Delete These {results.created.length} Item(s)
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {batches.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden max-w-3xl">
+          <div className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-700">
+            Recent Import Batches
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium">Laboratory</th>
+                <th className="px-4 py-2 text-left font-medium">Items</th>
+                <th className="px-4 py-2 text-left font-medium">Date</th>
+                <th className="px-4 py-2 text-right font-medium"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {batches.map((b) => (
+                <tr key={b.batch_id}>
+                  <td className="px-4 py-2">{b.laboratory_name}</td>
+                  <td className="px-4 py-2">{b.item_count}</td>
+                  <td className="px-4 py-2 text-slate-500">{b.created_at?.slice(0, 10)}</td>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      onClick={() => handleDeleteBatch(b.batch_id, b.item_count)}
+                      className="text-red-600 hover:text-red-800 text-xs"
+                    >
+                      Delete Batch
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
