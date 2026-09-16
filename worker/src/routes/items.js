@@ -51,45 +51,6 @@ items.get('/', async (c) => {
   return c.json(rows);
 });
 
-items.get('/import-batches', async (c) => {
-  const user = c.get('user');
-  const clauses = ["i.import_batch_id IS NOT NULL"];
-  const params = [];
-  if (user.role !== 'admin') {
-    clauses.push('l.department_id = ?');
-    params.push(user.department_id);
-  }
-  const rows = await dbAll(
-    c.env.DB,
-    `SELECT i.import_batch_id AS batch_id, i.laboratory_id, l.name AS laboratory_name, d.name AS department_name,
-       COUNT(*) AS item_count, MIN(i.created_at) AS created_at
-     FROM items i
-     JOIN laboratories l ON l.id = i.laboratory_id
-     JOIN departments d ON d.id = l.department_id
-     WHERE ${clauses.join(' AND ')}
-     GROUP BY i.import_batch_id
-     ORDER BY created_at DESC`,
-    ...params
-  );
-  return c.json(rows);
-});
-
-items.delete('/import-batches/:batchId', async (c) => {
-  const user = c.get('user');
-  const batchId = c.req.param('batchId');
-  const sample = await dbGet(
-    c.env.DB,
-    `SELECT i.*, l.department_id, l.status FROM items i JOIN laboratories l ON l.id = i.laboratory_id WHERE i.import_batch_id = ? LIMIT 1`,
-    batchId
-  );
-  if (!sample) return c.json({ error: 'Import batch not found' }, 404);
-  if (!labAccessibleToUser(user, { department_id: sample.department_id, status: sample.status })) {
-    return c.json({ error: 'You do not have access to this import batch' }, 403);
-  }
-  const result = await dbRun(c.env.DB, 'DELETE FROM items WHERE import_batch_id = ?', batchId);
-  return c.json({ deleted: result.changes });
-});
-
 items.get('/:id', async (c) => {
   const user = c.get('user');
   const item = await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', c.req.param('id'));
@@ -102,7 +63,7 @@ items.get('/:id', async (c) => {
 
 items.post('/', async (c) => {
   const user = c.get('user');
-  const { laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, import_batch_id } =
+  const { laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes } =
     await c.req.json().catch(() => ({}));
   if (!laboratory_id || !item_name || !unit_of_measure) {
     return c.json({ error: 'laboratory_id, item_name and unit_of_measure are required' }, 400);
@@ -116,16 +77,15 @@ items.post('/', async (c) => {
   try {
     const result = await dbRun(
       c.env.DB,
-      `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, import_batch_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       laboratory_id,
       item_name.trim(),
       category?.trim() || null,
       unit_of_measure.trim(),
       Number(initial_balance) || 0,
       Number(reorder_level) || 0,
-      notes?.trim() || null,
-      import_batch_id || null
+      notes?.trim() || null
     );
     return c.json(await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', result.lastInsertRowid), 201);
   } catch (err) {

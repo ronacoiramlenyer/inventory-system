@@ -4,6 +4,8 @@ import { readSheet } from 'read-excel-file/universal';
 import api from '../api/client';
 
 const normalize = (s) => String(s ?? '').trim().toLowerCase();
+let tempKeySeq = 0;
+const nextTempKey = () => `new-${++tempKeySeq}`;
 
 // Reads a filled-out F-LAB-010 Inventory Sheet export: finds the header row
 // (wherever it is) by looking for a "Description" cell, then reads rows
@@ -21,6 +23,7 @@ async function parseImportFile(file) {
   const colIndex = (name) => headerRow.findIndex((cell) => normalize(cell) === name);
 
   const descCol = colIndex('description');
+  const unitCol = colIndex('unit');
   const actualCol = colIndex('actual quantity');
   const remarksCol = colIndex('remarks');
 
@@ -31,6 +34,7 @@ async function parseImportFile(file) {
     if (!normalize(description)) break;
     imported.push({
       description: String(description).trim(),
+      unit: unitCol === -1 ? null : row[unitCol],
       actual: actualCol === -1 ? null : row[actualCol],
       remarks: remarksCol === -1 ? null : row[remarksCol],
     });
@@ -43,6 +47,7 @@ export default function InventoryCountDetail() {
   const [count, setCount] = useState(null);
   const [rows, setRows] = useState([]);
   const [preparedBy, setPreparedBy] = useState('');
+  const [defaultUnit, setDefaultUnit] = useState('pcs');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [importSummary, setImportSummary] = useState('');
@@ -60,8 +65,39 @@ export default function InventoryCountDetail() {
 
   const readOnly = count?.status === 'applied';
 
-  function updateRow(rowId, field, value) {
-    setRows((rs) => rs.map((r) => (r.id === rowId ? { ...r, [field]: value } : r)));
+  function updateRow(key, field, value) {
+    setRows((rs) => rs.map((r) => ((r.id ?? r._key) === key ? { ...r, [field]: value } : r)));
+  }
+
+  function addRow() {
+    setRows((rs) => [
+      ...rs,
+      {
+        _key: nextTempKey(),
+        id: null,
+        item_no: rs.length + 1,
+        description: '',
+        unit: defaultUnit,
+        quantity_recorded: 0,
+        quantity_actual: '',
+        remarks: '',
+        created_new_item: 0,
+      },
+    ]);
+  }
+
+  function removeUnsavedRow(key) {
+    setRows((rs) => rs.filter((r) => (r.id ?? r._key) !== key));
+  }
+
+  async function removeSavedRow(rowId) {
+    if (!confirm('Remove this item? Since it was added on this sheet, it will be deleted entirely.')) return;
+    try {
+      await api.delete(`/inventory-counts/${id}/items/${rowId}`);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to remove that row');
+    }
   }
 
   function variance(row) {
@@ -73,10 +109,17 @@ export default function InventoryCountDetail() {
     setError('');
     setSaving(true);
     try {
-      await api.put(`/inventory-counts/${id}`, {
+      const { data } = await api.put(`/inventory-counts/${id}`, {
         prepared_by: preparedBy,
-        items: rows.map((r) => ({ id: r.id, quantity_actual: r.quantity_actual, remarks: r.remarks })),
+        items: rows.map((r) => ({
+          id: r.id || undefined,
+          description: r.description,
+          unit: r.unit,
+          quantity_actual: r.quantity_actual,
+          remarks: r.remarks,
+        })),
       });
+      if (data.errors?.length) setError(data.errors.join(' '));
       load();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save');
@@ -94,12 +137,13 @@ export default function InventoryCountDetail() {
     setImportSummary('');
     try {
       const imported = await parseImportFile(file);
-      const byDescription = new Map(imported.map((r) => [normalize(r.description), r]));
 
       let matched = 0;
-      setRows((rs) =>
-        rs.map((row) => {
-          const found = byDescription.get(normalize(row.description));
+      let added = 0;
+      setRows((rs) => {
+        const existingKeys = new Set(rs.map((r) => normalize(r.description)));
+        const next = rs.map((row) => {
+          const found = imported.find((r) => normalize(r.description) === normalize(row.description));
           if (!found) return row;
           matched++;
           return {
@@ -107,13 +151,27 @@ export default function InventoryCountDetail() {
             quantity_actual: found.actual === null || found.actual === undefined ? row.quantity_actual : found.actual,
             remarks: found.remarks === null || found.remarks === undefined ? row.remarks : String(found.remarks),
           };
-        })
-      );
+        });
+        for (const found of imported) {
+          if (existingKeys.has(normalize(found.description))) continue;
+          added++;
+          next.push({
+            _key: nextTempKey(),
+            id: null,
+            item_no: next.length + 1,
+            description: found.description,
+            unit: found.unit ? String(found.unit).trim() : defaultUnit,
+            quantity_recorded: 0,
+            quantity_actual: found.actual ?? '',
+            remarks: found.remarks ? String(found.remarks) : '',
+            created_new_item: 0,
+          });
+        }
+        return next;
+      });
 
-      const unmatched = imported.length - matched;
       setImportSummary(
-        `Imported ${matched} of ${imported.length} row(s) from the file.` +
-          (unmatched > 0 ? ` ${unmatched} row(s) didn't match an item by description and were skipped.` : '')
+        `${matched} row(s) matched an existing item and were updated. ${added} new row(s) were added for items not on this sheet yet — review them below, then Save.`
       );
     } catch (err) {
       setError(err.message || 'Failed to read that file');
@@ -165,6 +223,12 @@ export default function InventoryCountDetail() {
                 Import from Excel
               </button>
               <button
+                onClick={addRow}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+              >
+                + Add Row
+              </button>
+              <button
                 onClick={handleSave}
                 disabled={saving}
                 className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
@@ -194,6 +258,13 @@ export default function InventoryCountDetail() {
       {readOnly && (
         <div className="no-print bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-4 py-2 text-sm">
           This count was applied to stock on {count.applied_at?.slice(0, 10)} by {count.applied_by_name}.
+        </div>
+      )}
+
+      {!readOnly && rows.length === 0 && (
+        <div className="no-print bg-slate-50 border border-slate-200 text-slate-600 rounded-lg px-4 py-3 text-sm">
+          This laboratory doesn't have any items yet. Click <strong>+ Add Row</strong> to start listing what's in the
+          lab, or <strong>Import from Excel</strong> to bring in a filled-out sheet.
         </div>
       )}
 
@@ -236,16 +307,41 @@ export default function InventoryCountDetail() {
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-right">Actual Quantity</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-right">Variance</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Remarks</th>
+                {!readOnly && <th className="border border-slate-300 px-3 py-2 no-print w-16"></th>}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => {
                 const v = variance(row);
+                const key = row.id ?? row._key;
+                const isNew = !row.id; // not yet saved to the server
+                const canRemove = !readOnly && (isNew || row.created_new_item);
                 return (
-                  <tr key={row.id}>
+                  <tr key={key} className={isNew ? 'bg-amber-50/50' : ''}>
                     <td className="border border-slate-300 px-3 py-2">{row.item_no}</td>
-                    <td className="border border-slate-300 px-3 py-2">{row.description}</td>
-                    <td className="border border-slate-300 px-3 py-2">{row.unit}</td>
+                    <td className="border border-slate-300 px-3 py-2">
+                      {isNew ? (
+                        <input
+                          className="w-full border border-slate-300 rounded px-2 py-1 text-sm"
+                          placeholder="Item name"
+                          value={row.description}
+                          onChange={(e) => updateRow(key, 'description', e.target.value)}
+                        />
+                      ) : (
+                        row.description
+                      )}
+                    </td>
+                    <td className="border border-slate-300 px-3 py-2">
+                      {isNew ? (
+                        <input
+                          className="w-20 border border-slate-300 rounded px-2 py-1 text-sm"
+                          value={row.unit}
+                          onChange={(e) => updateRow(key, 'unit', e.target.value)}
+                        />
+                      ) : (
+                        row.unit
+                      )}
+                    </td>
                     <td className="border border-slate-300 px-3 py-2 text-right">{row.quantity_recorded}</td>
                     <td className="border border-slate-300 px-3 py-2 text-right">
                       {readOnly ? (
@@ -255,7 +351,7 @@ export default function InventoryCountDetail() {
                           type="number"
                           className="w-20 border border-slate-300 rounded px-2 py-1 text-sm text-right"
                           value={row.quantity_actual}
-                          onChange={(e) => updateRow(row.id, 'quantity_actual', e.target.value)}
+                          onChange={(e) => updateRow(key, 'quantity_actual', e.target.value)}
                         />
                       )}
                     </td>
@@ -273,17 +369,29 @@ export default function InventoryCountDetail() {
                         <input
                           className="w-full border border-slate-300 rounded px-2 py-1 text-sm"
                           value={row.remarks || ''}
-                          onChange={(e) => updateRow(row.id, 'remarks', e.target.value)}
+                          onChange={(e) => updateRow(key, 'remarks', e.target.value)}
                         />
                       )}
                     </td>
+                    {!readOnly && (
+                      <td className="border border-slate-300 px-3 py-2 no-print text-center">
+                        {canRemove && (
+                          <button
+                            onClick={() => (isNew ? removeUnsavedRow(key) : removeSavedRow(row.id))}
+                            className="text-slate-400 hover:text-red-600 text-xs underline"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
-                    This laboratory has no items to count.
+                  <td colSpan={readOnly ? 7 : 8} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
+                    No items yet.
                   </td>
                 </tr>
               )}

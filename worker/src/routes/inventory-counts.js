@@ -138,28 +138,88 @@ inventoryCounts.put('/:id', async (c) => {
     await dbRun(c.env.DB, 'UPDATE inventory_counts SET prepared_by = ? WHERE id = ?', prepared_by.trim(), count.id);
   }
 
-  for (const row of items || []) {
-    const existingRow = await dbGet(
-      c.env.DB,
-      'SELECT * FROM inventory_count_items WHERE id = ? AND inventory_count_id = ?',
-      row.id,
-      count.id
-    );
-    if (!existingRow) continue;
+  const errors = [];
 
+  for (const row of items || []) {
     const actual = row.quantity_actual === '' || row.quantity_actual === undefined || row.quantity_actual === null
       ? null
       : Number(row.quantity_actual);
-    const variance = actual === null ? null : actual - existingRow.quantity_recorded;
 
-    await dbRun(
-      c.env.DB,
-      'UPDATE inventory_count_items SET quantity_actual = ?, variance = ?, remarks = ? WHERE id = ?',
-      actual,
-      variance,
-      row.remarks?.trim() || null,
-      existingRow.id
-    );
+    if (row.id) {
+      const existingRow = await dbGet(
+        c.env.DB,
+        'SELECT * FROM inventory_count_items WHERE id = ? AND inventory_count_id = ?',
+        row.id,
+        count.id
+      );
+      if (!existingRow) continue;
+
+      const variance = actual === null ? null : actual - existingRow.quantity_recorded;
+      await dbRun(
+        c.env.DB,
+        'UPDATE inventory_count_items SET quantity_actual = ?, variance = ?, remarks = ? WHERE id = ?',
+        actual,
+        variance,
+        row.remarks?.trim() || null,
+        existingRow.id
+      );
+    } else {
+      // A row added directly on the sheet: create the item (or reuse one that
+      // already matches by name in this lab) and link a new count-item row to it.
+      const description = row.description?.trim();
+      const unit = row.unit?.trim();
+      if (!description || !unit) {
+        errors.push(`A new row is missing ${!description ? 'a description' : 'a unit'} and was skipped.`);
+        continue;
+      }
+
+      let item = await dbGet(
+        c.env.DB,
+        'SELECT * FROM items WHERE laboratory_id = ? AND item_name = ? COLLATE NOCASE',
+        count.laboratory_id,
+        description
+      );
+      let createdNewItem = 0;
+      if (!item) {
+        try {
+          const result = await dbRun(
+            c.env.DB,
+            `INSERT INTO items (laboratory_id, item_name, unit_of_measure, initial_balance, reorder_level)
+             VALUES (?, ?, ?, 0, 0)`,
+            count.laboratory_id,
+            description,
+            unit
+          );
+          item = await dbGet(c.env.DB, 'SELECT * FROM items WHERE id = ?', result.lastInsertRowid);
+          createdNewItem = 1;
+        } catch (err) {
+          errors.push(`"${description}": ${String(err.message).includes('UNIQUE') ? 'already exists' : 'failed to create'}`);
+          continue;
+        }
+      }
+
+      const maxItemNo = await dbGet(
+        c.env.DB,
+        'SELECT COALESCE(MAX(item_no), 0) AS n FROM inventory_count_items WHERE inventory_count_id = ?',
+        count.id
+      );
+
+      await dbRun(
+        c.env.DB,
+        `INSERT INTO inventory_count_items
+          (inventory_count_id, item_id, item_no, description, unit, quantity_recorded, quantity_actual, variance, remarks, created_new_item)
+         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+        count.id,
+        item.id,
+        maxItemNo.n + 1,
+        description,
+        unit,
+        actual,
+        actual, // variance against a starting record of 0 is just the actual quantity
+        row.remarks?.trim() || null,
+        createdNewItem
+      );
+    }
   }
 
   const updated = await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id);
@@ -168,7 +228,34 @@ inventoryCounts.put('/:id', async (c) => {
     'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
     count.id
   );
-  return c.json({ ...updated, items: rows });
+  return c.json({ ...updated, items: rows, errors });
+});
+
+inventoryCounts.delete('/:id/items/:rowId', async (c) => {
+  const user = c.get('user');
+  const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
+  if (!count) return c.json({ error: 'Inventory count not found' }, 404);
+  if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+  if (count.status === 'applied') {
+    return c.json({ error: 'This count has already been applied and can no longer be edited' }, 400);
+  }
+
+  const row = await dbGet(
+    c.env.DB,
+    'SELECT * FROM inventory_count_items WHERE id = ? AND inventory_count_id = ?',
+    c.req.param('rowId'),
+    count.id
+  );
+  if (!row) return c.json({ error: 'Row not found' }, 404);
+  if (!row.created_new_item) {
+    return c.json({ error: 'Only a row that created a new item on this sheet can be removed this way' }, 400);
+  }
+
+  await dbRun(c.env.DB, 'DELETE FROM inventory_count_items WHERE id = ?', row.id);
+  if (row.item_id) {
+    await dbRun(c.env.DB, 'DELETE FROM items WHERE id = ?', row.item_id);
+  }
+  return c.body(null, 204);
 });
 
 inventoryCounts.post('/:id/apply', async (c) => {

@@ -84,7 +84,8 @@ CREATE TABLE IF NOT EXISTS inventory_count_items (
   quantity_recorded INTEGER NOT NULL,
   quantity_actual INTEGER,
   variance INTEGER,
-  remarks TEXT
+  remarks TEXT,
+  created_new_item INTEGER NOT NULL DEFAULT 0 -- 1 = this row's item didn't exist before this sheet; can be undone while draft
 );
 
 CREATE INDEX IF NOT EXISTS idx_inv_counts_lab ON inventory_counts(laboratory_id);

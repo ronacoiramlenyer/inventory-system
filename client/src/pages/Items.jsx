@@ -100,12 +100,6 @@ export default function Items() {
               </option>
             ))}
           </select>
-          <Link
-            to={`/items/import${laboratoryFilter ? `?laboratory_id=${laboratoryFilter}` : ''}`}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
-          >
-            Import Items
-          </Link>
           <button
             onClick={startNew}
             className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
@@ -114,6 +108,14 @@ export default function Items() {
           </button>
         </div>
       </div>
+
+      <p className="text-sm text-slate-500 -mt-2">
+        Adding several items at once, or doing a physical count? Use the{' '}
+        <Link to="/inventory-counts" className="text-emerald-700 hover:underline">
+          F-LAB-010 Inventory Sheet
+        </Link>{' '}
+        instead.
+      </p>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 max-w-xl">
