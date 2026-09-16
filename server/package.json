@@ -5,13 +5,15 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node --experimental-sqlite src/index.js",
+    "dev": "nodemon --experimental-sqlite src/index.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
   },
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

@@ -26,6 +26,11 @@ client/   React (Vite) frontend
 
 ## Getting started
 
+Requires **Node.js 22.5+** (the backend uses Node's built-in `node:sqlite`
+module, so no native/C++ build tools are needed — this avoids the
+`node-gyp`/Visual Studio build errors that native SQLite packages like
+`better-sqlite3` cause on Windows).
+
 ### 1. Backend
 
 ```bash
