@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { refreshNotifications } from '../api/notifications';
 import { useAuth } from '../context/AuthContext';
 import OtherRequestsTabs from '../components/OtherRequestsTabs';
 
@@ -80,6 +81,7 @@ export default function BguJobRequests() {
     try {
       await api.post(`/bgu-job-requests/${row.id}/approve`);
       loadRows();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to approve');
     }
@@ -98,6 +100,7 @@ export default function BguJobRequests() {
       await api.put(`/bgu-job-requests/${statusEditId}`, { status: statusValue });
       setStatusEditId(null);
       loadRows();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update status');
     }
@@ -108,6 +111,7 @@ export default function BguJobRequests() {
     try {
       await api.delete(`/bgu-job-requests/${rowId}`);
       loadRows();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete');
     }

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
+import { onNotificationsRefresh } from '../api/notifications';
 
 const ROLE_LABELS = {
   admin: 'Admin',
@@ -26,16 +27,21 @@ export default function Layout() {
   }, [user]);
 
   // Counts of items awaiting this user's approval or status update --
-  // re-fetched on every navigation so acting on one and coming back
-  // updates the badge. Staff always get zeros (they aren't an approver
-  // or updater), so the backend keeps this cheap for them.
-  useEffect(() => {
+  // re-fetched on every navigation, and also whenever a page fires
+  // 'notifications:refresh' right after approving/filing/updating one in
+  // place (no route change), so the badge doesn't lag. Staff always get
+  // zeros (they aren't an approver or updater), so the backend keeps this
+  // cheap for them.
+  const loadNotifCounts = useCallback(() => {
     if (!user) return;
     api
       .get('/notifications/summary')
       .then((res) => setNotifCounts(res.data))
       .catch(() => {});
-  }, [user, location.pathname]);
+  }, [user]);
+
+  useEffect(loadNotifCounts, [loadNotifCounts, location.pathname]);
+  useEffect(() => onNotificationsRefresh(loadNotifCounts), [loadNotifCounts]);
 
   function handleLogout() {
     logout();

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { refreshNotifications } from '../api/notifications';
 import { useAuth } from '../context/AuthContext';
 import OtherRequestsTabs from '../components/OtherRequestsTabs';
 
@@ -85,6 +86,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
     try {
       await api.post(`/${apiBase}/${row.id}/approve`);
       loadRows();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to approve');
     }
@@ -103,6 +105,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
       await api.put(`/${apiBase}/${statusEditId}`, { status: statusValue });
       setStatusEditId(null);
       loadRows();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update status');
     }
@@ -113,6 +116,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
     try {
       await api.delete(`/${apiBase}/${rowId}`);
       loadRows();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete');
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../api/client';
+import { refreshNotifications } from '../api/notifications';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 
@@ -46,6 +47,7 @@ export default function WorkRequestDetail() {
       await api.post(`/work-requests/${id}/approve`);
       setJustApproved(true);
       load();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to approve request');
     } finally {
@@ -60,6 +62,7 @@ export default function WorkRequestDetail() {
     try {
       await api.put(`/work-requests/${id}`, form);
       load();
+      refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save');
     } finally {
