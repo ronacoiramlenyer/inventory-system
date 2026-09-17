@@ -131,14 +131,15 @@ items.put('/:id', async (c) => {
   return c.json(await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', id));
 });
 
+// Deleting an item wipes its whole stock card history, so only admin can.
 items.delete('/:id', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
+  if (user.role !== 'admin') {
+    return c.json({ error: 'Only an admin can delete an item' }, 403);
+  }
   const existing = await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', id);
   if (!existing) return c.json({ error: 'Item not found' }, 404);
-  if (!labAccessibleToUser(user, { department_id: existing.department_id, status: 'approved' })) {
-    return c.json({ error: 'You do not have access to this item' }, 403);
-  }
   await dbRun(c.env.DB, 'DELETE FROM items WHERE id = ?', id);
   return c.body(null, 204);
 });

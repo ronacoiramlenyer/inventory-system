@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 
 const emptyForm = {
@@ -15,6 +16,8 @@ const emptyForm = {
 
 export default function StockCard() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [card, setCard] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -56,6 +59,12 @@ export default function StockCard() {
     load();
   }
 
+  async function handleDeleteItem() {
+    if (!confirm(`Delete "${card.item.item_name}" and its entire stock card history? This cannot be undone.`)) return;
+    await api.delete(`/items/${id}`);
+    navigate(`/laboratories/${card.item.laboratory_id}/stock-cards`);
+  }
+
   if (!card) return <p className="text-slate-500">Loading…</p>;
 
   const { item, entries } = card;
@@ -70,6 +79,14 @@ export default function StockCard() {
           ← Back to {item.laboratory_name}
         </Link>
         <div className="space-x-2">
+          {user.role === 'admin' && (
+            <button
+              onClick={handleDeleteItem}
+              className="bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium rounded-lg px-4 py-2"
+            >
+              Delete Item
+            </button>
+          )}
           <button
             onClick={addYearEndMarker}
             className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
