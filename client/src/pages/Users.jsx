@@ -8,6 +8,7 @@ const emptyForm = {
   password: '',
   role: 'staff',
   department_id: '',
+  department_ids: [],
 };
 
 const ROLE_LABELS = {
@@ -31,6 +32,15 @@ export default function Users() {
   }
 
   useEffect(load, []);
+
+  function toggleDepartment(id) {
+    setForm((f) => ({
+      ...f,
+      department_ids: f.department_ids.includes(id)
+        ? f.department_ids.filter((d) => d !== id)
+        : [...f.department_ids, id],
+    }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -110,7 +120,24 @@ export default function Users() {
               <option value="admin">Admin</option>
             </select>
           </div>
-          {form.role !== 'admin' && (
+          {form.role === 'secretary' && (
+            <div className="col-span-2">
+              <label className="block text-sm text-slate-600 mb-2">Departments (can cover more than one)</label>
+              <div className="grid grid-cols-2 gap-2">
+                {departments.map((d) => (
+                  <label key={d.id} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form.department_ids.includes(d.id)}
+                      onChange={() => toggleDepartment(d.id)}
+                    />
+                    {d.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {form.role !== 'admin' && form.role !== 'secretary' && (
             <div className="col-span-2">
               <label className="block text-sm text-slate-600 mb-1">Department</label>
               <select
@@ -163,7 +190,11 @@ export default function Users() {
                 <td className="px-4 py-3 font-medium text-slate-800">{u.full_name}</td>
                 <td className="px-4 py-3 text-slate-600">{u.username}</td>
                 <td className="px-4 py-3 text-slate-600">{ROLE_LABELS[u.role] || 'Staff'}</td>
-                <td className="px-4 py-3 text-slate-600">{u.department_name || '—'}</td>
+                <td className="px-4 py-3 text-slate-600">
+                  {u.role === 'secretary'
+                    ? u.departments?.map((d) => d.name).join(', ') || '—'
+                    : u.department_name || '—'}
+                </td>
                 <td className="px-4 py-3 text-right">
                   {u.id !== currentUser.id && (
                     <button onClick={() => handleDelete(u.id)} className="text-red-600 hover:text-red-800">

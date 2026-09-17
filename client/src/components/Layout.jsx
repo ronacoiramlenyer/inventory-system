@@ -45,7 +45,11 @@ export default function Layout() {
         <div className="px-5 py-5 border-b border-slate-800">
           <h1 className="font-bold text-lg leading-tight">Lab Inventory</h1>
           <p className="text-xs text-slate-400">
-            {user?.role === 'admin' ? 'All Departments' : user?.department_name || 'Stock Management'}
+            {user?.role === 'admin'
+              ? 'All Departments'
+              : user?.role === 'secretary'
+                ? user?.department_names?.join(', ') || 'No departments assigned'
+                : user?.department_name || 'Stock Management'}
           </p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">

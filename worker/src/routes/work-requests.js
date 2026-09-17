@@ -15,14 +15,20 @@ const SELECT = `
   JOIN departments d ON d.id = l.department_id
 `;
 
-function sameDepartment(user, row) {
+// Staff/Subject Coordinator are tied to exactly one department
+// (user.department_id); a Secretary can cover several (user.department_ids,
+// from the secretary_departments join table -- see routes/users.js).
+function inUserScope(user, row) {
+  if (user.role === 'secretary') {
+    return (user.department_ids || []).map(Number).includes(Number(row.department_id));
+  }
   return Number(row.department_id) === Number(user.department_id);
 }
 
 function labAccessibleToUser(user, lab) {
   if (!lab) return false;
   if (user.role === 'admin') return true;
-  return Number(lab.department_id) === Number(user.department_id) && lab.status === 'approved';
+  return inUserScope(user, lab) && lab.status === 'approved';
 }
 
 // A Secretary only sees requests once they've been filed (approved) -- a
@@ -30,7 +36,7 @@ function labAccessibleToUser(user, lab) {
 function userCanAccessRow(user, row) {
   if (!row) return false;
   if (user.role === 'admin') return true;
-  if (!sameDepartment(user, row) || row.lab_status !== 'approved') return false;
+  if (!inUserScope(user, row) || row.lab_status !== 'approved') return false;
   if (user.role === 'secretary') return row.status !== 'Pending';
   return true;
 }
@@ -40,7 +46,7 @@ function userCanAccessRow(user, row) {
 function userCanApprove(user, row) {
   if (!row) return false;
   if (user.role === 'admin') return true;
-  return user.role === 'subject_coordinator' && sameDepartment(user, row);
+  return user.role === 'subject_coordinator' && inUserScope(user, row);
 }
 
 // Once filed, the Subject Coordinator/admin and the department's Secretary
@@ -48,7 +54,7 @@ function userCanApprove(user, row) {
 function userCanManageFiled(user, row) {
   if (!row) return false;
   if (userCanApprove(user, row)) return true;
-  return user.role === 'secretary' && sameDepartment(user, row);
+  return user.role === 'secretary' && inUserScope(user, row);
 }
 
 async function nextRequestNo(db) {
@@ -69,10 +75,14 @@ workRequests.get('/', async (c) => {
   const clauses = [];
   const params = [];
 
-  if (user.role !== 'admin') {
+  if (user.role === 'secretary') {
+    const departmentIds = user.department_ids || [];
+    const placeholders = departmentIds.map(() => '?').join(',') || 'NULL';
+    clauses.push(`l.department_id IN (${placeholders})`, "l.status = 'approved'", "w.status != 'Pending'");
+    params.push(...departmentIds);
+  } else if (user.role !== 'admin') {
     clauses.push('l.department_id = ?', "l.status = 'approved'");
     params.push(user.department_id);
-    if (user.role === 'secretary') clauses.push("w.status != 'Pending'");
   }
   if (laboratory_id) {
     clauses.push('w.laboratory_id = ?');

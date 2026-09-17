@@ -12,9 +12,20 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'staff', -- 'admin' | 'staff' | 'subject_coordinator' | 'secretary'
-  department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL, -- required for all but admin
+  department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL, -- required for staff/subject_coordinator, NULL for admin/secretary
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- A Secretary can cover more than one department (staff and Subject
+-- Coordinators are tied to exactly one via users.department_id above; a
+-- Secretary's coverage lives here instead, so she can have several).
+CREATE TABLE IF NOT EXISTS secretary_departments (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, department_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_secretary_departments_dept ON secretary_departments(department_id);
 
 CREATE TABLE IF NOT EXISTS laboratories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

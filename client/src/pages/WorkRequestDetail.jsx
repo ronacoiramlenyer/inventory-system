@@ -31,9 +31,13 @@ export default function WorkRequestDetail() {
 
   useEffect(load, [id]);
 
-  const sameDept = req && Number(user.department_id) === Number(req.department_id);
-  const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && sameDept));
-  const canManage = canApprove || (req && user.role === 'secretary' && sameDept);
+  const inScope =
+    req &&
+    (user.role === 'secretary'
+      ? (user.department_ids || []).map(Number).includes(Number(req.department_id))
+      : Number(user.department_id) === Number(req.department_id));
+  const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && inScope));
+  const canManage = canApprove || (req && user.role === 'secretary' && inScope);
 
   async function handleApprove() {
     setError('');
