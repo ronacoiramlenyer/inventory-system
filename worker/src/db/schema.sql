@@ -252,6 +252,56 @@ CREATE TABLE IF NOT EXISTS incident_reports (
 
 CREATE INDEX IF NOT EXISTS idx_incident_reports_lab ON incident_reports(laboratory_id);
 
+-- Bookstore Requisition Slip and Supplies Requisition Slip: identically
+-- shaped per-lab requisition logs, kept as separate tables since they're
+-- separate forms. No approval workflow -- status is just an editable field.
+CREATE TABLE IF NOT EXISTS bookstore_requisitions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  request_date TEXT NOT NULL,       -- YYYY-MM-DD
+  item_description TEXT NOT NULL,
+  quantity TEXT,
+  unit TEXT,
+  purpose TEXT,
+  requested_by TEXT,
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Released' | 'Denied'
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS supplies_requisitions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  request_date TEXT NOT NULL,       -- YYYY-MM-DD
+  item_description TEXT NOT NULL,
+  quantity TEXT,
+  unit TEXT,
+  purpose TEXT,
+  requested_by TEXT,
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Released' | 'Denied'
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_bookstore_req_lab ON bookstore_requisitions(laboratory_id);
+CREATE INDEX IF NOT EXISTS idx_supplies_req_lab ON supplies_requisitions(laboratory_id);
+
+-- BGU Minor and Major Job Request: one form covering both job classes, with
+-- status transitions since BGU jobs move through a workflow.
+CREATE TABLE IF NOT EXISTS bgu_job_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  request_date TEXT NOT NULL,       -- YYYY-MM-DD
+  job_classification TEXT NOT NULL, -- 'Minor' | 'Major'
+  description TEXT NOT NULL,
+  requested_by TEXT,
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'In Progress' | 'Completed'
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_bgu_job_req_lab ON bgu_job_requests(laboratory_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);
