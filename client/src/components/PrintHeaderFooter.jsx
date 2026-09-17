@@ -1,3 +1,15 @@
+// Browsers give the page no way to know how many pages printing will
+// actually produce (no CSS/JS API reports it, and Chrome ignores @page
+// margin-box counters), so an exact "page X of Y" isn't achievable from
+// here. This estimates the page count from row count instead, so a long
+// sheet at least shows more than 1 rather than a permanently-stuck "1 of 1"
+// -- rowsPerPage should roughly match how many table rows this particular
+// print layout actually fits on one sheet.
+export function estimatePageLabel(rowCount, rowsPerPage = 20, prefix = '') {
+  const total = Math.max(1, Math.ceil(rowCount / rowsPerPage));
+  return `${prefix}1 of ${total}`;
+}
+
 // Matches the official F-LAB template's print header (school seal + page
 // label) and footer (form code/revision). Print-only -- the app's own
 // Layout header already covers the on-screen view.
