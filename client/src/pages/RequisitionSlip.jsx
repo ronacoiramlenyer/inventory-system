@@ -1,49 +1,53 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
-import LabFormTabs from '../components/LabFormTabs';
+import OtherRequestsTabs from '../components/OtherRequestsTabs';
 
 const STATUS_OPTIONS = ['Pending', 'Released', 'Denied'];
 
-const emptyForm = {
-  request_date: new Date().toISOString().slice(0, 10),
-  item_description: '',
-  quantity: '',
-  unit: '',
-  purpose: '',
-  requested_by: '',
-};
+function emptyForm(laboratoryId) {
+  return {
+    laboratory_id: laboratoryId || '',
+    request_date: new Date().toISOString().slice(0, 10),
+    item_description: '',
+    quantity: '',
+    unit: '',
+    purpose: '',
+    requested_by: '',
+  };
+}
 
 // Shared by the Bookstore Requisition Slip and Supplies Requisition Slip --
-// identically shaped, only the title differs.
+// identically shaped, only the title differs. These are requests to another
+// department (bookstore, purchasing), not the lab's own F-LAB forms, so they
+// live at the top level and are tagged to whichever lab the staff picks.
 export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
-  const { id } = useParams();
-  const [lab, setLab] = useState(null);
+  const [labs, setLabs] = useState([]);
   const [rows, setRows] = useState([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyForm());
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
 
   function loadRows() {
-    api.get(`/${apiBase}`, { params: { laboratory_id: id } }).then((res) => setRows(res.data));
+    api.get(`/${apiBase}`).then((res) => setRows(res.data));
   }
 
   useEffect(() => {
-    api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
+    api.get('/laboratories', { params: { status: 'approved' } }).then((res) => setLabs(res.data));
     loadRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [apiBase]);
 
   function startNew() {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm(emptyForm(labs[0]?.id));
     setShowForm(true);
   }
 
   function startEdit(row) {
     setEditingId(row.id);
     setForm({
+      laboratory_id: row.laboratory_id,
       request_date: row.request_date,
       item_description: row.item_description,
       quantity: row.quantity || '',
@@ -58,11 +62,15 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    if (!form.laboratory_id) {
+      setError('Select the laboratory this request originates from');
+      return;
+    }
     try {
       if (editingId) {
         await api.put(`/${apiBase}/${editingId}`, form);
       } else {
-        await api.post(`/${apiBase}`, { ...form, laboratory_id: id });
+        await api.post(`/${apiBase}`, form);
       }
       setShowForm(false);
       loadRows();
@@ -77,14 +85,10 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
     loadRows();
   }
 
-  if (!lab) return <p className="text-slate-500">Loading…</p>;
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
-        <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">
-          ← Back to Laboratories
-        </Link>
+        <h1 className="text-lg font-bold text-slate-800">Other Requests</h1>
         <div className="space-x-2">
           <button
             onClick={startNew}
@@ -101,7 +105,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
         </div>
       </div>
 
-      <LabFormTabs laboratoryId={id} active={tabKey} />
+      <OtherRequestsTabs active={tabKey} />
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
@@ -110,6 +114,28 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
           onSubmit={handleSubmit}
           className="no-print bg-white border border-slate-200 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3"
         >
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Laboratory</label>
+            {editingId ? (
+              <p className="text-sm text-slate-600 px-1 py-2">
+                {labs.find((l) => l.id === form.laboratory_id)?.name || '—'}
+              </p>
+            ) : (
+              <select
+                required
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                value={form.laboratory_id}
+                onChange={(e) => setForm({ ...form, laboratory_id: Number(e.target.value) })}
+              >
+                <option value="">Select laboratory…</option>
+                {labs.map((lab) => (
+                  <option key={lab.id} value={lab.id}>
+                    {lab.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">Date</label>
             <input
@@ -196,14 +222,12 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-black print:rounded-none">
         <div className="p-6">
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">{formTitle}</h2>
-          <p className="text-sm text-slate-500 mb-3">
-            <span className="font-semibold">Laboratory:</span> {lab.name}
-          </p>
 
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Laboratory</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Item Description</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-right">Qty</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Unit</th>
@@ -217,6 +241,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td className="border border-slate-300 px-3 py-2">{row.request_date}</td>
+                  <td className="border border-slate-300 px-3 py-2">{row.laboratory_name}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.item_description}</td>
                   <td className="border border-slate-300 px-3 py-2 text-right">{row.quantity}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.unit}</td>
@@ -238,7 +263,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
+                  <td colSpan={9} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
                     No entries yet.
                   </td>
                 </tr>

@@ -4,7 +4,7 @@ export default function SuppliesRequisition() {
   return (
     <RequisitionSlip
       apiBase="supplies-requisitions"
-      tabKey="supplies-requisition"
+      tabKey="supplies"
       formTitle="Supplies Requisition Slip"
     />
   );

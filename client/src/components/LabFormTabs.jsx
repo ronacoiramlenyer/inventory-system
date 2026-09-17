@@ -61,27 +61,6 @@ const FORMS = [
     to: (id) => `/laboratories/${id}/equipment`,
     ready: true,
   },
-  {
-    key: 'bookstore-requisition',
-    code: 'Bookstore',
-    name: 'Requisition Slip',
-    to: (id) => `/laboratories/${id}/bookstore-requisitions`,
-    ready: true,
-  },
-  {
-    key: 'supplies-requisition',
-    code: 'Supplies',
-    name: 'Requisition Slip',
-    to: (id) => `/laboratories/${id}/supplies-requisitions`,
-    ready: true,
-  },
-  {
-    key: 'bgu-job-request',
-    code: 'BGU',
-    name: 'Minor/Major Job Request',
-    to: (id) => `/laboratories/${id}/bgu-job-requests`,
-    ready: true,
-  },
 ];
 
 export default function LabFormTabs({ laboratoryId, active }) {

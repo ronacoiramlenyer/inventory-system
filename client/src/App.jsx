@@ -27,7 +27,7 @@ import Users from './pages/Users';
 import InventoryCountDetail from './pages/InventoryCountDetail';
 import BookstoreRequisition from './pages/BookstoreRequisition';
 import SuppliesRequisition from './pages/SuppliesRequisition';
-import LabBguJobRequests from './pages/LabBguJobRequests';
+import BguJobRequests from './pages/BguJobRequests';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -73,9 +73,10 @@ function AppRoutes() {
         <Route path="laboratories/:id/incident-reports/new" element={<NewIncidentReport />} />
         <Route path="laboratories/:id/incident-reports" element={<LabIncidentReports />} />
         <Route path="incident-reports/:id" element={<IncidentReportDetail />} />
-        <Route path="laboratories/:id/bookstore-requisitions" element={<BookstoreRequisition />} />
-        <Route path="laboratories/:id/supplies-requisitions" element={<SuppliesRequisition />} />
-        <Route path="laboratories/:id/bgu-job-requests" element={<LabBguJobRequests />} />
+        <Route path="other-requests" element={<Navigate to="/other-requests/bookstore" replace />} />
+        <Route path="other-requests/bookstore" element={<BookstoreRequisition />} />
+        <Route path="other-requests/supplies" element={<SuppliesRequisition />} />
+        <Route path="other-requests/bgu" element={<BguJobRequests />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
         <Route

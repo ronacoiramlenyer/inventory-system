@@ -4,7 +4,7 @@ export default function BookstoreRequisition() {
   return (
     <RequisitionSlip
       apiBase="bookstore-requisitions"
-      tabKey="bookstore-requisition"
+      tabKey="bookstore"
       formTitle="Bookstore Requisition Slip"
     />
   );
