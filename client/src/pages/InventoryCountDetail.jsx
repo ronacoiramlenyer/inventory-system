@@ -51,6 +51,8 @@ export default function InventoryCountDetail() {
   const [preparedBy, setPreparedBy] = useState('');
   const [defaultUnit, setDefaultUnit] = useState('pcs');
   const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
   const [importSummary, setImportSummary] = useState('');
   const fileInputRef = useRef(null);
@@ -107,6 +109,9 @@ export default function InventoryCountDetail() {
     return Number(row.quantity_actual) - row.quantity_recorded;
   }
 
+  // Returns whether the save actually succeeded, so callers like
+  // handleApply can tell a real failure apart from a normal completion
+  // instead of barreling ahead regardless.
   async function handleSave() {
     setError('');
     setSaving(true);
@@ -121,10 +126,17 @@ export default function InventoryCountDetail() {
           remarks: r.remarks,
         })),
       });
-      if (data.errors?.length) setError(data.errors.join(' '));
+      if (data.errors?.length) {
+        setError(data.errors.join(' '));
+        return false;
+      }
       load();
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1500);
+      return true;
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -191,12 +203,16 @@ export default function InventoryCountDetail() {
       return;
     }
     setError('');
+    setApplying(true);
     try {
-      await handleSave();
+      const saved = await handleSave();
+      if (!saved) return;
       await api.post(`/inventory-counts/${id}/apply`);
       load();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to apply adjustments');
+    } finally {
+      setApplying(false);
     }
   }
 
@@ -220,28 +236,31 @@ export default function InventoryCountDetail() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+                disabled={saving || applying}
+                className="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
               >
                 Import from Excel
               </button>
               <button
                 onClick={addRow}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+                disabled={saving || applying}
+                className="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
               >
                 + Add Row
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+                disabled={saving || applying}
+                className="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
               >
-                {saving ? 'Saving…' : 'Save'}
+                {saving ? 'Saving…' : savedFlash ? 'Saved ✓' : 'Save'}
               </button>
               <button
                 onClick={handleApply}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+                disabled={saving || applying}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
               >
-                Apply Adjustments to Stock
+                {applying ? 'Applying…' : 'Apply Adjustments to Stock'}
               </button>
             </>
           )}
