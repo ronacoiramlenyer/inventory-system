@@ -254,7 +254,8 @@ CREATE INDEX IF NOT EXISTS idx_incident_reports_lab ON incident_reports(laborato
 
 -- Bookstore Requisition Slip and Supplies Requisition Slip: identically
 -- shaped per-lab requisition logs, kept as separate tables since they're
--- separate forms. No approval workflow -- status is just an editable field.
+-- separate forms. Same Pending -> Subject Coordinator approval -> Filed ->
+-- Secretary fulfillment workflow as F-LAB-004 Equipment Work Request.
 CREATE TABLE IF NOT EXISTS bookstore_requisitions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
@@ -264,7 +265,8 @@ CREATE TABLE IF NOT EXISTS bookstore_requisitions (
   unit TEXT,
   purpose TEXT,
   requested_by TEXT,
-  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Released' | 'Denied'
+  approved_by TEXT,                 -- Subject Coordinator who filed it
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Filed' | 'Released' | 'Denied'
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -278,7 +280,8 @@ CREATE TABLE IF NOT EXISTS supplies_requisitions (
   unit TEXT,
   purpose TEXT,
   requested_by TEXT,
-  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Released' | 'Denied'
+  approved_by TEXT,                 -- Subject Coordinator who filed it
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Filed' | 'Released' | 'Denied'
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -286,8 +289,8 @@ CREATE TABLE IF NOT EXISTS supplies_requisitions (
 CREATE INDEX IF NOT EXISTS idx_bookstore_req_lab ON bookstore_requisitions(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_supplies_req_lab ON supplies_requisitions(laboratory_id);
 
--- BGU Minor and Major Job Request: one form covering both job classes, with
--- status transitions since BGU jobs move through a workflow.
+-- BGU Minor and Major Job Request: one form covering both job classes, same
+-- Pending -> Subject Coordinator approval -> Filed -> Secretary workflow.
 CREATE TABLE IF NOT EXISTS bgu_job_requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
@@ -295,7 +298,8 @@ CREATE TABLE IF NOT EXISTS bgu_job_requests (
   job_classification TEXT NOT NULL, -- 'Minor' | 'Major'
   description TEXT NOT NULL,
   requested_by TEXT,
-  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'In Progress' | 'Completed'
+  approved_by TEXT,                 -- Subject Coordinator who filed it
+  status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Filed' | 'In Progress' | 'Completed'
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

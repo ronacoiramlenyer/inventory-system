@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import OtherRequestsTabs from '../components/OtherRequestsTabs';
 
-const STATUS_OPTIONS = ['Pending', 'In Progress', 'Completed'];
+const MANAGE_STATUS_OPTIONS = ['Filed', 'In Progress', 'Completed'];
 
 function emptyForm(laboratoryId) {
   return {
@@ -14,15 +15,33 @@ function emptyForm(laboratoryId) {
   };
 }
 
+function inScope(user, row) {
+  if (user.role === 'secretary') {
+    return (user.department_ids || []).map(Number).includes(Number(row.department_id));
+  }
+  return Number(row.department_id) === Number(user.department_id);
+}
+
+function canApproveRow(user, row) {
+  return user.role === 'admin' || (user.role === 'subject_coordinator' && inScope(user, row));
+}
+
+function canManageFiledRow(user, row) {
+  return canApproveRow(user, row) || (user.role === 'secretary' && inScope(user, row));
+}
+
 // A request to BGU (Building & Grounds Unit) to perform a job, not the lab's
-// own F-LAB form, so it lives at the top level and is tagged to whichever
-// lab the staff picks.
+// own F-LAB form, so it lives at the top level, is tagged to whichever lab
+// the staff picks, and follows the same Pending -> Subject Coordinator
+// approval -> Filed -> Secretary fulfillment workflow as F-LAB-004.
 export default function BguJobRequests() {
+  const { user } = useAuth();
   const [labs, setLabs] = useState([]);
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm());
-  const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [statusEditId, setStatusEditId] = useState(null);
+  const [statusValue, setStatusValue] = useState('');
   const [error, setError] = useState('');
 
   function loadRows() {
@@ -35,21 +54,8 @@ export default function BguJobRequests() {
   }, []);
 
   function startNew() {
-    setEditingId(null);
+    setStatusEditId(null);
     setForm(emptyForm(labs[0]?.id));
-    setShowForm(true);
-  }
-
-  function startEdit(row) {
-    setEditingId(row.id);
-    setForm({
-      laboratory_id: row.laboratory_id,
-      request_date: row.request_date,
-      job_classification: row.job_classification,
-      description: row.description,
-      requested_by: row.requested_by || '',
-      status: row.status,
-    });
     setShowForm(true);
   }
 
@@ -61,11 +67,7 @@ export default function BguJobRequests() {
       return;
     }
     try {
-      if (editingId) {
-        await api.put(`/bgu-job-requests/${editingId}`, form);
-      } else {
-        await api.post('/bgu-job-requests', form);
-      }
+      await api.post('/bgu-job-requests', form);
       setShowForm(false);
       loadRows();
     } catch (err) {
@@ -73,10 +75,42 @@ export default function BguJobRequests() {
     }
   }
 
+  async function handleApprove(row) {
+    setError('');
+    try {
+      await api.post(`/bgu-job-requests/${row.id}/approve`);
+      loadRows();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to approve');
+    }
+  }
+
+  function startStatusEdit(row) {
+    setShowForm(false);
+    setStatusEditId(row.id);
+    setStatusValue(row.status === 'Pending' ? 'Filed' : row.status);
+  }
+
+  async function handleStatusSave(e) {
+    e.preventDefault();
+    setError('');
+    try {
+      await api.put(`/bgu-job-requests/${statusEditId}`, { status: statusValue });
+      setStatusEditId(null);
+      loadRows();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update status');
+    }
+  }
+
   async function handleDelete(rowId) {
     if (!confirm('Delete this job request?')) return;
-    await api.delete(`/bgu-job-requests/${rowId}`);
-    loadRows();
+    try {
+      await api.delete(`/bgu-job-requests/${rowId}`);
+      loadRows();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete');
+    }
   }
 
   return (
@@ -84,12 +118,14 @@ export default function BguJobRequests() {
       <div className="flex items-center justify-between no-print">
         <h1 className="text-lg font-bold text-slate-800">Other Requests</h1>
         <div className="space-x-2">
-          <button
-            onClick={startNew}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
-          >
-            + Add Row
-          </button>
+          {user.role !== 'secretary' && (
+            <button
+              onClick={startNew}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              + Add Row
+            </button>
+          )}
           <button
             onClick={() => window.print()}
             className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
@@ -110,25 +146,19 @@ export default function BguJobRequests() {
         >
           <div>
             <label className="block text-sm text-slate-600 mb-1">Laboratory</label>
-            {editingId ? (
-              <p className="text-sm text-slate-600 px-1 py-2">
-                {labs.find((l) => l.id === form.laboratory_id)?.name || '—'}
-              </p>
-            ) : (
-              <select
-                required
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={form.laboratory_id}
-                onChange={(e) => setForm({ ...form, laboratory_id: Number(e.target.value) })}
-              >
-                <option value="">Select laboratory…</option>
-                {labs.map((lab) => (
-                  <option key={lab.id} value={lab.id}>
-                    {lab.name}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select
+              required
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={form.laboratory_id}
+              onChange={(e) => setForm({ ...form, laboratory_id: Number(e.target.value) })}
+            >
+              <option value="">Select laboratory…</option>
+              {labs.map((lab) => (
+                <option key={lab.id} value={lab.id}>
+                  {lab.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">Date</label>
@@ -169,22 +199,6 @@ export default function BguJobRequests() {
               placeholder="Signature name"
             />
           </div>
-          {editingId && (
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Status</label>
-              <select
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
           <div className="col-span-full flex gap-2">
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
               Save
@@ -200,6 +214,38 @@ export default function BguJobRequests() {
         </form>
       )}
 
+      {statusEditId && (
+        <form
+          onSubmit={handleStatusSave}
+          className="no-print bg-white border border-slate-200 rounded-xl p-4 flex items-end gap-3"
+        >
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Update Status</label>
+            <select
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={statusValue}
+              onChange={(e) => setStatusValue(e.target.value)}
+            >
+              {MANAGE_STATUS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusEditId(null)}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+          >
+            Cancel
+          </button>
+        </form>
+      )}
+
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-black print:rounded-none">
         <div className="p-6">
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">BGU Minor and Major Job Request</h2>
@@ -212,35 +258,51 @@ export default function BguJobRequests() {
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Classification</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Description of Job</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Requested By</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Approved By</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Status</th>
-                <th className="border border-slate-300 px-3 py-2 no-print w-24">&nbsp;</th>
+                <th className="border border-slate-300 px-3 py-2 no-print w-32">&nbsp;</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="border border-slate-300 px-3 py-2">{row.request_date}</td>
-                  <td className="border border-slate-300 px-3 py-2">{row.laboratory_name}</td>
-                  <td className="border border-slate-300 px-3 py-2">{row.job_classification}</td>
-                  <td className="border border-slate-300 px-3 py-2">{row.description}</td>
-                  <td className="border border-slate-300 px-3 py-2">{row.requested_by}</td>
-                  <td className="border border-slate-300 px-3 py-2">{row.status}</td>
-                  <td className="border border-slate-300 px-3 py-2 no-print text-center space-x-2">
-                    <button onClick={() => startEdit(row)} className="text-slate-500 hover:text-slate-800 text-xs underline">
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(row.id)}
-                      className="text-slate-400 hover:text-red-600 text-xs underline"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {rows.map((row) => {
+                const showApprove = row.status === 'Pending' && canApproveRow(user, row);
+                const showManage = row.status !== 'Pending' && canManageFiledRow(user, row);
+                const showDelete = user.role === 'admin' || row.status === 'Pending';
+                return (
+                  <tr key={row.id}>
+                    <td className="border border-slate-300 px-3 py-2">{row.request_date}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.laboratory_name}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.job_classification}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.description}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.requested_by}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.approved_by}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.status}</td>
+                    <td className="border border-slate-300 px-3 py-2 no-print text-center space-x-2">
+                      {showApprove && (
+                        <button onClick={() => handleApprove(row)} className="text-emerald-700 hover:text-emerald-900 text-xs underline">
+                          Approve
+                        </button>
+                      )}
+                      {showManage && (
+                        <button onClick={() => startStatusEdit(row)} className="text-slate-500 hover:text-slate-800 text-xs underline">
+                          Update Status
+                        </button>
+                      )}
+                      {showDelete && (
+                        <button
+                          onClick={() => handleDelete(row.id)}
+                          className="text-slate-400 hover:text-red-600 text-xs underline"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
+                  <td colSpan={8} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
                     No entries yet.
                   </td>
                 </tr>
