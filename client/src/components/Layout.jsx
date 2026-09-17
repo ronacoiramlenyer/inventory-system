@@ -48,7 +48,7 @@ export default function Layout() {
   }
   navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
   if (user?.role === 'secretary' || user?.role === 'admin') {
-    navItems.push({ to: '/work-requests', label: 'Filed Requests', badge: notifCounts.filed_requests });
+    navItems.push({ to: '/work-requests', label: 'Equipment Work Requests', badge: notifCounts.filed_requests });
   }
   if (user?.role === 'admin') {
     navItems.push({ to: '/departments', label: 'Departments' }, { to: '/users', label: 'Staff Accounts' });
