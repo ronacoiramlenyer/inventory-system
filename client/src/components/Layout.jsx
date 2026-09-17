@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
@@ -13,7 +13,9 @@ const ROLE_LABELS = {
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [pendingCount, setPendingCount] = useState(0);
+  const [notifCounts, setNotifCounts] = useState({ other_requests: 0, filed_requests: 0 });
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
@@ -22,6 +24,18 @@ export default function Layout() {
       .then((res) => setPendingCount(res.data.length))
       .catch(() => {});
   }, [user]);
+
+  // Counts of items awaiting this user's approval or status update --
+  // re-fetched on every navigation so acting on one and coming back
+  // updates the badge. Staff always get zeros (they aren't an approver
+  // or updater), so the backend keeps this cheap for them.
+  useEffect(() => {
+    if (!user) return;
+    api
+      .get('/notifications/summary')
+      .then((res) => setNotifCounts(res.data))
+      .catch(() => {});
+  }, [user, location.pathname]);
 
   function handleLogout() {
     logout();
@@ -32,9 +46,9 @@ export default function Layout() {
   if (user?.role !== 'secretary') {
     navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
   }
-  navItems.push({ to: '/other-requests', label: 'Other Requests' });
+  navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
   if (user?.role === 'secretary' || user?.role === 'admin') {
-    navItems.push({ to: '/work-requests', label: 'Filed Requests' });
+    navItems.push({ to: '/work-requests', label: 'Filed Requests', badge: notifCounts.filed_requests });
   }
   if (user?.role === 'admin') {
     navItems.push({ to: '/departments', label: 'Departments' }, { to: '/users', label: 'Staff Accounts' });

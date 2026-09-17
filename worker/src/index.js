@@ -17,6 +17,7 @@ import wasteDisposalLogRoutes from './routes/waste-disposal-log.js';
 import incidentReportsRoutes from './routes/incident-reports.js';
 import { bookstoreRequisitionRoutes, suppliesRequisitionRoutes } from './routes/requisitions.js';
 import bguJobRequestsRoutes from './routes/bgu-job-requests.js';
+import notificationsRoutes from './routes/notifications.js';
 
 const app = new Hono();
 
@@ -42,6 +43,7 @@ app.route('/api/incident-reports', incidentReportsRoutes);
 app.route('/api/bookstore-requisitions', bookstoreRequisitionRoutes);
 app.route('/api/supplies-requisitions', suppliesRequisitionRoutes);
 app.route('/api/bgu-job-requests', bguJobRequestsRoutes);
+app.route('/api/notifications', notificationsRoutes);
 
 app.onError((err, c) => {
   console.error(err);
