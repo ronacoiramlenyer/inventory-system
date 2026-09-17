@@ -293,7 +293,7 @@ export default function InventoryCountDetail() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(rows.length)} />
+          <PrintHeader pageLabel={estimatePageLabel(rows.length, 10)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Inventory Sheet</h2>
 
           <table className="mb-4 text-sm">

@@ -6,7 +6,11 @@ import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/Print
 import { padRows } from '../utils/padRows';
 
 const SERVICE_OPTIONS = ['Preventive', 'Repair', 'Calibration'];
-const MIN_ROWS = 15;
+// A printed page realistically fits ~10 rows of this table once the
+// browser's own print margins/header/footer are accounted for -- pad to
+// (and estimate against) that instead of a generous guess that undercounts
+// real pages.
+const MIN_ROWS = 10;
 
 const emptyForm = {
   entry_date: new Date().toISOString().slice(0, 10),
@@ -156,7 +160,7 @@ export default function EquipmentMonitoringRecord() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(Math.max(logs.length, MIN_ROWS))} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(logs.length, MIN_ROWS), MIN_ROWS)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record (EMR)</h2>
           <table className="mb-4 text-sm w-full border-collapse">
             <tbody>

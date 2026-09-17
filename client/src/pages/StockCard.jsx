@@ -6,7 +6,9 @@ import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
-const MIN_ROWS = 15;
+// A printed page realistically fits ~10 rows of this table once the
+// browser's own print margins/header/footer are accounted for.
+const MIN_ROWS = 10;
 
 const emptyForm = {
   entry_date: new Date().toISOString().slice(0, 10),
@@ -201,7 +203,7 @@ export default function StockCard() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS))} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS), MIN_ROWS)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Stock Card</h2>
           <table className="mb-4 text-sm">
             <tbody>

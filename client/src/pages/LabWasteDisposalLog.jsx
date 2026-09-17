@@ -5,7 +5,9 @@ import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
-const MIN_ROWS = 15;
+// A printed page realistically fits ~10 rows of this table once the
+// browser's own print margins/header/footer are accounted for.
+const MIN_ROWS = 10;
 
 const emptyForm = {
   turnover_date: new Date().toISOString().slice(0, 10),
@@ -173,7 +175,7 @@ export default function LabWasteDisposalLog() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS))} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Waste Disposal Log</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}

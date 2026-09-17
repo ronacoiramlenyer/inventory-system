@@ -211,7 +211,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS))} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">{formTitle}</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
