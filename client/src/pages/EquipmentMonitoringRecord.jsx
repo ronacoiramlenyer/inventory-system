@@ -3,8 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { padRows } from '../utils/padRows';
 
 const SERVICE_OPTIONS = ['Preventive', 'Repair', 'Calibration'];
+const MIN_ROWS = 15;
 
 const emptyForm = {
   entry_date: new Date().toISOString().slice(0, 10),
@@ -154,7 +156,7 @@ export default function EquipmentMonitoringRecord() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(logs.length)} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(logs.length, MIN_ROWS))} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record (EMR)</h2>
           <table className="mb-4 text-sm w-full border-collapse">
             <tbody>
@@ -199,7 +201,7 @@ export default function EquipmentMonitoringRecord() {
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
+              {padRows(logs, MIN_ROWS).map((log) => (
                 <tr key={log.id}>
                   <td className="border border-slate-300 px-3 py-2">{log.entry_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{log.service_performed}</td>
@@ -207,22 +209,17 @@ export default function EquipmentMonitoringRecord() {
                   <td className="border border-slate-300 px-3 py-2">{log.status}</td>
                   <td className="border border-slate-300 px-3 py-2">{log.logged_by}</td>
                   <td className="border border-slate-300 px-3 py-2 no-print text-center">
-                    <button
-                      onClick={() => handleDeleteLog(log.id)}
-                      className="text-slate-400 hover:text-red-600 text-xs underline"
-                    >
-                      remove
-                    </button>
+                    {!log.__blank && (
+                      <button
+                        onClick={() => handleDeleteLog(log.id)}
+                        className="text-slate-400 hover:text-red-600 text-xs underline"
+                      >
+                        remove
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
-              {logs.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
-                    No entries yet.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
 

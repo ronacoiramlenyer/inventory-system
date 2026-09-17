@@ -3,6 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { padRows } from '../utils/padRows';
+
+const MIN_ROWS = 15;
 
 const emptyForm = {
   turnover_date: new Date().toISOString().slice(0, 10),
@@ -170,7 +173,7 @@ export default function LabWasteDisposalLog() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(rows.length)} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS))} />
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Waste Disposal Log</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
@@ -193,7 +196,7 @@ export default function LabWasteDisposalLog() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {padRows(rows, MIN_ROWS).map((row) => (
                 <tr key={row.id}>
                   <td className="border border-slate-300 px-3 py-2">{row.turnover_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.waste_description}</td>
@@ -204,22 +207,17 @@ export default function LabWasteDisposalLog() {
                   <td className="border border-slate-300 px-3 py-2">{row.received_by}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.logged_by}</td>
                   <td className="border border-slate-300 px-3 py-2 no-print text-center">
-                    <button
-                      onClick={() => handleDelete(row.id)}
-                      className="text-slate-400 hover:text-red-600 text-xs underline"
-                    >
-                      remove
-                    </button>
+                    {!row.__blank && (
+                      <button
+                        onClick={() => handleDelete(row.id)}
+                        className="text-slate-400 hover:text-red-600 text-xs underline"
+                      >
+                        remove
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
-                    No entries yet.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
 

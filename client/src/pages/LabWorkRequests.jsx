@@ -3,6 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { padRows } from '../utils/padRows';
+
+const MIN_ROWS = 15;
 
 const STATUS_STYLES = {
   Pending: 'bg-amber-100 text-amber-700',
@@ -43,7 +46,7 @@ export default function LabWorkRequests() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(requests.length)} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(requests.length, MIN_ROWS))} />
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Equipment Monitoring Sheet (EMS)</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
@@ -64,12 +67,14 @@ export default function LabWorkRequests() {
               </tr>
             </thead>
             <tbody>
-              {requests.map((r) => (
+              {padRows(requests, MIN_ROWS).map((r) => (
                 <tr key={r.id}>
                   <td className="border border-slate-300 px-3 py-2">
-                    <Link to={`/work-requests/${r.id}`} className="text-emerald-700 hover:underline">
-                      {r.request_no}
-                    </Link>
+                    {r.__blank ? null : (
+                      <Link to={`/work-requests/${r.id}`} className="text-emerald-700 hover:underline">
+                        {r.request_no}
+                      </Link>
+                    )}
                   </td>
                   <td className="border border-slate-300 px-3 py-2">{r.equipment_name_description}</td>
                   <td className="border border-slate-300 px-3 py-2">{r.serial_number}</td>
@@ -77,21 +82,16 @@ export default function LabWorkRequests() {
                   <td className="border border-slate-300 px-3 py-2">{r.date_requested}</td>
                   <td className="border border-slate-300 px-3 py-2">{r.date_needed}</td>
                   <td className="border border-slate-300 px-3 py-2">
-                    <span className={`text-xs font-semibold rounded-full px-2 py-1 ${STATUS_STYLES[r.status] || ''}`}>
-                      {r.status}
-                    </span>
+                    {!r.__blank && (
+                      <span className={`text-xs font-semibold rounded-full px-2 py-1 ${STATUS_STYLES[r.status] || ''}`}>
+                        {r.status}
+                      </span>
+                    )}
                   </td>
                   <td className="border border-slate-300 px-3 py-2">{r.date_completed}</td>
                   <td className="border border-slate-300 px-3 py-2">{r.remarks}</td>
                 </tr>
               ))}
-              {requests.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
-                    No requests yet.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
 

@@ -3,6 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { padRows } from '../utils/padRows';
+
+const MIN_ROWS = 10;
 
 const emptyForm = {
   equipment_name_description: '',
@@ -208,7 +211,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(rows.length)} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS))} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">{formTitle}</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
@@ -238,7 +241,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => (
+              {padRows(rows, MIN_ROWS).map((row, i) => (
                 <tr key={row.id}>
                   <td className="border border-slate-300 px-3 py-2">{i + 1}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.equipment_name_description}</td>
@@ -250,25 +253,22 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                   <td className="border border-slate-300 px-3 py-2">{row.actual_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.remarks}</td>
                   <td className="border border-slate-300 px-3 py-2 no-print text-center space-x-2">
-                    <button onClick={() => startEdit(row)} className="text-slate-500 hover:text-slate-800 text-xs underline">
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(row.id)}
-                      className="text-slate-400 hover:text-red-600 text-xs underline"
-                    >
-                      Delete
-                    </button>
+                    {!row.__blank && (
+                      <>
+                        <button onClick={() => startEdit(row)} className="text-slate-500 hover:text-slate-800 text-xs underline">
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(row.id)}
+                          className="text-slate-400 hover:text-red-600 text-xs underline"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
-                    No entries yet.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
 

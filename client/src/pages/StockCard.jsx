@@ -4,6 +4,9 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { padRows } from '../utils/padRows';
+
+const MIN_ROWS = 15;
 
 const emptyForm = {
   entry_date: new Date().toISOString().slice(0, 10),
@@ -198,7 +201,7 @@ export default function StockCard() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(entries.length)} />
+          <PrintHeader pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS))} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Stock Card</h2>
           <table className="mb-4 text-sm">
             <tbody>
@@ -263,8 +266,19 @@ export default function StockCard() {
                 <td className="border border-slate-300 px-3 py-2"></td>
                 <td className="border border-slate-300 px-3 py-2 no-print"></td>
               </tr>
-              {entries.map((entry) =>
-                entry.is_period_marker ? (
+              {padRows(entries, MIN_ROWS).map((entry) =>
+                entry.__blank ? (
+                  <tr key={entry.id}>
+                    <td className="border border-slate-300 px-3 py-2"></td>
+                    <td className="border border-slate-300 px-3 py-2"></td>
+                    <td className="border border-slate-300 px-3 py-2"></td>
+                    <td className="border border-slate-300 px-3 py-2"></td>
+                    <td className="border border-slate-300 px-3 py-2"></td>
+                    <td className="border border-slate-300 px-3 py-2"></td>
+                    <td className="border border-slate-300 px-3 py-2"></td>
+                    <td className="border border-slate-300 px-3 py-2 no-print"></td>
+                  </tr>
+                ) : entry.is_period_marker ? (
                   <tr key={entry.id} className="bg-slate-500 text-white">
                     <td className="border border-slate-500 px-3 py-1 text-center" colSpan={5}>
                       {entry.remarks || '--'} ({entry.entry_date})
