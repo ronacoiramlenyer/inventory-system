@@ -191,6 +191,7 @@ CREATE INDEX IF NOT EXISTS idx_work_req_lab ON work_requests(laboratory_id);
 CREATE TABLE IF NOT EXISTS borrowing_requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  reference_no TEXT,
   borrower_name TEXT NOT NULL,
   department_unit TEXT,
   date_needed TEXT,

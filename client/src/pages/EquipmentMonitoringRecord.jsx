@@ -155,23 +155,27 @@ export default function EquipmentMonitoringRecord() {
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
           <PrintHeader pageLabel={estimatePageLabel(logs.length)} />
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record</h2>
-          <table className="mb-4 text-sm">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record (EMR)</h2>
+          <table className="mb-4 text-sm w-full border-collapse">
             <tbody>
               <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 w-64">
-                  EQUIPMENT NAME & DESCRIPTION
+                <td
+                  rowSpan={3}
+                  className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top w-32"
+                >
+                  Equipment Information
+                </td>
+                <td className="border border-slate-300 px-3 py-1.5 font-medium w-64">
+                  Equipment Name &amp; Description:
                 </td>
                 <td className="border border-slate-300 px-3 py-1.5">{item.name_description}</td>
               </tr>
               <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                  EQUIPMENT ID/SERIAL NUMBER
-                </td>
+                <td className="border border-slate-300 px-3 py-1.5 font-medium">Equipment ID/Serial Number:</td>
                 <td className="border border-slate-300 px-3 py-1.5">{item.serial_number}</td>
               </tr>
               <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">LOCATION</td>
+                <td className="border border-slate-300 px-3 py-1.5 font-medium">Location:</td>
                 <td className="border border-slate-300 px-3 py-1.5">{item.location}</td>
               </tr>
             </tbody>
@@ -187,7 +191,9 @@ export default function EquipmentMonitoringRecord() {
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
                   Request ID (referenced to EWR)
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Status</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                  Status (on repair, on loan, …)
+                </th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Logged by</th>
                 <th className="border border-slate-300 px-3 py-2 no-print w-16">&nbsp;</th>
               </tr>

@@ -19,6 +19,13 @@ function formatSignedAt(value) {
   return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+// created_at is a SQLite UTC timestamp ("YYYY-MM-DD HH:MM:SS") -- just the
+// date part is needed for the form's "Date:" field.
+function formatDateOnly(value) {
+  if (!value) return '—';
+  return value.slice(0, 10);
+}
+
 export default function BorrowingRequestDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -101,7 +108,11 @@ export default function BorrowingRequestDetail() {
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
         <PrintHeader />
-        <h2 className="text-lg font-bold text-slate-800 text-center mb-4">Borrowing Request Form (BRF)</h2>
+        <div className="flex items-start justify-between mb-1">
+          <h2 className="text-lg font-bold text-slate-800">Borrowing Request Form (BRF)</h2>
+          <p className="text-sm text-slate-600">Date: {formatDateOnly(req.created_at)}</p>
+        </div>
+        <p className="text-sm text-slate-600 mb-4">Request No.: {req.reference_no || '—'}</p>
 
         <table className="w-full text-sm border-collapse mb-4">
           <tbody>
@@ -176,6 +187,18 @@ export default function BorrowingRequestDetail() {
             <li>Confirmation that all items are in functional condition unless otherwise noted.</li>
             <li>Waiver of liability claims related to the use of this equipment.</li>
           </ul>
+        </div>
+
+        <div className="text-sm text-slate-700 space-y-8 mb-4">
+          <p>
+            Signature: <span className="inline-block w-56 border-b border-slate-400">&nbsp;</span>
+            &nbsp;&nbsp;&nbsp; Date: <span className="inline-block w-36 border-b border-slate-400">&nbsp;</span>
+          </p>
+          <div>
+            <p>Issued by:</p>
+            <p className="mt-8 mb-1 w-56 border-b border-slate-400 pb-0.5">&nbsp;</p>
+            <p className="text-xs text-slate-500">Name &amp; Signature</p>
+          </div>
         </div>
 
         {req.status === 'Pending' ? (

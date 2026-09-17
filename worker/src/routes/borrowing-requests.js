@@ -36,6 +36,14 @@ function userCanApprove(user, row) {
   return user.role === 'subject_coordinator' && Number(row.department_id) === Number(user.department_id);
 }
 
+async function nextReferenceNo(db) {
+  const year = new Date().getFullYear();
+  const prefix = `BRF-${year}-`;
+  const row = await dbGet(db, `SELECT COUNT(*) AS n FROM borrowing_requests WHERE reference_no LIKE ?`, `${prefix}%`);
+  const seq = String(row.n + 1).padStart(3, '0');
+  return `${prefix}${seq}`;
+}
+
 borrowingRequests.get('/', async (c) => {
   const user = c.get('user');
   const { laboratory_id } = c.req.query();
@@ -87,11 +95,14 @@ borrowingRequests.post('/', async (c) => {
     return c.json({ error: 'You do not have access to that laboratory' }, 403);
   }
 
+  const referenceNo = await nextReferenceNo(c.env.DB);
+
   const result = await dbRun(
     c.env.DB,
-    `INSERT INTO borrowing_requests (laboratory_id, borrower_name, department_unit, date_needed, purpose, return_date, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO borrowing_requests (laboratory_id, reference_no, borrower_name, department_unit, date_needed, purpose, return_date, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     laboratory_id,
+    referenceNo,
     borrower_name.trim(),
     department_unit?.trim() || null,
     date_needed || null,

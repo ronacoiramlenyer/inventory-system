@@ -41,6 +41,7 @@ export default function LabBorrowingRequests() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
+              <th className="px-4 py-2 text-left font-medium">Request No.</th>
               <th className="px-4 py-2 text-left font-medium">Borrower</th>
               <th className="px-4 py-2 text-left font-medium">Department/Unit</th>
               <th className="px-4 py-2 text-left font-medium">Date Needed</th>
@@ -53,9 +54,10 @@ export default function LabBorrowingRequests() {
               <tr key={r.id}>
                 <td className="px-4 py-3 font-medium">
                   <Link to={`/borrowing-requests/${r.id}`} className="text-emerald-700 hover:underline">
-                    {r.borrower_name}
+                    {r.reference_no || '—'}
                   </Link>
                 </td>
+                <td className="px-4 py-3 text-slate-600">{r.borrower_name}</td>
                 <td className="px-4 py-3 text-slate-600">{r.department_unit}</td>
                 <td className="px-4 py-3 text-slate-600">{r.date_needed}</td>
                 <td className="px-4 py-3 text-slate-600">{r.return_date}</td>
@@ -68,7 +70,7 @@ export default function LabBorrowingRequests() {
             ))}
             {requests.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
                   No borrowing requests yet.
                 </td>
               </tr>
