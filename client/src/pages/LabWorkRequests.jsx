@@ -40,7 +40,7 @@ export default function LabWorkRequests() {
 
       <LabFormTabs laboratoryId={id} active="equipment-monitoring-sheet" />
 
-      <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-black print:rounded-none">
+      <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Equipment Monitoring Sheet (EMS)</h2>
           <p className="text-sm text-slate-500 mb-3">

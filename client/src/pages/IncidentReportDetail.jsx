@@ -42,7 +42,7 @@ export default function IncidentReportDetail() {
 
       <LabFormTabs laboratoryId={report.laboratory_id} active="incident-report" />
 
-      <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl">
+      <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
         <h2 className="text-lg font-bold text-slate-800 text-center mb-4">Laboratory Incident Report (LIR)</h2>
 
         <table className="w-full text-sm border-collapse mb-4">

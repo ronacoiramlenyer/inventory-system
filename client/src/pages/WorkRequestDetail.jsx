@@ -106,7 +106,7 @@ export default function WorkRequestDetail() {
         </p>
       )}
 
-      <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl">
+      <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-800">Equipment Work Request (EWR) Form</h2>
           <span className="text-sm text-slate-500">Date: {req.date_requested}</span>

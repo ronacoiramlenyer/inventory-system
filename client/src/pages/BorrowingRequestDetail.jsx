@@ -70,7 +70,7 @@ export default function BorrowingRequestDetail() {
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
-      <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl">
+      <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
         <h2 className="text-lg font-bold text-slate-800 text-center mb-4">Borrowing Request Form (BRF)</h2>
 
         <table className="w-full text-sm border-collapse mb-4">
