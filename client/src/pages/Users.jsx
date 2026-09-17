@@ -10,6 +10,13 @@ const emptyForm = {
   department_id: '',
 };
 
+const ROLE_LABELS = {
+  admin: 'Admin',
+  staff: 'Staff',
+  subject_coordinator: 'Subject Coordinator',
+  secretary: 'Secretary',
+};
+
 export default function Users() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -99,6 +106,7 @@ export default function Users() {
             >
               <option value="staff">Staff</option>
               <option value="subject_coordinator">Subject Coordinator</option>
+              <option value="secretary">Secretary</option>
               <option value="admin">Admin</option>
             </select>
           </div>
@@ -154,9 +162,7 @@ export default function Users() {
               <tr key={u.id}>
                 <td className="px-4 py-3 font-medium text-slate-800">{u.full_name}</td>
                 <td className="px-4 py-3 text-slate-600">{u.username}</td>
-                <td className="px-4 py-3 text-slate-600">
-                  {u.role === 'subject_coordinator' ? 'Subject Coordinator' : u.role === 'admin' ? 'Admin' : 'Staff'}
-                </td>
+                <td className="px-4 py-3 text-slate-600">{ROLE_LABELS[u.role] || 'Staff'}</td>
                 <td className="px-4 py-3 text-slate-600">{u.department_name || '—'}</td>
                 <td className="px-4 py-3 text-right">
                   {u.id !== currentUser.id && (

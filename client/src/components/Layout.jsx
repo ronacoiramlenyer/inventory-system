@@ -3,6 +3,13 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
+const ROLE_LABELS = {
+  admin: 'Admin',
+  staff: 'Staff',
+  subject_coordinator: 'Subject Coordinator',
+  secretary: 'Secretary',
+};
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -21,16 +28,16 @@ export default function Layout() {
     navigate('/login');
   }
 
-  const navItems = [
-    { to: '/', label: 'Dashboard', end: true },
-    { to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 },
-    ...(user?.role === 'admin'
-      ? [
-          { to: '/departments', label: 'Departments' },
-          { to: '/users', label: 'Staff Accounts' },
-        ]
-      : []),
-  ];
+  const navItems = [{ to: '/', label: 'Dashboard', end: true }];
+  if (user?.role !== 'secretary') {
+    navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
+  }
+  if (user?.role === 'secretary' || user?.role === 'admin') {
+    navItems.push({ to: '/work-requests', label: 'Filed Requests' });
+  }
+  if (user?.role === 'admin') {
+    navItems.push({ to: '/departments', label: 'Departments' }, { to: '/users', label: 'Staff Accounts' });
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-50">
@@ -66,9 +73,7 @@ export default function Layout() {
         </nav>
         <div className="px-4 py-4 border-t border-slate-800">
           <p className="text-sm font-medium">{user?.full_name}</p>
-          <p className="text-xs text-slate-400 mb-3">
-            {user?.role === 'subject_coordinator' ? 'Subject Coordinator' : user?.role === 'admin' ? 'Admin' : 'Staff'}
-          </p>
+          <p className="text-xs text-slate-400 mb-3">{ROLE_LABELS[user?.role] || 'Staff'}</p>
           <button
             onClick={handleLogout}
             className="w-full text-sm bg-slate-800 hover:bg-slate-700 rounded-lg py-1.5 transition"

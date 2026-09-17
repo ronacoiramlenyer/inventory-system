@@ -11,7 +11,7 @@ const USER_SELECT = `
   FROM users u LEFT JOIN departments d ON d.id = u.department_id
 `;
 
-const VALID_ROLES = ['admin', 'staff', 'subject_coordinator'];
+const VALID_ROLES = ['admin', 'staff', 'subject_coordinator', 'secretary'];
 
 users.get('/', async (c) => {
   const rows = await dbAll(c.env.DB, USER_SELECT + ' ORDER BY u.role DESC, u.full_name');

@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
-import { sendWorkRequestEmail } from '../lib/email.js';
 
 // F-LAB-004 Equipment Work Request (the official per-request form) and
 // F-LAB-005 Equipment Monitoring Sheet (the per-lab log of those requests)
@@ -16,24 +15,40 @@ const SELECT = `
   JOIN departments d ON d.id = l.department_id
 `;
 
+function sameDepartment(user, row) {
+  return Number(row.department_id) === Number(user.department_id);
+}
+
 function labAccessibleToUser(user, lab) {
   if (!lab) return false;
   if (user.role === 'admin') return true;
   return Number(lab.department_id) === Number(user.department_id) && lab.status === 'approved';
 }
 
+// A Secretary only sees requests once they've been filed (approved) -- a
+// Pending one hasn't reached her yet, so it's outside her access entirely.
 function userCanAccessRow(user, row) {
   if (!row) return false;
   if (user.role === 'admin') return true;
-  return Number(row.department_id) === Number(user.department_id) && row.lab_status === 'approved';
+  if (!sameDepartment(user, row) || row.lab_status !== 'approved') return false;
+  if (user.role === 'secretary') return row.status !== 'Pending';
+  return true;
 }
 
 // Only an admin, or the Subject Coordinator of the request's own department,
-// may approve/file a request or otherwise change its status.
+// may approve/file a request.
 function userCanApprove(user, row) {
   if (!row) return false;
   if (user.role === 'admin') return true;
-  return user.role === 'subject_coordinator' && Number(row.department_id) === Number(user.department_id);
+  return user.role === 'subject_coordinator' && sameDepartment(user, row);
+}
+
+// Once filed, the Subject Coordinator/admin and the department's Secretary
+// can both move the status forward (In Progress / Completed / Rejected).
+function userCanManageFiled(user, row) {
+  if (!row) return false;
+  if (userCanApprove(user, row)) return true;
+  return user.role === 'secretary' && sameDepartment(user, row);
 }
 
 async function nextRequestNo(db) {
@@ -57,6 +72,7 @@ workRequests.get('/', async (c) => {
   if (user.role !== 'admin') {
     clauses.push('l.department_id = ?', "l.status = 'approved'");
     params.push(user.department_id);
+    if (user.role === 'secretary') clauses.push("w.status != 'Pending'");
   }
   if (laboratory_id) {
     clauses.push('w.laboratory_id = ?');
@@ -119,7 +135,7 @@ workRequests.post('/', async (c) => {
     nature_of_request?.trim() || null,
     detailed_description?.trim() || null,
     requested_by?.trim() || user.full_name,
-    // Awaits Subject Coordinator approval before it's filed and emailed to the secretary.
+    // Awaits Subject Coordinator approval before it's filed for the Secretary to see.
     'Pending',
     user.id
   );
@@ -127,7 +143,8 @@ workRequests.post('/', async (c) => {
   return c.json(created, 201);
 });
 
-// Subject Coordinator (or admin) approval: files the request and emails the secretary.
+// Subject Coordinator (or admin) approval: files the request so the
+// department's Secretary can see it and work it.
 workRequests.post('/:id/approve', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
@@ -146,9 +163,7 @@ workRequests.post('/:id/approve', async (c) => {
     user.full_name,
     id
   );
-  const updated = await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', id);
-  const emailResult = await sendWorkRequestEmail(c.env, updated);
-  return c.json({ ...updated, email_sent: emailResult.sent, email_error: emailResult.error });
+  return c.json(await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', id));
 });
 
 workRequests.put('/:id', async (c) => {
@@ -173,9 +188,11 @@ workRequests.put('/:id', async (c) => {
     remarks,
   } = await c.req.json().catch(() => ({}));
 
-  // Only a Subject Coordinator/admin can move the approval fields -- everyone
-  // else (the requester, other staff) can only edit the request's details.
+  // Approved-by is the Subject Coordinator's identity, so only they/admin can
+  // set it. Status and date completed can also move once the department's
+  // Secretary is working the filed request.
   const canApprove = userCanApprove(user, existing);
+  const canManage = userCanManageFiled(user, existing);
 
   await dbRun(
     c.env.DB,
@@ -189,8 +206,8 @@ workRequests.put('/:id', async (c) => {
     detailed_description?.trim() ?? existing.detailed_description,
     requested_by?.trim() ?? existing.requested_by,
     canApprove ? approved_by?.trim() ?? existing.approved_by : existing.approved_by,
-    canApprove ? status?.trim() || existing.status : existing.status,
-    canApprove ? date_completed ?? existing.date_completed : existing.date_completed,
+    canManage ? status?.trim() || existing.status : existing.status,
+    canManage ? date_completed ?? existing.date_completed : existing.date_completed,
     remarks?.trim() ?? existing.remarks,
     id
   );

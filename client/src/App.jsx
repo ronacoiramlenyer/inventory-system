@@ -14,6 +14,7 @@ import CalibrationSchedule from './pages/CalibrationSchedule';
 import LabWorkRequests from './pages/LabWorkRequests';
 import NewWorkRequest from './pages/NewWorkRequest';
 import WorkRequestDetail from './pages/WorkRequestDetail';
+import WorkRequestsInbox from './pages/WorkRequestsInbox';
 import LabBorrowingRequests from './pages/LabBorrowingRequests';
 import NewBorrowingRequest from './pages/NewBorrowingRequest';
 import BorrowingRequestDetail from './pages/BorrowingRequestDetail';
@@ -60,6 +61,7 @@ function AppRoutes() {
         <Route path="laboratories/:id/calibration-schedule" element={<CalibrationSchedule />} />
         <Route path="laboratories/:id/work-requests/new" element={<NewWorkRequest />} />
         <Route path="laboratories/:id/work-requests" element={<LabWorkRequests />} />
+        <Route path="work-requests" element={<WorkRequestsInbox />} />
         <Route path="work-requests/:id" element={<WorkRequestDetail />} />
         <Route path="laboratories/:id/borrowing-requests/new" element={<NewBorrowingRequest />} />
         <Route path="laboratories/:id/borrowing-requests" element={<LabBorrowingRequests />} />

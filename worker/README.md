@@ -58,22 +58,6 @@ secret**:
 - `JWT_SECRET` — any random string you make up; used to sign login tokens
   for the deployed Worker.
 
-Optionally, also add:
-
-- `RESEND_API_KEY` — a [Resend](https://resend.com) API key. When set, filing
-  an F-LAB-004 Equipment Work Request emails it to the secretary address
-  configured in `worker/wrangler.jsonc` (`vars.SECRETARY_EMAIL`). Without it,
-  requests still get filed normally — the email step is just skipped.
-
-  **Also verify a sending domain in Resend** (Resend dashboard → Domains →
-  Add Domain → add the DNS records it gives you for `lsgh.edu.ph`). Until
-  that finishes, Resend's sandbox sender can only deliver to the email
-  address that owns the Resend account, so real filings will fail with a
-  403 and show a "couldn't send" notice — this is expected, not a bug.
-  `wrangler.jsonc`'s `vars.EMAIL_FROM` already points at
-  `noreply@lsgh.edu.ph`; once the domain is verified, sending just starts
-  working with no further changes needed.
-
 Once the secrets are set, push to this branch (or run the workflow
 manually from the **Actions** tab) and it deploys automatically. The
 Worker's live URL is auto-detected from `wrangler deploy`'s output and fed
@@ -93,13 +77,6 @@ npx wrangler login
 
 ```bash
 npx wrangler secret put JWT_SECRET
-```
-
-**2b. (Optional) Set a Resend API key** so filing an F-LAB-004 request emails
-the secretary:
-
-```bash
-npx wrangler secret put RESEND_API_KEY
 ```
 
 **3. Deploy the Worker:**

@@ -15,7 +15,7 @@ export default function WorkRequestDetail() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
-  const [emailNotice, setEmailNotice] = useState(null);
+  const [justApproved, setJustApproved] = useState(false);
 
   function load() {
     api.get(`/work-requests/${id}`).then((res) => {
@@ -31,14 +31,16 @@ export default function WorkRequestDetail() {
 
   useEffect(load, [id]);
 
-  const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && Number(user.department_id) === Number(req.department_id)));
+  const sameDept = req && Number(user.department_id) === Number(req.department_id);
+  const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && sameDept));
+  const canManage = canApprove || (req && user.role === 'secretary' && sameDept);
 
   async function handleApprove() {
     setError('');
     setApproving(true);
     try {
-      const { data } = await api.post(`/work-requests/${id}/approve`);
-      setEmailNotice({ sent: data.email_sent, error: data.email_error });
+      await api.post(`/work-requests/${id}/approve`);
+      setJustApproved(true);
       load();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to approve request');
@@ -63,11 +65,16 @@ export default function WorkRequestDetail() {
 
   if (!req || !form) return <p className="text-slate-500">Loading…</p>;
 
+  const backLink =
+    user.role === 'secretary'
+      ? { to: '/work-requests', label: 'Filed Requests' }
+      : { to: `/laboratories/${req.laboratory_id}/work-requests`, label: req.laboratory_name };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
-        <Link to={`/laboratories/${req.laboratory_id}/work-requests`} className="text-sm text-slate-500 hover:text-slate-800">
-          ← Back to {req.laboratory_name}
+        <Link to={backLink.to} className="text-sm text-slate-500 hover:text-slate-800">
+          ← Back to {backLink.label}
         </Link>
         <button
           onClick={() => window.print()}
@@ -77,24 +84,18 @@ export default function WorkRequestDetail() {
         </button>
       </div>
 
-      <LabFormTabs laboratoryId={req.laboratory_id} active="equipment-work-request" />
+      {user.role !== 'secretary' && <LabFormTabs laboratoryId={req.laboratory_id} active="equipment-work-request" />}
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
       {location.state?.justSubmitted && req.status === 'Pending' && (
         <p className="no-print text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-          Submitted — awaiting Subject Coordinator approval before it's filed and sent to the secretary.
+          Submitted — awaiting Subject Coordinator approval before it's filed for the secretary.
         </p>
       )}
-      {emailNotice?.sent === true && (
+      {justApproved && (
         <p className="no-print text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
-          Approved, filed, and emailed to the secretary.
-        </p>
-      )}
-      {emailNotice?.sent === false && (
-        <p className="no-print text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-          Approved and filed, but the email to the secretary could not be sent ({emailNotice.error || 'unknown error'}).
-          Please notify them another way.
+          Approved and filed — the secretary can now see and work this request.
         </p>
       )}
 
@@ -153,24 +154,23 @@ export default function WorkRequestDetail() {
             {canApprove ? (
               <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-2">
                 <p className="text-sm text-amber-800">
-                  Awaiting your approval as Subject Coordinator. Approving files this request and emails the
-                  secretary.
+                  Awaiting your approval as Subject Coordinator. Approving files this request for the secretary.
                 </p>
                 <button
                   onClick={handleApprove}
                   disabled={approving}
                   className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
                 >
-                  {approving ? 'Approving…' : 'Approve & File to Secretary'}
+                  {approving ? 'Approving…' : 'Approve & File'}
                 </button>
               </div>
             ) : (
               <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                Awaiting approval from the Subject Coordinator before this is filed and sent to the secretary.
+                Awaiting approval from the Subject Coordinator before this is filed for the secretary.
               </p>
             )}
           </div>
-        ) : canApprove ? (
+        ) : canManage ? (
           <form onSubmit={handleSave} className="space-y-3 no-print">
             <h3 className="font-semibold text-slate-700">Status</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -190,11 +190,15 @@ export default function WorkRequestDetail() {
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Approved by (Subject Coordinator)</label>
-                <input
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  value={form.approved_by}
-                  onChange={(e) => setForm({ ...form, approved_by: e.target.value })}
-                />
+                {canApprove ? (
+                  <input
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    value={form.approved_by}
+                    onChange={(e) => setForm({ ...form, approved_by: e.target.value })}
+                  />
+                ) : (
+                  <p className="text-sm text-slate-600 px-1 py-2">{form.approved_by || '—'}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">Date Completed</label>
