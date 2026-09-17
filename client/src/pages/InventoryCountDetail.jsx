@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { readSheet } from 'read-excel-file/universal';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
 
 const normalize = (s) => String(s ?? '').trim().toLowerCase();
 let tempKeySeq = 0;
@@ -273,7 +274,8 @@ export default function InventoryCountDetail() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">INVENTORY SHEET</h2>
+          <PrintHeader pageLabel="1 of 1" />
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Inventory Sheet</h2>
 
           <table className="mb-4 text-sm">
             <tbody>
@@ -403,6 +405,8 @@ export default function InventoryCountDetail() {
               )}
             </tbody>
           </table>
+
+          <PrintFooter code="F-LAB-010" date="04-01-25" />
         </div>
       </div>
     </div>
