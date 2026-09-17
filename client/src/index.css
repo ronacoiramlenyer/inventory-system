@@ -7,4 +7,12 @@
   body {
     background: white !important;
   }
+  /* The repeating PrintFooter is position:fixed so it shows on every page,
+     but fixed elements don't reserve flow space -- without this, a table
+     that fills close to a page's bottom edge prints right under (or
+     through) the footer instead of stopping above it. Reserving page
+     margin here keeps content out of the same zone the footer sits in. */
+  @page {
+    margin-bottom: 0.75in;
+  }
 }
