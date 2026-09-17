@@ -18,6 +18,7 @@ import WorkRequestsInbox from './pages/WorkRequestsInbox';
 import LabBorrowingRequests from './pages/LabBorrowingRequests';
 import NewBorrowingRequest from './pages/NewBorrowingRequest';
 import BorrowingRequestDetail from './pages/BorrowingRequestDetail';
+import BorrowingRequestsInbox from './pages/BorrowingRequestsInbox';
 import LabWasteDisposalLog from './pages/LabWasteDisposalLog';
 import LabIncidentReports from './pages/LabIncidentReports';
 import NewIncidentReport from './pages/NewIncidentReport';
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="work-requests/:id" element={<WorkRequestDetail />} />
         <Route path="laboratories/:id/borrowing-requests/new" element={<NewBorrowingRequest />} />
         <Route path="laboratories/:id/borrowing-requests" element={<LabBorrowingRequests />} />
+        <Route path="borrowing-requests" element={<BorrowingRequestsInbox />} />
         <Route path="borrowing-requests/:id" element={<BorrowingRequestDetail />} />
         <Route path="laboratories/:id/waste-disposal-log" element={<LabWasteDisposalLog />} />
         <Route path="laboratories/:id/incident-reports/new" element={<NewIncidentReport />} />

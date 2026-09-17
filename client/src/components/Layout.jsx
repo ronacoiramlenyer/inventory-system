@@ -45,6 +45,7 @@ export default function Layout() {
   const navItems = [{ to: '/', label: 'Dashboard', end: true }];
   if (user?.role !== 'secretary') {
     navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
+    navItems.push({ to: '/borrowing-requests', label: 'Borrowing Requests' });
   }
   navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
   if (user?.role === 'secretary' || user?.role === 'admin') {
