@@ -16,6 +16,15 @@ function formatIncidentDatetime(value) {
   });
 }
 
+// created_at is a SQLite UTC timestamp ("YYYY-MM-DD HH:MM:SS"), which some
+// browsers won't parse as-is -- make it ISO-8601 first.
+function formatSignedAt(value) {
+  if (!value) return value;
+  const d = new Date(value.replace(' ', 'T') + 'Z');
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
 export default function IncidentReportDetail() {
   const { id } = useParams();
   const [report, setReport] = useState(null);
@@ -129,6 +138,13 @@ export default function IncidentReportDetail() {
           <p>Prepared by:</p>
           <p className="mt-6 mb-1 w-56 border-b border-slate-400 pb-0.5">{report.prepared_by}</p>
           <p className="text-slate-500">{report.designation}</p>
+          {report.created_by_name && (
+            <p className="mt-2 text-xs text-slate-400 italic">
+              Digitally signed by {report.created_by_name}
+              {report.created_by_username && ` (@${report.created_by_username})`} on{' '}
+              {formatSignedAt(report.created_at)} — Lab Inventory System
+            </p>
+          )}
         </div>
 
         <PrintFooter code="F-LAB-009" date="04-01-25" />

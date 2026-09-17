@@ -7,10 +7,12 @@ const incidentReports = new Hono();
 incidentReports.use('*', requireAuth);
 
 const SELECT = `
-  SELECT r.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
+  SELECT r.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
+    u.full_name AS created_by_name, u.username AS created_by_username
   FROM incident_reports r
   JOIN laboratories l ON l.id = r.laboratory_id
   JOIN departments d ON d.id = l.department_id
+  LEFT JOIN users u ON u.id = r.created_by
 `;
 
 function labAccessibleToUser(user, lab) {
