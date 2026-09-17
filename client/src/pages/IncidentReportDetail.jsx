@@ -20,7 +20,8 @@ function formatIncidentDatetime(value) {
 // browsers won't parse as-is -- make it ISO-8601 first.
 function formatSignedAt(value) {
   if (!value) return value;
-  const d = new Date(value.replace(' ', 'T') + 'Z');
+  const iso = value.includes('T') ? value : `${value.replace(' ', 'T')}Z`;
+  const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }

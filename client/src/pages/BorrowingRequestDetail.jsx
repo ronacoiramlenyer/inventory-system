@@ -1,32 +1,61 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 
-const STATUS_OPTIONS = ['Pending', 'Approved', 'Returned'];
+const MANAGE_STATUS_OPTIONS = ['Approved', 'Returned'];
+
+// approved_at is a JS-generated ISO-8601 UTC string already; older/other
+// timestamps in this app come straight from SQLite's datetime('now') as
+// "YYYY-MM-DD HH:MM:SS" instead, which some browsers won't parse as-is --
+// handle both.
+function formatSignedAt(value) {
+  if (!value) return value;
+  const iso = value.includes('T') ? value : `${value.replace(' ', 'T')}Z`;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
 
 export default function BorrowingRequestDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [req, setReq] = useState(null);
   const [items, setItems] = useState([]);
-  const [approvedBy, setApprovedBy] = useState('');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [approving, setApproving] = useState(false);
 
   function load() {
     api.get(`/borrowing-requests/${id}`).then((res) => {
       setReq(res.data);
       setItems(res.data.items);
-      setApprovedBy(res.data.approved_by || '');
-      setStatus(res.data.status);
+      setStatus(res.data.status === 'Pending' ? 'Approved' : res.data.status);
     });
   }
 
   useEffect(load, [id]);
 
+  const inScope = req && Number(user.department_id) === Number(req.department_id);
+  const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && inScope));
+
   function updateItem(itemId, value) {
     setItems((rows) => rows.map((r) => (r.id === itemId ? { ...r, returned_condition: value } : r)));
+  }
+
+  async function handleApprove() {
+    setError('');
+    setApproving(true);
+    try {
+      await api.post(`/borrowing-requests/${id}/approve`);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to approve request');
+    } finally {
+      setApproving(false);
+    }
   }
 
   async function handleSave(e) {
@@ -35,7 +64,6 @@ export default function BorrowingRequestDetail() {
     setSaving(true);
     try {
       await api.put(`/borrowing-requests/${id}`, {
-        approved_by: approvedBy,
         status,
         items: items.map((it) => ({ id: it.id, returned_condition: it.returned_condition })),
       });
@@ -148,43 +176,70 @@ export default function BorrowingRequestDetail() {
           </ul>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-3 no-print">
-          <h3 className="font-semibold text-slate-700">Approval / Status</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Status</label>
-              <select
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Approved by (Name)</label>
-              <input
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                value={approvedBy}
-                onChange={(e) => setApprovedBy(e.target.value)}
-              />
-            </div>
+        {req.status === 'Pending' ? (
+          <div className="no-print">
+            {canApprove ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-2">
+                <p className="text-sm text-amber-800">Awaiting your approval as Subject Coordinator.</p>
+                <button
+                  onClick={handleApprove}
+                  disabled={approving}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+                >
+                  {approving ? 'Approving…' : 'Approve'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                Awaiting approval from the Subject Coordinator.
+              </p>
+            )}
           </div>
-          <button
-            disabled={saving}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </form>
+        ) : (
+          <form onSubmit={handleSave} className="space-y-3 no-print">
+            <h3 className="font-semibold text-slate-700">Status</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Status</label>
+                <select
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  {MANAGE_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Approved by (Subject Coordinator)</label>
+                <p className="text-sm text-slate-600 px-1 py-2">{req.approved_by || '—'}</p>
+              </div>
+            </div>
+            <button
+              disabled={saving}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </form>
+        )}
+
+        {req.approved_by && (
+          <div className="mt-3 text-sm text-slate-700">
+            <p>Approved by: {req.approved_by}</p>
+            <p className="text-xs text-slate-400 italic mt-1">
+              Digitally signed by {req.approved_by}
+              {req.approved_by_username && ` (@${req.approved_by_username})`} on {formatSignedAt(req.approved_at)} —
+              Lab Inventory System
+            </p>
+          </div>
+        )}
 
         <div className="hidden print:block mt-4 text-sm">
-          <p>Status: {status}</p>
-          {approvedBy && <p>Approved by: {approvedBy}</p>}
+          <p>Status: {req.status}</p>
         </div>
       </div>
     </div>

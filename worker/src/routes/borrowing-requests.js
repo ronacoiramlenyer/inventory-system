@@ -8,10 +8,12 @@ const borrowingRequests = new Hono();
 borrowingRequests.use('*', requireAuth);
 
 const SELECT = `
-  SELECT b.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
+  SELECT b.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
+    au.username AS approved_by_username
   FROM borrowing_requests b
   JOIN laboratories l ON l.id = b.laboratory_id
   JOIN departments d ON d.id = l.department_id
+  LEFT JOIN users au ON au.id = b.approved_by_id
 `;
 
 function labAccessibleToUser(user, lab) {
@@ -24,6 +26,14 @@ function userCanAccessRow(user, row) {
   if (!row) return false;
   if (user.role === 'admin') return true;
   return Number(row.department_id) === Number(user.department_id) && row.lab_status === 'approved';
+}
+
+// Only an admin, or the Subject Coordinator of the request's own
+// department, may approve a borrowing request.
+function userCanApprove(user, row) {
+  if (!row) return false;
+  if (user.role === 'admin') return true;
+  return user.role === 'subject_coordinator' && Number(row.department_id) === Number(user.department_id);
 }
 
 borrowingRequests.get('/', async (c) => {
@@ -114,6 +124,32 @@ borrowingRequests.post('/', async (c) => {
   return c.json({ ...created, items: rows }, 201);
 });
 
+// Subject Coordinator (or admin) approval: the approver's identity/time is
+// always taken from their own authenticated account, never from client
+// input, so "Approved by" can't be spoofed by typing someone else's name.
+borrowingRequests.post('/:id/approve', async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id');
+  const existing = await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', id);
+  if (!existing) return c.json({ error: 'Borrowing request not found' }, 404);
+  if (!userCanApprove(user, existing)) {
+    return c.json({ error: 'Only the Subject Coordinator for this department can approve this request' }, 403);
+  }
+  if (existing.status !== 'Pending') {
+    return c.json({ error: `This request is already ${existing.status}` }, 400);
+  }
+
+  await dbRun(
+    c.env.DB,
+    `UPDATE borrowing_requests SET status = 'Approved', approved_by = ?, approved_by_id = ?, approved_at = ? WHERE id = ?`,
+    user.full_name,
+    user.id,
+    new Date().toISOString(),
+    id
+  );
+  return c.json(await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', id));
+});
+
 borrowingRequests.put('/:id', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
@@ -123,19 +159,25 @@ borrowingRequests.put('/:id', async (c) => {
     return c.json({ error: 'You do not have access to this borrowing request' }, 403);
   }
 
-  const { borrower_name, department_unit, date_needed, purpose, return_date, approved_by, status, items } =
+  const { borrower_name, department_unit, date_needed, purpose, return_date, status, items } =
     await c.req.json().catch(() => ({}));
+
+  // Moving to Approved has to go through the /approve action so the
+  // approver's identity is captured from their real account -- this route
+  // can move it anywhere else (e.g. Returned).
+  if (status === 'Approved' && existing.status !== 'Approved') {
+    return c.json({ error: 'Use the Approve action to approve this request' }, 400);
+  }
 
   await dbRun(
     c.env.DB,
     `UPDATE borrowing_requests SET borrower_name = ?, department_unit = ?, date_needed = ?, purpose = ?,
-       return_date = ?, approved_by = ?, status = ? WHERE id = ?`,
+       return_date = ?, status = ? WHERE id = ?`,
     borrower_name?.trim() || existing.borrower_name,
     department_unit?.trim() ?? existing.department_unit,
     date_needed ?? existing.date_needed,
     purpose?.trim() ?? existing.purpose,
     return_date ?? existing.return_date,
-    approved_by?.trim() ?? existing.approved_by,
     status?.trim() || existing.status,
     id
   );

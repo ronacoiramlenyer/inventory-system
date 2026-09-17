@@ -196,7 +196,9 @@ CREATE TABLE IF NOT EXISTS borrowing_requests (
   date_needed TEXT,
   purpose TEXT,
   return_date TEXT,
-  approved_by TEXT,
+  approved_by TEXT,                 -- Subject Coordinator's display name at approval time
+  approved_by_id INTEGER REFERENCES users(id), -- the actual account that approved it
+  approved_at TEXT,
   status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Approved' | 'Returned'
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
