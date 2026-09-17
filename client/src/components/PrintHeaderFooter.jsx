@@ -23,9 +23,13 @@ export function PrintHeader({ pageLabel = 'Page 1 of 1' }) {
   );
 }
 
+// position:fixed is one of the few pagination behaviors browsers *do*
+// support reliably for print -- a fixed element repeats on every printed
+// page -- so this uses it instead of being placed once at the end of the
+// document's flow, which only ever landed on the last page.
 export function PrintFooter({ code, date, rev = 'Rev. 0' }) {
   return (
-    <p className="hidden print:block text-right text-xs text-slate-600 mt-8">
+    <p className="hidden print:block print:fixed print:bottom-2 print:right-6 text-right text-xs text-slate-600">
       {code} {rev} ({date})
     </p>
   );
