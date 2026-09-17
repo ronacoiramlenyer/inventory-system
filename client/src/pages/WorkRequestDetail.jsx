@@ -4,6 +4,7 @@ import api from '../api/client';
 import { refreshNotifications } from '../api/notifications';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
 
 const STATUS_OPTIONS = ['Filed', 'In Progress', 'Completed', 'Rejected'];
 
@@ -107,6 +108,7 @@ export default function WorkRequestDetail() {
       )}
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
+        <PrintHeader />
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-800">Equipment Work Request (EWR) Form</h2>
           <span className="text-sm text-slate-500">Date: {req.date_requested}</span>
@@ -247,6 +249,8 @@ export default function WorkRequestDetail() {
           {req.date_completed && <p>Date Completed: {req.date_completed}</p>}
           {req.remarks && <p>Remarks: {req.remarks}</p>}
         </div>
+
+        <PrintFooter code="F-LAB-004" date="04-01-25" />
       </div>
     </div>
   );

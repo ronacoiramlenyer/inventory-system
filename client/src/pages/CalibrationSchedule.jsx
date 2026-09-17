@@ -7,6 +7,7 @@ export default function CalibrationSchedule() {
       tabKey="equipment-calibration-schedule"
       formTitle="Equipment Calibration Schedule (ECS)"
       dateNoun="Calibration"
+      code="F-LAB-003"
     />
   );
 }

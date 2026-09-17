@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 
 const emptyForm = {
   turnover_date: new Date().toISOString().slice(0, 10),
@@ -169,6 +170,7 @@ export default function LabWasteDisposalLog() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
+          <PrintHeader pageLabel={estimatePageLabel(rows.length)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Waste Disposal Log</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
@@ -220,6 +222,8 @@ export default function LabWasteDisposalLog() {
               )}
             </tbody>
           </table>
+
+          <PrintFooter code="F-LAB-008" date="04-01-25" />
         </div>
       </div>
     </div>

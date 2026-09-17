@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 
 const emptyForm = {
   equipment_name_description: '',
@@ -15,7 +16,7 @@ const emptyForm = {
 
 // Shared by F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
 // Calibration Schedule -- identically shaped, only the noun differs.
-export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun }) {
+export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, code }) {
   const { id } = useParams();
   const [lab, setLab] = useState(null);
   const [rows, setRows] = useState([]);
@@ -188,6 +189,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun }) 
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
+          <PrintHeader pageLabel={estimatePageLabel(rows.length)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">{formTitle}</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
@@ -248,6 +250,8 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun }) 
               )}
             </tbody>
           </table>
+
+          <PrintFooter code={code} date="04-01-25" />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ export default function MaintenanceSchedule() {
       tabKey="preventive-maintenance-schedule"
       formTitle="Preventive Maintenance Schedule (PMS)"
       dateNoun="Maintenance"
+      code="F-LAB-002"
     />
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 
 const SERVICE_OPTIONS = ['Preventive', 'Repair', 'Calibration'];
 
@@ -153,6 +154,7 @@ export default function EquipmentMonitoringRecord() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
+          <PrintHeader pageLabel={estimatePageLabel(logs.length)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record</h2>
           <table className="mb-4 text-sm">
             <tbody>
@@ -217,6 +219,8 @@ export default function EquipmentMonitoringRecord() {
               )}
             </tbody>
           </table>
+
+          <PrintFooter code="F-LAB-001" date="04-01-25" />
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
 
 const MANAGE_STATUS_OPTIONS = ['Approved', 'Returned'];
 
@@ -99,6 +100,7 @@ export default function BorrowingRequestDetail() {
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
+        <PrintHeader />
         <h2 className="text-lg font-bold text-slate-800 text-center mb-4">Borrowing Request Form (BRF)</h2>
 
         <table className="w-full text-sm border-collapse mb-4">
@@ -241,6 +243,8 @@ export default function BorrowingRequestDetail() {
         <div className="hidden print:block mt-4 text-sm">
           <p>Status: {req.status}</p>
         </div>
+
+        <PrintFooter code="F-LAB-007" date="04-01-25" />
       </div>
     </div>
   );

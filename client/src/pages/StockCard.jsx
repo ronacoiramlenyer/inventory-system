@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 
 const emptyForm = {
   entry_date: new Date().toISOString().slice(0, 10),
@@ -197,6 +198,7 @@ export default function StockCard() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
+          <PrintHeader pageLabel={estimatePageLabel(entries.length)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Stock Card</h2>
           <table className="mb-4 text-sm">
             <tbody>
@@ -315,6 +317,8 @@ export default function StockCard() {
               )}
             </tbody>
           </table>
+
+          <PrintFooter code="F-LAB-006" date="04-01-25" />
         </div>
       </div>
     </div>
