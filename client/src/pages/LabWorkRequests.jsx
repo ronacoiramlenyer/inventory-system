@@ -47,7 +47,7 @@ export default function LabWorkRequests() {
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
           <PrintHeader pageLabel={estimatePageLabel(Math.max(requests.length, MIN_ROWS))} />
-          <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Equipment Monitoring Sheet (EMS)</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Sheet (EMS)</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
@@ -55,7 +55,11 @@ export default function LabWorkRequests() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Request No.</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                  Request No.
+                  <br />
+                  (EWR-YYYY-###)
+                </th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Equipment Name</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Equipment ID</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Nature of Request</th>
