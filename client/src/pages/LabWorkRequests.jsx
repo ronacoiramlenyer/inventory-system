@@ -34,12 +34,20 @@ export default function LabWorkRequests() {
         <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">
           ← Back to Laboratories
         </Link>
-        <Link
-          to={`/laboratories/${id}/work-requests/new`}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
-        >
-          + New Request
-        </Link>
+        <div className="space-x-2">
+          <Link
+            to={`/laboratories/${id}/work-requests/new`}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+          >
+            + New Request
+          </Link>
+          <button
+            onClick={() => window.print()}
+            className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
+          >
+            Print
+          </button>
+        </div>
       </div>
 
       <LabFormTabs laboratoryId={id} active="equipment-monitoring-sheet" />
