@@ -8,6 +8,7 @@ const emptyForm = {
   equipment_name_description: '',
   serial_number: '',
   frequency: '',
+  department: '',
   location: '',
   scheduled_date: '',
   actual_date: '',
@@ -20,6 +21,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
   const { id } = useParams();
   const [lab, setLab] = useState(null);
   const [rows, setRows] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -31,6 +33,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
 
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
+    api.get('/departments').then((res) => setDepartments(res.data));
     loadRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -47,6 +50,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
       equipment_name_description: row.equipment_name_description,
       serial_number: row.serial_number || '',
       frequency: row.frequency || '',
+      department: row.department || '',
       location: row.location || '',
       scheduled_date: row.scheduled_date || '',
       actual_date: row.actual_date || '',
@@ -137,6 +141,21 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
             />
           </div>
           <div>
+            <label className="block text-sm text-slate-600 mb-1">Department</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value })}
+            >
+              <option value="">—</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-sm text-slate-600 mb-1">Location</label>
             <input
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
@@ -190,7 +209,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
           <PrintHeader pageLabel={estimatePageLabel(rows.length)} />
-          <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">{formTitle}</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">{formTitle}</h2>
           <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
@@ -206,6 +225,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                   Equipment ID/Serial Number
                 </th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Frequency</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Department</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Location</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
                   Scheduled Date of {dateNoun}
@@ -224,6 +244,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                   <td className="border border-slate-300 px-3 py-2">{row.equipment_name_description}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.serial_number}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.frequency}</td>
+                  <td className="border border-slate-300 px-3 py-2">{row.department}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.location}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.scheduled_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.actual_date}</td>
@@ -243,7 +264,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
+                  <td colSpan={10} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
                     No entries yet.
                   </td>
                 </tr>

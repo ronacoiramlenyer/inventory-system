@@ -52,7 +52,7 @@ export function createScheduleRoutes(table) {
 
   router.post('/', async (c) => {
     const user = c.get('user');
-    const { laboratory_id, equipment_name_description, serial_number, frequency, location, scheduled_date } =
+    const { laboratory_id, equipment_name_description, serial_number, frequency, department, location, scheduled_date } =
       await c.req.json().catch(() => ({}));
     if (!laboratory_id || !equipment_name_description?.trim()) {
       return c.json({ error: 'laboratory_id and equipment_name_description are required' }, 400);
@@ -71,13 +71,14 @@ export function createScheduleRoutes(table) {
 
     const result = await dbRun(
       c.env.DB,
-      `INSERT INTO ${table} (laboratory_id, item_no, equipment_name_description, serial_number, frequency, location, scheduled_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO ${table} (laboratory_id, item_no, equipment_name_description, serial_number, frequency, department, location, scheduled_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       laboratory_id,
       maxItemNo.n + 1,
       equipment_name_description.trim(),
       serial_number?.trim() || null,
       frequency?.trim() || null,
+      department?.trim() || null,
       location?.trim() || null,
       scheduled_date || null
     );
@@ -93,16 +94,17 @@ export function createScheduleRoutes(table) {
       return c.json({ error: 'You do not have access to this schedule item' }, 403);
     }
 
-    const { equipment_name_description, serial_number, frequency, location, scheduled_date, actual_date, remarks } =
+    const { equipment_name_description, serial_number, frequency, department, location, scheduled_date, actual_date, remarks } =
       await c.req.json().catch(() => ({}));
 
     await dbRun(
       c.env.DB,
-      `UPDATE ${table} SET equipment_name_description = ?, serial_number = ?, frequency = ?, location = ?,
+      `UPDATE ${table} SET equipment_name_description = ?, serial_number = ?, frequency = ?, department = ?, location = ?,
          scheduled_date = ?, actual_date = ?, remarks = ? WHERE id = ?`,
       equipment_name_description?.trim() || existing.equipment_name_description,
       serial_number?.trim() ?? existing.serial_number,
       frequency?.trim() ?? existing.frequency,
+      department?.trim() ?? existing.department,
       location?.trim() ?? existing.location,
       scheduled_date ?? existing.scheduled_date,
       actual_date ?? existing.actual_date,

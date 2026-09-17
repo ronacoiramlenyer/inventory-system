@@ -7,6 +7,7 @@ import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
 
 const STATUS_OPTIONS = ['Filed', 'In Progress', 'Completed', 'Rejected'];
+const NATURE_TYPES = ['Preventive', 'Repair', 'Calibration'];
 
 export default function WorkRequestDetail() {
   const { id } = useParams();
@@ -109,54 +110,73 @@ export default function WorkRequestDetail() {
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
         <PrintHeader />
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800">Equipment Work Request (EWR) Form</h2>
-          <span className="text-sm text-slate-500">Date: {req.date_requested}</span>
+        <div className="flex items-start justify-between mb-1">
+          <h2 className="text-lg font-bold text-slate-800">Equipment Work Request (EWR)</h2>
+          <p className="text-sm text-slate-600">Date: {req.date_requested}</p>
         </div>
         <p className="text-sm text-slate-600 mb-4">Request No.: {req.request_no}</p>
 
         <table className="w-full text-sm border-collapse mb-4">
           <tbody>
             <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 w-56">
-                Equipment Name & Description:
+              <td rowSpan={4} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top w-32">
+                Equipment Information
               </td>
+              <td className="border border-slate-300 px-3 py-1.5 font-medium w-56">Equipment Name &amp; Description:</td>
               <td className="border border-slate-300 px-3 py-1.5">{req.equipment_name_description}</td>
             </tr>
             <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                Equipment ID/Serial Number:
-              </td>
+              <td className="border border-slate-300 px-3 py-1.5 font-medium">Equipment ID/Serial Number:</td>
               <td className="border border-slate-300 px-3 py-1.5">{req.serial_number}</td>
             </tr>
             <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">Department:</td>
+              <td className="border border-slate-300 px-3 py-1.5 font-medium">Department:</td>
               <td className="border border-slate-300 px-3 py-1.5">{req.department_name}</td>
             </tr>
             <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">Location:</td>
+              <td className="border border-slate-300 px-3 py-1.5 font-medium">Location:</td>
               <td className="border border-slate-300 px-3 py-1.5">{req.laboratory_name}</td>
             </tr>
+
             <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">Date Needed:</td>
+              <td rowSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top">
+                Request Details
+              </td>
+              <td className="border border-slate-300 px-3 py-1.5 font-medium">Date Needed:</td>
               <td className="border border-slate-300 px-3 py-1.5">{req.date_needed}</td>
             </tr>
             <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">Nature of Request:</td>
-              <td className="border border-slate-300 px-3 py-1.5">{req.nature_of_request}</td>
-            </tr>
-            <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                Detailed Description of Request:
+              <td className="border border-slate-300 px-3 py-1.5 font-medium align-top">Nature of Request:</td>
+              <td className="border border-slate-300 px-3 py-2">
+                {NATURE_TYPES.map((type) => (
+                  <div key={type}>
+                    {req.nature_of_request === type ? '☑' : '☐'} {type}
+                  </div>
+                ))}
               </td>
-              <td className="border border-slate-300 px-3 py-1.5 whitespace-pre-wrap">{req.detailed_description}</td>
             </tr>
+
             <tr>
-              <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">Requested by:</td>
-              <td className="border border-slate-300 px-3 py-1.5">{req.requested_by}</td>
+              <td colSpan={3} className="border border-slate-300 px-3 py-2 align-top">
+                <p className="font-semibold mb-2">Detailed Description of Request:</p>
+                <p className="whitespace-pre-wrap min-h-16">{req.detailed_description}</p>
+              </td>
             </tr>
           </tbody>
         </table>
+
+        <div className="grid grid-cols-2 gap-6 text-sm text-slate-700 mb-4">
+          <div>
+            <p>Requested by:</p>
+            <p className="mt-6 mb-1 border-b border-slate-400 pb-0.5">{req.requested_by}</p>
+            <p className="text-xs text-slate-500">Name of Laboratory Custodian</p>
+          </div>
+          <div>
+            <p>Approved by:</p>
+            <p className="mt-6 mb-1 border-b border-slate-400 pb-0.5">{req.approved_by}</p>
+            <p className="text-xs text-slate-500">Subject Coordinator</p>
+          </div>
+        </div>
 
         {req.status === 'Pending' ? (
           <div className="no-print">
