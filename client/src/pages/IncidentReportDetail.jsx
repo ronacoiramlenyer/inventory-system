@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
+import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
 
 const INCIDENT_TYPES = ['Injury', 'Chemical Spill', 'Fire', 'Equipment Damage', 'Biological Hazard', 'Electrical Issue'];
 
@@ -47,6 +48,7 @@ export default function IncidentReportDetail() {
       <LabFormTabs laboratoryId={report.laboratory_id} active="incident-report" />
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
+        <PrintHeader />
         <h2 className="text-lg font-bold text-slate-800 mb-1">Laboratory Incident Report (LIR)</h2>
         <p className="text-sm text-slate-600 mb-4">Reference No.: {report.reference_no || '—'}</p>
 
@@ -128,6 +130,8 @@ export default function IncidentReportDetail() {
           <p className="mt-6 mb-1 w-56 border-b border-slate-400 pb-0.5">{report.prepared_by}</p>
           <p className="text-slate-500">{report.designation}</p>
         </div>
+
+        <PrintFooter code="F-LAB-009" date="04-01-25" />
       </div>
     </div>
   );
