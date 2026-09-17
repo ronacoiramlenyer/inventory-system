@@ -236,6 +236,7 @@ CREATE INDEX IF NOT EXISTS idx_waste_log_lab ON waste_disposal_logs(laboratory_i
 CREATE TABLE IF NOT EXISTS incident_reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  reference_no TEXT,                -- LIR-YYYY-###, auto-generated
   incident_datetime TEXT NOT NULL,  -- free-form date & time of incident
   class_name TEXT,
   teacher TEXT,

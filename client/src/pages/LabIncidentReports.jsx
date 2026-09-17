@@ -45,6 +45,7 @@ export default function LabIncidentReports() {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
+              <th className="px-4 py-2 text-left font-medium">Reference No.</th>
               <th className="px-4 py-2 text-left font-medium">Date & Time</th>
               <th className="px-4 py-2 text-left font-medium">Class</th>
               <th className="px-4 py-2 text-left font-medium">Teacher</th>
@@ -57,9 +58,10 @@ export default function LabIncidentReports() {
               <tr key={r.id}>
                 <td className="px-4 py-3 font-medium">
                   <Link to={`/incident-reports/${r.id}`} className="text-emerald-700 hover:underline">
-                    {formatIncidentDatetime(r.incident_datetime)}
+                    {r.reference_no}
                   </Link>
                 </td>
+                <td className="px-4 py-3 text-slate-600">{formatIncidentDatetime(r.incident_datetime)}</td>
                 <td className="px-4 py-3 text-slate-600">{r.class_name}</td>
                 <td className="px-4 py-3 text-slate-600">{r.teacher}</td>
                 <td className="px-4 py-3 text-slate-600">
@@ -70,7 +72,7 @@ export default function LabIncidentReports() {
             ))}
             {reports.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
                   No incident reports yet.
                 </td>
               </tr>

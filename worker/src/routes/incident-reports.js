@@ -25,6 +25,14 @@ function userCanAccessRow(user, row) {
   return Number(row.department_id) === Number(user.department_id) && row.lab_status === 'approved';
 }
 
+async function nextReferenceNo(db) {
+  const year = new Date().getFullYear();
+  const prefix = `LIR-${year}-`;
+  const row = await dbGet(db, `SELECT COUNT(*) AS n FROM incident_reports WHERE reference_no LIKE ?`, `${prefix}%`);
+  const seq = String(row.n + 1).padStart(3, '0');
+  return `${prefix}${seq}`;
+}
+
 incidentReports.get('/', async (c) => {
   const user = c.get('user');
   const { laboratory_id } = c.req.query();
@@ -82,13 +90,16 @@ incidentReports.post('/', async (c) => {
     return c.json({ error: 'You do not have access to that laboratory' }, 403);
   }
 
+  const referenceNo = await nextReferenceNo(c.env.DB);
+
   const result = await dbRun(
     c.env.DB,
     `INSERT INTO incident_reports
-      (laboratory_id, incident_datetime, class_name, teacher, incident_types, incident_type_other,
+      (laboratory_id, reference_no, incident_datetime, class_name, teacher, incident_types, incident_type_other,
        individuals_involved, detailed_description, immediate_actions_taken, prepared_by, designation, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     laboratory_id,
+    referenceNo,
     incident_datetime.trim(),
     class_name?.trim() || null,
     teacher?.trim() || null,
