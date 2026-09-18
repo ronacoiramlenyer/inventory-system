@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeader, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
@@ -403,7 +403,6 @@ export default function StockCard() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <PrintHeader pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS), MIN_ROWS)} />
           <h2 className="text-lg font-bold text-slate-800 mb-4">Stock Card</h2>
           <table className="mb-4 text-sm">
             <tbody>
@@ -436,6 +435,10 @@ export default function StockCard() {
 
           <table className="w-full text-sm border-collapse">
             <thead>
+              <PrintHeaderRow
+                pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS), MIN_ROWS)}
+                colSpan={7}
+              />
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-right">

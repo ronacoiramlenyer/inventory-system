@@ -13,6 +13,17 @@ export function estimatePageLabel(rowCount, rowsPerPage = 20, prefix = '') {
 // Matches the official F-LAB template's print header (school seal + page
 // label) and footer (form code/revision). Print-only -- the app's own
 // Layout header already covers the on-screen view.
+//
+// This sits in normal document flow, so on a form whose printout runs to
+// more than one physical page it only appears once, at the very top of
+// page 1 -- Chrome has no reliable way to pin fixed-position content into
+// a page's top margin for print (tried position:fixed with a negative
+// top-offset pulled up from the @page content box; it rendered correctly
+// on some pages and duplicated onto the wrong page on others). For a form
+// whose printed table can span multiple pages, use PrintHeaderRow instead,
+// placed as the first row of the table's own <thead> -- browsers already
+// reliably repeat <thead> on every page a table breaks across, same as the
+// column-header row already does.
 export function PrintHeader({ pageLabel = 'Page 1 of 1' }) {
   return (
     <div className="hidden print:grid grid-cols-3 items-center mb-3">
@@ -20,6 +31,28 @@ export function PrintHeader({ pageLabel = 'Page 1 of 1' }) {
       <img src="/lsgh-logo.png" alt="La Salle Green Hills" className="h-14 w-auto justify-self-center" />
       <span className="italic text-sm text-slate-700 justify-self-end">{pageLabel}</span>
     </div>
+  );
+}
+
+// Same content as PrintHeader, but as a <thead> row so it repeats on every
+// physical page a long table spans -- see the note on PrintHeader above.
+// colSpan must match the number of print-visible <th> columns in that
+// table (i.e. excluding any no-print action column).
+//
+// Centered rather than spread edge-to-edge (like PrintHeader's own
+// grid-cols-3 layout): some of these tables are wider than the printable
+// page and get clipped on the right in print, which silently clipped a
+// right-aligned page label right along with it.
+export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
+  return (
+    <tr className="hidden print:table-row">
+      <th colSpan={colSpan} className="p-0 border-0 font-normal text-left pb-3">
+        <div className="print:flex items-center justify-center gap-3">
+          <img src="/lsgh-logo.png" alt="La Salle Green Hills" className="h-14 w-auto" />
+          <span className="italic text-sm text-slate-700">{pageLabel}</span>
+        </div>
+      </th>
+    </tr>
   );
 }
 
