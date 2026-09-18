@@ -3,7 +3,7 @@ import axios from 'axios';
 // In local dev this stays '/api' and goes through the Vite proxy to the
 // Node/Express server. For a production build targeting the Cloudflare
 // Worker, set VITE_API_URL to the deployed Worker's URL, e.g.
-// https://inventory-system-api.<your-subdomain>.workers.dev/api
+// https://lab-management-system-api.<your-subdomain>.workers.dev/api
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
 
 api.interceptors.request.use((config) => {

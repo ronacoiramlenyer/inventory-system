@@ -258,7 +258,7 @@ export default function BorrowingRequestDetail() {
             <p className="text-xs text-slate-400 italic mt-1">
               Digitally signed by {req.approved_by}
               {req.approved_by_username && ` (@${req.approved_by_username})`} on {formatSignedAt(req.approved_at)} —
-              Lab Inventory System
+              Lab Management System
             </p>
           </div>
         )}

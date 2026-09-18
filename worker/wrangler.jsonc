@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "inventory-system-api",
+  "name": "lab-management-system-api",
   "main": "src/index.js",
   "compatibility_date": "2025-01-01",
   "d1_databases": [

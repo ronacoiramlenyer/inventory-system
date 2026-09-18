@@ -1,4 +1,4 @@
-# Laboratory Inventory Management System
+# Lab Management System
 
 A web application for tracking supplies and equipment across school
 laboratories (Science, Computer, etc.), including a printable **Stock Card**

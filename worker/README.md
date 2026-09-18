@@ -85,16 +85,16 @@ npx wrangler secret put JWT_SECRET
 npx wrangler deploy
 ```
 
-This prints the live URL, e.g. `https://inventory-system-api.<your-subdomain>.workers.dev`.
+This prints the live URL, e.g. `https://lab-management-system-api.<your-subdomain>.workers.dev`.
 
 **4. Build and deploy the frontend to Cloudflare Pages**, pointing it at that
 URL:
 
 ```bash
 cd ../client
-echo "VITE_API_URL=https://inventory-system-api.<your-subdomain>.workers.dev/api" > .env
+echo "VITE_API_URL=https://lab-management-system-api.<your-subdomain>.workers.dev/api" > .env
 npm run build
-npx wrangler pages deploy dist --project-name=lsgh-lab-inventory
+npx wrangler pages deploy dist --project-name=lab-management-system
 ```
 
 (First time, `wrangler pages deploy` will ask you to confirm/create the

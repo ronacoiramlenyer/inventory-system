@@ -143,7 +143,7 @@ export default function IncidentReportDetail() {
             <p className="mt-2 text-xs text-slate-400 italic">
               Digitally signed by {report.created_by_name}
               {report.created_by_username && ` (@${report.created_by_username})`} on{' '}
-              {formatSignedAt(report.created_at)} — Lab Inventory System
+              {formatSignedAt(report.created_at)} — Lab Management System
             </p>
           )}
         </div>

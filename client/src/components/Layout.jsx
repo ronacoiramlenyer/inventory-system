@@ -65,7 +65,7 @@ export default function Layout() {
     <div className="min-h-screen flex bg-slate-50">
       <aside className="no-print w-60 shrink-0 bg-slate-900 text-slate-100 flex flex-col">
         <div className="px-5 py-5 border-b border-slate-800">
-          <h1 className="font-bold text-lg leading-tight">Lab Inventory</h1>
+          <h1 className="font-bold text-lg leading-tight">Lab Management System</h1>
           <p className="text-xs text-slate-400">
             {user?.role === 'admin'
               ? 'All Departments'
