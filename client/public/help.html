@@ -6,7 +6,7 @@
 <title>Lab Management System — Help</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
 
   :root {
     --bg: #f8fafc;
@@ -20,6 +20,8 @@
     --code-bg: #f1f5f9;
     --header-bg: #0f172a;
     --header-text: #f1f5f9;
+    --tech-bg: #f1f5f9;
+    --tech-border: #cbd5e1;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -34,6 +36,8 @@
       --code-bg: #1c2942;
       --header-bg: #0a1120;
       --header-text: #e2e8f0;
+      --tech-bg: #111c33;
+      --tech-border: #2a3b5c;
     }
   }
   :root[data-theme="dark"] {
@@ -48,6 +52,8 @@
     --code-bg: #1c2942;
     --header-bg: #0a1120;
     --header-text: #e2e8f0;
+    --tech-bg: #111c33;
+    --tech-border: #2a3b5c;
   }
 
   * { box-sizing: border-box; }
@@ -95,7 +101,6 @@
 
   #tocSidebar {
     width: 240px;
-    shrink: 0;
     flex-shrink: 0;
     padding: 24px 16px;
     position: sticky;
@@ -109,8 +114,9 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--text-dim);
-    margin: 0 0 10px 4px;
+    margin: 18px 0 10px 4px;
   }
+  #tocSidebar h2:first-child { margin-top: 0; }
   #tocSidebar a {
     display: block;
     padding: 6px 10px;
@@ -127,16 +133,113 @@
     min-width: 0;
     padding: 32px 24px 80px;
   }
+
+  /* ---- Intro banner ---- */
+  .intro {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+    border-radius: 14px;
+    padding: 18px 24px;
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+  }
+  .intro strong { color: var(--accent); }
+
+  /* ---- Group headers ---- */
+  .group-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 8px 0 16px;
+  }
+  .group-header h1 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+  .group-header .tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-radius: 999px;
+    padding: 3px 11px;
+  }
+  .group-header.simple .tag {
+    background: var(--accent);
+    color: white;
+  }
+  .group-header.tech .tag {
+    background: var(--tech-border);
+    color: var(--text);
+  }
+  .group-lede { color: var(--text-dim); font-size: 0.92rem; margin: -6px 0 20px; }
+
+  /* ---- Simple-guide cards (big, friendly) ---- */
+  .guide-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--accent);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+    scroll-margin-top: 70px;
+  }
+  .guide-card h2 {
+    font-size: 1.15rem;
+    margin: 0 0 4px;
+  }
+  .guide-card .subtitle { color: var(--text-dim); font-size: 0.88rem; margin: 0 0 14px; }
+  .guide-card p { margin: 8px 0; }
+
+  .steps { counter-reset: step; list-style: none; padding-left: 0; margin: 10px 0; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 38px;
+    margin: 12px 0;
+    font-size: 0.96rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: -1px;
+    width: 26px; height: 26px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.82rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .callout {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    margin: 14px 0 4px;
+  }
+  .callout strong { color: var(--accent); }
+
+  /* ---- Technical section (deliberately plainer / denser) ---- */
+  .tech-zone {
+    background: var(--tech-bg);
+    border: 1px dashed var(--tech-border);
+    border-radius: 16px;
+    padding: 24px 26px 8px;
+    margin-top: 12px;
+  }
   .block {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 24px 28px;
-    margin-bottom: 20px;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
     scroll-margin-top: 70px;
   }
   .block h2 {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     margin-top: 0;
     display: flex;
     align-items: center;
@@ -144,7 +247,7 @@
   }
   .block h2 .code {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 500;
     color: var(--accent);
     background: var(--accent-bg);
@@ -152,17 +255,15 @@
     border-radius: 999px;
     padding: 2px 9px;
   }
-  .block h3 { font-size: 0.98rem; margin: 18px 0 6px; }
-  .block p { color: var(--text); margin: 8px 0; }
-  .block ul, .block ol { margin: 8px 0; padding-left: 22px; }
-  .block li { margin: 4px 0; }
-
-  .lede { color: var(--text-dim); font-size: 0.95rem; }
+  .block h3 { font-size: 0.92rem; margin: 16px 0 6px; }
+  .block p { color: var(--text); margin: 7px 0; font-size: 0.92rem; }
+  .block ul, .block ol { margin: 7px 0; padding-left: 20px; font-size: 0.92rem; }
+  .block li { margin: 3px 0; }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.83rem;
     margin: 10px 0;
   }
   th, td {
@@ -170,7 +271,7 @@
     padding: 7px 10px;
     border-bottom: 1px solid var(--border);
   }
-  th { color: var(--text-dim); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  th { color: var(--text-dim); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; }
 
   .pill {
     display: inline-block;
@@ -181,33 +282,11 @@
     border-radius: 6px;
     padding: 1px 7px;
   }
-  .callout {
-    background: var(--accent-bg);
-    border: 1px solid var(--accent-border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 0.88rem;
-    margin: 12px 0;
-  }
-  .callout strong { color: var(--accent); }
-  .steps { counter-reset: step; list-style: none; padding-left: 0; }
-  .steps li {
-    counter-increment: step;
-    position: relative;
-    padding-left: 32px;
-    margin: 10px 0;
-  }
-  .steps li::before {
-    content: counter(step);
-    position: absolute;
-    left: 0; top: 0;
-    width: 22px; height: 22px;
-    background: var(--accent);
-    color: white;
-    border-radius: 50%;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: flex; align-items: center; justify-content: center;
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 36px 0 28px;
   }
 
   @media (max-width: 860px) {
@@ -221,6 +300,7 @@
       transform: translateX(-100%);
       transition: transform 0.2s ease;
       z-index: 15;
+      width: 250px;
     }
     #tocSidebar.open { transform: translateX(0); }
     #tocToggle { display: inline-block; }
@@ -234,230 +314,281 @@
   <img src="/lsgh-logo.png" alt="La Salle Green Hills" />
   <div>
     <h1>Lab Management System — Help</h1>
-    <div class="sub">Entry points, workflows, and reporting, by role and by form</div>
+    <div class="sub">A quick guide for everyday use, plus a technical reference</div>
   </div>
   <button id="tocToggle" onclick="document.getElementById('tocSidebar').classList.toggle('open')">Contents</button>
 </div>
 
 <div class="layout">
   <nav id="tocSidebar">
-    <h2>Contents</h2>
-    <a href="#overview">Overview</a>
-    <a href="#getting-started">Getting Started</a>
-    <a href="#navigation">Navigation</a>
-    <a href="#dashboard">Dashboard</a>
-    <a href="#laboratories">Laboratories</a>
-    <a href="#inventory-sheet">Inventory Sheet</a>
-    <a href="#stock-cards">Stock Cards</a>
+    <h2>Quick Guide</h2>
+    <a href="#qg-login">Logging In</a>
+    <a href="#qg-open-lab">Opening Your Laboratory</a>
+    <a href="#qg-inventory">Counting Your Inventory</a>
+    <a href="#qg-equipment">Recording Equipment</a>
+    <a href="#qg-schedules">Maintenance &amp; Calibration</a>
+    <a href="#qg-work-request">Requesting a Repair</a>
+    <a href="#qg-borrow">Borrowing Something</a>
+    <a href="#qg-waste">Logging Waste Disposal</a>
+    <a href="#qg-incident">Reporting an Incident</a>
+    <a href="#qg-print">Printing a Form</a>
+    <a href="#qg-help">If You Get Stuck</a>
+
+    <h2>Technical Reference</h2>
+    <a href="#overview">Roles Overview</a>
+    <a href="#printing-detail">How Printing Works</a>
+    <a href="#work-requests">Request Approval Chain</a>
     <a href="#admin-edit">Admin: Edit / Correct Balance</a>
-    <a href="#equipment-record">Equipment Record</a>
-    <a href="#schedules">Maintenance / Calibration</a>
-    <a href="#work-requests">Equipment Work Requests</a>
-    <a href="#borrowing">Borrowing Requests</a>
-    <a href="#waste">Waste Disposal Log</a>
-    <a href="#incidents">Incident Reports</a>
-    <a href="#other-requests">Other Requests</a>
     <a href="#admin-tools">Admin Tools</a>
-    <a href="#printing">Printing &amp; the Print Button</a>
-    <a href="#form-directory">Form Directory</a>
-    <a href="#permissions">Permissions</a>
+    <a href="#form-directory">Form Directory (F-LAB Codes)</a>
+    <a href="#permissions">Permissions Matrix</a>
     <a href="#faq">Troubleshooting / FAQ</a>
   </nav>
 
   <main>
 
-    <section class="block" id="overview">
-      <h2>Overview</h2>
-      <p class="lede">Lab Management System digitizes La Salle Green Hills' laboratory paperwork — inventory, equipment, schedules, requests, and incident logs — while keeping every printed form byte-identical to the official F-LAB templates.</p>
-      <h3>Roles</h3>
-      <table>
-        <tr><th>Role</th><th>Can do</th></tr>
-        <tr><td>Staff</td><td>Manage their assigned laboratory's forms: inventory, equipment, schedules, logs, requests.</td></tr>
-        <tr><td>Subject Coordinator</td><td>Everything Staff can, plus approve/file requests originating from their laboratories.</td></tr>
-        <tr><td>Secretary</td><td>Works filed requests (Equipment Work Requests, Bookstore/Supplies/BGU) across every department, moving them to In Progress / Completed / Rejected.</td></tr>
-        <tr><td>Admin</td><td>Everything above, plus Departments, Staff Accounts, laboratory approval, and item corrections on the Stock Card page.</td></tr>
-      </table>
-    </section>
+    <div class="intro">
+      <strong>New here?</strong> Start with the Quick Guide below — it walks through everything a lab custodian does day to day, one step at a time. The Technical Reference further down is for admins and anyone who wants the full detail.
+    </div>
 
-    <section class="block" id="getting-started">
-      <h2>Getting Started</h2>
+    <!-- ============ QUICK GUIDE ============ -->
+
+    <div class="group-header simple">
+      <h1>Quick Guide</h1>
+      <span class="tag">For Lab Custodians</span>
+    </div>
+    <p class="group-lede">Everything you need for your everyday work in the laboratory, explained simply.</p>
+
+    <div class="guide-card" id="qg-login">
+      <h2>1. Logging In</h2>
       <ol class="steps">
-        <li>Go to the Lab Management System login page and sign in with the username/password your admin gave you.</li>
-        <li>You'll land on the Dashboard, scoped to your department (or all departments, if you're an admin).</li>
-        <li>Use the left sidebar to reach Laboratories, Borrowing Requests, Other Requests, and (for secretaries/admins) Equipment Work Requests.</li>
-        <li>Pick a laboratory to open its own set of forms — Inventory Sheet, Stock Cards, Equipment Record, Schedules, Work Requests, Waste Log.</li>
+        <li>Open the Lab Management System website.</li>
+        <li>Type in the username and password given to you by your admin.</li>
+        <li>You'll land on your Dashboard — a summary of your laboratory.</li>
       </ol>
-    </section>
+    </div>
 
-    <section class="block" id="navigation">
-      <h2>Navigation</h2>
-      <p>The sidebar adapts to your role. A quick map of where things live:</p>
-      <table>
-        <tr><th>Sidebar item</th><th>Leads to</th></tr>
-        <tr><td>Dashboard</td><td>Summary counts and quick links for your department(s).</td></tr>
-        <tr><td>Laboratories</td><td>List of labs you can open, plus enrollment/approval for new labs.</td></tr>
-        <tr><td>Borrowing Requests</td><td>Cross-lab list of equipment/material borrowing requests (F-LAB-007).</td></tr>
-        <tr><td>Other Requests</td><td>Bookstore, Supplies, and BGU Job Requests, with the Pending → Filed → Secretary workflow.</td></tr>
-        <tr><td>Equipment Work Requests</td><td>(Secretary/Admin) cross-department inbox of filed work requests (F-LAB-004).</td></tr>
-        <tr><td>Departments / Staff Accounts</td><td>(Admin only) org structure and user management.</td></tr>
-      </table>
-      <p>Opening a laboratory shows a row of form tabs (Inventory Sheet, Equipment Record, Schedules, Work Requests, Stock Cards, Waste Log, Borrowing, Incidents) — this is the fastest way to jump between a lab's own paperwork.</p>
-    </section>
-
-    <section class="block" id="dashboard">
-      <h2>Dashboard</h2>
-      <p>Landing page after login. Shows pending-approval counts (admins), your laboratories, and shortcuts into the forms you use most.</p>
-    </section>
-
-    <section class="block" id="laboratories">
-      <h2>Laboratories</h2>
-      <p>New laboratories are enrolled by staff and then approved by an admin before they become active. Once approved, opening a lab redirects straight to its Inventory Sheet — the natural first stop for any lab.</p>
-    </section>
-
-    <section class="block" id="inventory-sheet">
-      <h2>Inventory Sheet <span class="code">F-LAB-010</span></h2>
-      <p>The working count sheet for a laboratory's consumable inventory. Two save modes:</p>
-      <ul>
-        <li><strong>Save</strong> — stores your counted quantities as a draft, without touching the official stock balances yet.</li>
-        <li><strong>Apply</strong> — posts the difference between counted and recorded balances as an auditable IN/OUT transaction against each item's Stock Card.</li>
-      </ul>
-      <p>You can also paste a spreadsheet export to bulk-import new items directly into the sheet.</p>
-    </section>
-
-    <section class="block" id="stock-cards">
-      <h2>Stock Cards <span class="code">F-LAB-006</span></h2>
-      <p>The running quantity ledger — one card per item, showing every IN/OUT transaction and the resulting balance. Items are grouped into their own table per category (Supplies, Materials, Chemicals, Glassware, Consumables, Other).</p>
-      <div class="callout"><strong>Note:</strong> Equipment is intentionally excluded from Stock Cards, since this form is specifically the consumable quantity ledger. Equipment has its own record — see Equipment Record below.</div>
-    </section>
-
-    <section class="block" id="admin-edit">
-      <h2>Admin: Edit Item / Correct Balance</h2>
-      <p>On the Stock Card page, admins get two extra actions next to Delete Item:</p>
-      <ul>
-        <li><strong>Edit Item</strong> — change name, category, unit of measure, reorder level, or notes.</li>
-        <li><strong>Correct Balance</strong> — type the actual counted quantity from a physical/manual count; the system posts the signed difference as a normal transaction (same mechanism the Inventory Sheet's Apply uses), so the correction stays visible and auditable in the ledger rather than silently overwriting history.</li>
-      </ul>
-    </section>
-
-    <section class="block" id="equipment-record">
-      <h2>Equipment Monitoring Record <span class="code">F-LAB-001</span></h2>
-      <p>Equipment now lives as its own category inside the general inventory (Category = Equipment), and this page is its dedicated monitoring log — usage entries, condition, and remarks per equipment item. Equipment entered here is also what fills the equipment dropdown on the Maintenance and Calibration schedules.</p>
-    </section>
-
-    <section class="block" id="schedules">
-      <h2>Preventive Maintenance / Calibration Schedule <span class="code">F-LAB-002 / F-LAB-003</span></h2>
-      <p>Both schedules share the same shape. The Equipment Name &amp; Description field is a dropdown sourced straight from that laboratory's Inventory (Equipment category) — pick an item and its serial number auto-fills. Each row also has a Department field.</p>
-    </section>
-
-    <section class="block" id="work-requests">
-      <h2>Equipment Work Request <span class="code">F-LAB-004 / F-LAB-005</span></h2>
-      <p>F-LAB-005 is the lab's own log of work requests; F-LAB-004 is a single request's printable detail. Approval chain:</p>
+    <div class="guide-card" id="qg-open-lab">
+      <h2>2. Opening Your Laboratory</h2>
       <ol class="steps">
-        <li>Staff files a request — status starts as <span class="pill">Pending</span>.</li>
-        <li>The lab's Subject Coordinator approves it, moving it to <span class="pill">Filed</span>.</li>
-        <li>It appears in the cross-department Equipment Work Requests inbox for any Secretary to pick up.</li>
-        <li>Secretary sets it to <span class="pill">In Progress</span>, then <span class="pill">Completed</span> or <span class="pill">Rejected</span>.</li>
+        <li>Click <strong>Laboratories</strong> on the left menu.</li>
+        <li>Click your laboratory's name from the list.</li>
+        <li>You'll see a row of tabs across the top — these are all the forms for that laboratory (Inventory, Equipment, Schedules, Requests, and more). Click any tab to open that form.</li>
       </ol>
-    </section>
+    </div>
 
-    <section class="block" id="borrowing">
-      <h2>Borrowing Request <span class="code">F-LAB-007</span></h2>
-      <p>Single-step approval: the lab's Subject Coordinator approves directly, which stamps the form with a "Digitally signed by" line tied to that coordinator's real account — no separate filing/secretary step.</p>
-    </section>
+    <div class="guide-card" id="qg-inventory">
+      <h2>3. Counting Your Inventory</h2>
+      <p class="subtitle">This is the Inventory Sheet — where you record how much of each supply you actually have.</p>
+      <ol class="steps">
+        <li>Open your laboratory, then click the <strong>Inventory Sheet</strong> tab.</li>
+        <li>For each item, type in the quantity you actually counted.</li>
+        <li>Click <strong>Save</strong> if you just want to keep your count as a draft for now.</li>
+        <li>Click <strong>Apply</strong> when you're sure the count is final — this updates the official stock balance so it matches what you counted.</li>
+      </ol>
+      <div class="callout"><strong>New item you don't see on the list?</strong> You can add it directly on this page, then count it the same way.</div>
+    </div>
 
-    <section class="block" id="waste">
-      <h2>Waste Disposal Log <span class="code">F-LAB-008</span></h2>
-      <p>Straightforward log, no approval step — add an entry per turnover with classification, quantity, and disposal method.</p>
-    </section>
+    <div class="guide-card" id="qg-equipment">
+      <h2>4. Recording Equipment</h2>
+      <p class="subtitle">This is the Equipment Monitoring Record — the logbook for machines and tools in your lab.</p>
+      <ol class="steps">
+        <li>Open your laboratory, then click the <strong>Equipment Record</strong> tab.</li>
+        <li>Click <strong>+ Add Entry</strong>, pick the equipment, and describe its condition or how it was used.</li>
+        <li>Click <strong>Save</strong>.</li>
+      </ol>
+      <div class="callout"><strong>Note:</strong> A piece of equipment must first exist in your laboratory's inventory before it shows up here. Ask your admin if you can't find it.</div>
+    </div>
 
-    <section class="block" id="incidents">
-      <h2>Incident Report <span class="code">F-LAB-009</span></h2>
-      <p>Each report gets an auto-generated reference number and, once filed, a "Digitally signed by" stamp on the printout.</p>
-    </section>
+    <div class="guide-card" id="qg-schedules">
+      <h2>5. Maintenance &amp; Calibration Schedules</h2>
+      <ol class="steps">
+        <li>Open your laboratory, then click the <strong>Schedules</strong> tab (Preventive Maintenance or Equipment Calibration).</li>
+        <li>Click <strong>+ Add Row</strong>.</li>
+        <li>Choose the equipment from the dropdown — its details fill in automatically.</li>
+        <li>Fill in the scheduled date, then Save. Once the work is actually done, come back and fill in the actual date.</li>
+      </ol>
+    </div>
 
-    <section class="block" id="other-requests">
-      <h2>Other Requests (Bookstore / Supplies / BGU)</h2>
-      <p>Same Pending → Filed → Secretary chain as Equipment Work Requests, grouped under one top-level "Other Requests" nav item with a lab picker.</p>
-    </section>
+    <div class="guide-card" id="qg-work-request">
+      <h2>6. Requesting an Equipment Repair</h2>
+      <ol class="steps">
+        <li>Open your laboratory, then click the <strong>Work Requests</strong> tab.</li>
+        <li>Click <strong>+ New Request</strong> and describe the problem.</li>
+        <li>Submit it. Your Subject Coordinator will review and approve it, then it goes to the office to get worked on.</li>
+        <li>You can check back on this same page to see its status (Pending, Filed, In Progress, Completed).</li>
+      </ol>
+    </div>
 
-    <section class="block" id="admin-tools">
-      <h2>Admin Tools</h2>
+    <div class="guide-card" id="qg-borrow">
+      <h2>7. Borrowing Something</h2>
+      <ol class="steps">
+        <li>Click <strong>Borrowing Requests</strong> on the left menu.</li>
+        <li>Click <strong>+ New Request</strong> and fill in what's being borrowed, by whom, and when it will be returned.</li>
+        <li>Submit it — your Subject Coordinator approves it directly, and it's ready to print.</li>
+      </ol>
+    </div>
+
+    <div class="guide-card" id="qg-waste">
+      <h2>8. Logging Waste Disposal</h2>
+      <ol class="steps">
+        <li>Open your laboratory, then click the <strong>Waste Log</strong> tab.</li>
+        <li>Click <strong>+ Add Entry</strong> and describe what was disposed of, how, and by whom.</li>
+        <li>Click <strong>Save Entry</strong>. No approval needed — it's recorded right away.</li>
+      </ol>
+    </div>
+
+    <div class="guide-card" id="qg-incident">
+      <h2>9. Reporting an Incident</h2>
+      <ol class="steps">
+        <li>Open your laboratory, then click the <strong>Incident Report</strong> tab.</li>
+        <li>Click <strong>+ New Report</strong> and describe what happened.</li>
+        <li>Submit it. It gets its own reference number automatically, and shows who filed it once signed.</li>
+      </ol>
+    </div>
+
+    <div class="guide-card" id="qg-print">
+      <h2>10. Printing a Form</h2>
+      <ol class="steps">
+        <li>Open the form you want to print.</li>
+        <li>Click the <strong>Print</strong> button near the top of the page.</li>
+        <li>Your browser's print window will open — check that it looks correct, then print.</li>
+      </ol>
+      <div class="callout"><strong>Tip:</strong> If you see an extra line of text (like a web address or date) at the top or bottom of the printed page that doesn't belong there, open <em>"More settings"</em> in the print window and turn <strong>off</strong> "Headers and footers". That extra line comes from the browser, not from the form.</div>
+    </div>
+
+    <div class="guide-card" id="qg-help">
+      <h2>11. If You Get Stuck</h2>
       <ul>
-        <li><strong>Departments</strong> — manage the department list laboratories belong to.</li>
-        <li><strong>Staff Accounts</strong> — create/manage user accounts and roles.</li>
-        <li><strong>Laboratory approval</strong> — approve newly enrolled laboratories from the Laboratories page.</li>
+        <li><strong>Can't find something in a dropdown?</strong> It probably needs to be added to your laboratory's inventory first.</li>
+        <li><strong>A request isn't moving?</strong> It's likely waiting for your Subject Coordinator or the office to act on it — that's normal, just check back later.</li>
+        <li><strong>Still stuck?</strong> Ask your Subject Coordinator or your system admin for help.</li>
       </ul>
-    </section>
+    </div>
 
-    <section class="block" id="printing">
-      <h2>Printing &amp; the Print Button</h2>
-      <p>Every printable form page has a <strong>Print</strong> button near the top of the page, next to the "+ Add…" button. Clicking it opens your browser's normal print dialog for that form only — the sidebar and every other on-screen control are automatically hidden from the printout.</p>
-      <h3>What the Print button gives you</h3>
-      <ul>
-        <li>The official F-LAB header (school seal + "page X of Y" label) repeats automatically on every physical page a form spans, not just the first.</li>
-        <li>The form code and revision line (e.g. <span class="pill">F-LAB-006 Rev. 0</span>) prints in the footer of every page.</li>
-        <li>Log-style forms (Stock Cards, Equipment Record, Schedules, Waste Log, Work Requests) pad in blank rows even when there are only a few real entries, so the printout fills a page the same way the paper original does.</li>
-      </ul>
-      <h3>Pages with a Print button</h3>
-      <table>
-        <tr><th>Page</th><th>Form</th></tr>
-        <tr><td>Stock Card</td><td class="mono">F-LAB-006</td></tr>
-        <tr><td>Equipment Monitoring Record</td><td class="mono">F-LAB-001</td></tr>
-        <tr><td>Maintenance / Calibration Schedule</td><td class="mono">F-LAB-002 / F-LAB-003</td></tr>
-        <tr><td>Work Request detail</td><td class="mono">F-LAB-004</td></tr>
-        <tr><td>Equipment Monitoring Sheet (work request log)</td><td class="mono">F-LAB-005</td></tr>
-        <tr><td>Borrowing Request detail</td><td class="mono">F-LAB-007</td></tr>
-        <tr><td>Waste Disposal Log</td><td class="mono">F-LAB-008</td></tr>
-        <tr><td>Incident Report detail</td><td class="mono">F-LAB-009</td></tr>
-        <tr><td>Inventory Sheet</td><td class="mono">F-LAB-010</td></tr>
-        <tr><td>Requisition Slip (Bookstore / Supplies)</td><td class="mono">—</td></tr>
-        <tr><td>BGU Job Request</td><td class="mono">—</td></tr>
-      </table>
-      <div class="callout"><strong>Tip:</strong> Your browser's print dialog can add its own URL/date header and footer on top of the form's own header/footer. Open "More settings" in the print dialog and turn <strong>off</strong> "Headers and footers" for a clean match to the official template.</div>
-      <p>The "page X of Y" label is an estimate based on how many rows the form has, since browsers don't expose an exact page-count API to the page — it's close but isn't guaranteed exact for unusually long remarks or notes that wrap onto extra lines.</p>
-    </section>
+    <hr class="divider" />
 
-    <section class="block" id="form-directory">
-      <h2>Form Directory</h2>
-      <table>
-        <tr><th>Code</th><th>Form</th></tr>
-        <tr><td class="mono">F-LAB-001</td><td>Equipment Monitoring Record</td></tr>
-        <tr><td class="mono">F-LAB-002</td><td>Preventive Maintenance Schedule</td></tr>
-        <tr><td class="mono">F-LAB-003</td><td>Equipment Calibration Schedule</td></tr>
-        <tr><td class="mono">F-LAB-004</td><td>Equipment Work Request (detail)</td></tr>
-        <tr><td class="mono">F-LAB-005</td><td>Equipment Monitoring Sheet (work request log)</td></tr>
-        <tr><td class="mono">F-LAB-006</td><td>Stock Card</td></tr>
-        <tr><td class="mono">F-LAB-007</td><td>Borrowing Request</td></tr>
-        <tr><td class="mono">F-LAB-008</td><td>Waste Disposal Log</td></tr>
-        <tr><td class="mono">F-LAB-009</td><td>Incident Report</td></tr>
-        <tr><td class="mono">F-LAB-010</td><td>Inventory Sheet</td></tr>
-      </table>
-    </section>
+    <!-- ============ TECHNICAL REFERENCE ============ -->
 
-    <section class="block" id="permissions">
-      <h2>Permissions</h2>
-      <table>
-        <tr><th>Action</th><th>Staff</th><th>Subject Coordinator</th><th>Secretary</th><th>Admin</th></tr>
-        <tr><td>Edit a lab's forms</td><td>✔</td><td>✔</td><td>—</td><td>✔</td></tr>
-        <tr><td>Approve/file lab requests</td><td>—</td><td>✔</td><td>—</td><td>✔</td></tr>
-        <tr><td>Work filed requests (any dept.)</td><td>—</td><td>—</td><td>✔</td><td>✔</td></tr>
-        <tr><td>Approve new laboratories</td><td>—</td><td>—</td><td>—</td><td>✔</td></tr>
-        <tr><td>Edit item / correct balance</td><td>—</td><td>—</td><td>—</td><td>✔</td></tr>
-        <tr><td>Manage departments / staff accounts</td><td>—</td><td>—</td><td>—</td><td>✔</td></tr>
-      </table>
-    </section>
+    <div class="group-header tech">
+      <h1>Technical Reference</h1>
+      <span class="tag">For Admins &amp; IT</span>
+    </div>
+    <p class="group-lede">Full detail on roles, workflows, form codes, and system behavior. Not needed for everyday use.</p>
 
-    <section class="block" id="faq">
-      <h2>Troubleshooting / FAQ</h2>
-      <h3>My printout has the browser's own header/footer overlapping the form's.</h3>
-      <p>Turn off "Headers and footers" in your browser's print dialog (under "More settings") — see the Printing section above.</p>
-      <h3>The equipment I need isn't in the schedule dropdown.</h3>
-      <p>Add it first from that laboratory's Inventory (Equipment category) — the Maintenance/Calibration dropdowns pull directly from there.</p>
-      <h3>I don't see the Equipment Work Requests inbox.</h3>
-      <p>It only shows for Secretary and Admin accounts, since it's the cross-department fulfillment queue.</p>
-      <h3>A request I filed is stuck on "Filed."</h3>
-      <p>It's waiting for a Secretary to pick it up and move it to In Progress — reach out if it's been sitting a while.</p>
-    </section>
+    <div class="tech-zone">
+
+      <section class="block" id="overview">
+        <h2>Roles Overview</h2>
+        <table>
+          <tr><th>Role</th><th>Can do</th></tr>
+          <tr><td>Staff (Lab Custodian)</td><td>Manage their assigned laboratory's forms: inventory, equipment, schedules, logs, requests.</td></tr>
+          <tr><td>Subject Coordinator</td><td>Everything Staff can, plus approve/file requests originating from their laboratories.</td></tr>
+          <tr><td>Secretary</td><td>Works filed requests (Equipment Work Requests, Bookstore/Supplies/BGU) across every department, moving them to In Progress / Completed / Rejected.</td></tr>
+          <tr><td>Admin</td><td>Everything above, plus Departments, Staff Accounts, laboratory approval, and item corrections on the Stock Card page.</td></tr>
+        </table>
+      </section>
+
+      <section class="block" id="printing-detail">
+        <h2>How Printing Works</h2>
+        <p>Clicking Print hides the sidebar and on-screen controls and opens the browser's print dialog for that form only.</p>
+        <ul>
+          <li>The F-LAB header (school seal + "page X of Y" label) repeats on every physical page a form spans.</li>
+          <li>The form code and revision line (e.g. <span class="pill">F-LAB-006 Rev. 0</span>) prints in the footer of every page.</li>
+          <li>Log-style forms (Stock Cards, Equipment Record, Schedules, Waste Log, Work Requests) pad in blank rows even when there are only a few real entries, so the printout fills a page the same way the paper original does.</li>
+          <li>The "page X of Y" label is an estimate based on row count, since browsers don't expose an exact page-count API — it's close but not guaranteed exact for entries with unusually long notes that wrap onto extra lines.</li>
+        </ul>
+        <h3>Pages with a Print button</h3>
+        <table>
+          <tr><th>Page</th><th>Form</th></tr>
+          <tr><td>Stock Card</td><td class="mono">F-LAB-006</td></tr>
+          <tr><td>Equipment Monitoring Record</td><td class="mono">F-LAB-001</td></tr>
+          <tr><td>Maintenance / Calibration Schedule</td><td class="mono">F-LAB-002 / F-LAB-003</td></tr>
+          <tr><td>Work Request detail</td><td class="mono">F-LAB-004</td></tr>
+          <tr><td>Equipment Monitoring Sheet (work request log)</td><td class="mono">F-LAB-005</td></tr>
+          <tr><td>Borrowing Request detail</td><td class="mono">F-LAB-007</td></tr>
+          <tr><td>Waste Disposal Log</td><td class="mono">F-LAB-008</td></tr>
+          <tr><td>Incident Report detail</td><td class="mono">F-LAB-009</td></tr>
+          <tr><td>Inventory Sheet</td><td class="mono">F-LAB-010</td></tr>
+          <tr><td>Requisition Slip (Bookstore / Supplies)</td><td class="mono">—</td></tr>
+          <tr><td>BGU Job Request</td><td class="mono">—</td></tr>
+        </table>
+      </section>
+
+      <section class="block" id="work-requests">
+        <h2>Request Approval Chain</h2>
+        <p>Equipment Work Requests <span class="code">F-LAB-004 / F-LAB-005</span> and Other Requests (Bookstore / Supplies / BGU) share the same chain:</p>
+        <ol class="steps">
+          <li>Staff files a request — status starts as <span class="pill">Pending</span>.</li>
+          <li>The lab's Subject Coordinator approves it, moving it to <span class="pill">Filed</span>.</li>
+          <li>It appears in the cross-department inbox for any Secretary to pick up.</li>
+          <li>Secretary sets it to <span class="pill">In Progress</span>, then <span class="pill">Completed</span> or <span class="pill">Rejected</span>.</li>
+        </ol>
+        <p>Borrowing Requests <span class="code">F-LAB-007</span> are simpler: the Subject Coordinator approves directly, stamping a "Digitally signed by" line tied to their real account — no separate filing/secretary step.</p>
+      </section>
+
+      <section class="block" id="admin-edit">
+        <h2>Admin: Edit Item / Correct Balance</h2>
+        <p>On the Stock Card page, admins get two extra actions next to Delete Item:</p>
+        <ul>
+          <li><strong>Edit Item</strong> — change name, category, unit of measure, reorder level, or notes.</li>
+          <li><strong>Correct Balance</strong> — type the actual counted quantity from a physical/manual count; the system posts the signed difference as a normal transaction (same mechanism the Inventory Sheet's Apply uses), so the correction stays visible and auditable in the ledger rather than silently overwriting history.</li>
+        </ul>
+        <div class="callout"><strong>Note:</strong> Equipment is intentionally excluded from Stock Cards, since that form is specifically the consumable quantity ledger. Equipment has its own record — F-LAB-001.</div>
+      </section>
+
+      <section class="block" id="admin-tools">
+        <h2>Admin Tools</h2>
+        <ul>
+          <li><strong>Departments</strong> — manage the department list laboratories belong to.</li>
+          <li><strong>Staff Accounts</strong> — create/manage user accounts and roles.</li>
+          <li><strong>Laboratory approval</strong> — approve newly enrolled laboratories from the Laboratories page.</li>
+        </ul>
+      </section>
+
+      <section class="block" id="form-directory">
+        <h2>Form Directory (F-LAB Codes)</h2>
+        <table>
+          <tr><th>Code</th><th>Form</th></tr>
+          <tr><td class="mono">F-LAB-001</td><td>Equipment Monitoring Record</td></tr>
+          <tr><td class="mono">F-LAB-002</td><td>Preventive Maintenance Schedule</td></tr>
+          <tr><td class="mono">F-LAB-003</td><td>Equipment Calibration Schedule</td></tr>
+          <tr><td class="mono">F-LAB-004</td><td>Equipment Work Request (detail)</td></tr>
+          <tr><td class="mono">F-LAB-005</td><td>Equipment Monitoring Sheet (work request log)</td></tr>
+          <tr><td class="mono">F-LAB-006</td><td>Stock Card</td></tr>
+          <tr><td class="mono">F-LAB-007</td><td>Borrowing Request</td></tr>
+          <tr><td class="mono">F-LAB-008</td><td>Waste Disposal Log</td></tr>
+          <tr><td class="mono">F-LAB-009</td><td>Incident Report</td></tr>
+          <tr><td class="mono">F-LAB-010</td><td>Inventory Sheet</td></tr>
+        </table>
+      </section>
+
+      <section class="block" id="permissions">
+        <h2>Permissions Matrix</h2>
+        <table>
+          <tr><th>Action</th><th>Staff</th><th>Subject Coordinator</th><th>Secretary</th><th>Admin</th></tr>
+          <tr><td>Edit a lab's forms</td><td>✔</td><td>✔</td><td>—</td><td>✔</td></tr>
+          <tr><td>Approve/file lab requests</td><td>—</td><td>✔</td><td>—</td><td>✔</td></tr>
+          <tr><td>Work filed requests (any dept.)</td><td>—</td><td>—</td><td>✔</td><td>✔</td></tr>
+          <tr><td>Approve new laboratories</td><td>—</td><td>—</td><td>—</td><td>✔</td></tr>
+          <tr><td>Edit item / correct balance</td><td>—</td><td>—</td><td>—</td><td>✔</td></tr>
+          <tr><td>Manage departments / staff accounts</td><td>—</td><td>—</td><td>—</td><td>✔</td></tr>
+        </table>
+      </section>
+
+      <section class="block" id="faq">
+        <h2>Troubleshooting / FAQ</h2>
+        <h3>My printout has the browser's own header/footer overlapping the form's.</h3>
+        <p>Turn off "Headers and footers" in your browser's print dialog (under "More settings").</p>
+        <h3>The equipment I need isn't in the schedule dropdown.</h3>
+        <p>Add it first from that laboratory's Inventory (Equipment category) — the Maintenance/Calibration dropdowns pull directly from there.</p>
+        <h3>I don't see the Equipment Work Requests inbox.</h3>
+        <p>It only shows for Secretary and Admin accounts, since it's the cross-department fulfillment queue.</p>
+        <h3>A request I filed is stuck on "Filed."</h3>
+        <p>It's waiting for a Secretary to pick it up and move it to In Progress — reach out if it's been sitting a while.</p>
+      </section>
+
+    </div>
 
   </main>
 </div>
