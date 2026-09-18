@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { addSignedCopyRoutes } from '../lib/signedCopy.js';
 
 // F-LAB-009 Laboratory Incident Report: one record per incident.
 const incidentReports = new Hono();
@@ -8,11 +9,13 @@ incidentReports.use('*', requireAuth);
 
 const SELECT = `
   SELECT r.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
-    u.full_name AS created_by_name, u.username AS created_by_username
+    u.full_name AS created_by_name, u.username AS created_by_username,
+    su.full_name AS signed_copy_uploaded_by_name
   FROM incident_reports r
   JOIN laboratories l ON l.id = r.laboratory_id
   JOIN departments d ON d.id = l.department_id
   LEFT JOIN users u ON u.id = r.created_by
+  LEFT JOIN users su ON su.id = r.signed_copy_uploaded_by
 `;
 
 function labAccessibleToUser(user, lab) {
@@ -169,6 +172,13 @@ incidentReports.delete('/:id', async (c) => {
   }
   await dbRun(c.env.DB, 'DELETE FROM incident_reports WHERE id = ?', id);
   return c.body(null, 204);
+});
+
+addSignedCopyRoutes(incidentReports, {
+  table: 'incident_reports',
+  getRow: (db, id) => dbGet(db, SELECT + ' WHERE r.id = ?', id),
+  keyPrefix: 'incident-reports',
+  userCanAccessRow,
 });
 
 export default incidentReports;

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { addSignedCopyRoutes } from '../lib/signedCopy.js';
 
 // F-LAB-007 Borrowing Request Form: a borrowing event (who, purpose, dates)
 // plus a list of items/equipment borrowed and their condition on return.
@@ -9,11 +10,12 @@ borrowingRequests.use('*', requireAuth);
 
 const SELECT = `
   SELECT b.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
-    au.username AS approved_by_username
+    au.username AS approved_by_username, su.full_name AS signed_copy_uploaded_by_name
   FROM borrowing_requests b
   JOIN laboratories l ON l.id = b.laboratory_id
   JOIN departments d ON d.id = l.department_id
   LEFT JOIN users au ON au.id = b.approved_by_id
+  LEFT JOIN users su ON su.id = b.signed_copy_uploaded_by
 `;
 
 function labAccessibleToUser(user, lab) {
@@ -223,6 +225,13 @@ borrowingRequests.delete('/:id', async (c) => {
   }
   await dbRun(c.env.DB, 'DELETE FROM borrowing_requests WHERE id = ?', id);
   return c.body(null, 204);
+});
+
+addSignedCopyRoutes(borrowingRequests, {
+  table: 'borrowing_requests',
+  getRow: (db, id) => dbGet(db, SELECT + ' WHERE b.id = ?', id),
+  keyPrefix: 'borrowing-requests',
+  userCanAccessRow,
 });
 
 export default borrowingRequests;

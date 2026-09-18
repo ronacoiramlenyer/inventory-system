@@ -29,10 +29,59 @@ function formatSignedAt(value) {
 export default function IncidentReportDetail() {
   const { id } = useParams();
   const [report, setReport] = useState(null);
+  const [signedCopyUrl, setSignedCopyUrl] = useState(null);
+  const [signedCopyType, setSignedCopyType] = useState(null);
+  const [uploadingCopy, setUploadingCopy] = useState(false);
+  const [copyError, setCopyError] = useState('');
 
-  useEffect(() => {
+  function load() {
     api.get(`/incident-reports/${id}`).then((res) => setReport(res.data));
-  }, [id]);
+  }
+
+  useEffect(load, [id]);
+
+  // The signed copy is served through an authenticated API route, not a
+  // plain static URL, so a bare <img src> can't reach it -- fetch it as a
+  // blob and point the image/link at an object URL instead.
+  useEffect(() => {
+    if (!report?.signed_copy_key) {
+      setSignedCopyUrl(null);
+      return;
+    }
+    let url;
+    api.get(`/incident-reports/${id}/signed-copy`, { responseType: 'blob' }).then((res) => {
+      url = URL.createObjectURL(res.data);
+      setSignedCopyType(res.data.type);
+      setSignedCopyUrl(url);
+    });
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [report?.signed_copy_key, id]);
+
+  async function handleUploadSignedCopy(e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setCopyError('');
+    setUploadingCopy(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      await api.post(`/incident-reports/${id}/signed-copy`, form);
+      load();
+    } catch (err) {
+      setCopyError(err.response?.data?.error || 'Failed to upload signed copy');
+    } finally {
+      setUploadingCopy(false);
+    }
+  }
+
+  async function handleRemoveSignedCopy() {
+    if (!confirm('Remove the attached signed copy?')) return;
+    await api.delete(`/incident-reports/${id}/signed-copy`);
+    load();
+  }
 
   if (!report) return <p className="text-slate-500">Loading…</p>;
 
@@ -145,6 +194,69 @@ export default function IncidentReportDetail() {
               {report.created_by_username && ` (@${report.created_by_username})`} on{' '}
               {formatSignedAt(report.created_at)} — Lab Management System
             </p>
+          )}
+        </div>
+
+        <div className="no-print mt-4 bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+          <h3 className="font-semibold text-slate-700 text-sm">Signed Hardcopy</h3>
+          <p className="text-xs text-slate-500">
+            This report is meant to be signed by hand by those involved. Attach a photo or scan of the signed
+            printout here as the official record.
+          </p>
+          {copyError && <p className="text-sm text-red-600">{copyError}</p>}
+          {report.signed_copy_key ? (
+            <div className="space-y-2">
+              {signedCopyUrl && signedCopyType?.startsWith('image/') ? (
+                <a href={signedCopyUrl} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={signedCopyUrl}
+                    alt="Signed incident report"
+                    className="max-h-64 rounded-lg border border-slate-200"
+                  />
+                </a>
+              ) : signedCopyUrl ? (
+                <a
+                  href={signedCopyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-700 text-sm underline"
+                >
+                  View signed copy (PDF)
+                </a>
+              ) : (
+                <p className="text-sm text-slate-400">Loading…</p>
+              )}
+              <p className="text-xs text-slate-500">
+                Uploaded by {report.signed_copy_uploaded_by_name || '—'} on{' '}
+                {formatSignedAt(report.signed_copy_uploaded_at)}
+              </p>
+              <div className="flex gap-2">
+                <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg px-3 py-1.5">
+                  {uploadingCopy ? 'Uploading…' : 'Replace'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={handleUploadSignedCopy}
+                    disabled={uploadingCopy}
+                  />
+                </label>
+                <button onClick={handleRemoveSignedCopy} className="text-slate-400 hover:text-red-600 text-xs underline">
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="inline-block cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+              {uploadingCopy ? 'Uploading…' : '+ Attach Signed Copy'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                className="hidden"
+                onChange={handleUploadSignedCopy}
+                disabled={uploadingCopy}
+              />
+            </label>
           )}
         </div>
 

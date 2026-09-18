@@ -197,6 +197,12 @@ CREATE TABLE IF NOT EXISTS borrowing_requests (
   approved_by_id INTEGER REFERENCES users(id), -- the actual account that approved it
   approved_at TEXT,
   status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Approved' | 'Returned'
+  -- The real signature on this form is wet-ink, on the printed copy the
+  -- borrower actually signs -- these capture a photo/scan of that signed
+  -- copy as the true record, alongside (not instead of) the digital one.
+  signed_copy_key TEXT,              -- R2 object key, or NULL if none attached
+  signed_copy_uploaded_by INTEGER REFERENCES users(id),
+  signed_copy_uploaded_at TEXT,
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -246,6 +252,12 @@ CREATE TABLE IF NOT EXISTS incident_reports (
   immediate_actions_taken TEXT,
   prepared_by TEXT,
   designation TEXT,
+  -- Same idea as borrowing_requests.signed_copy_* -- the real signature is
+  -- wet-ink from those involved, on the printed copy, not anything captured
+  -- on screen.
+  signed_copy_key TEXT,
+  signed_copy_uploaded_by INTEGER REFERENCES users(id),
+  signed_copy_uploaded_at TEXT,
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
