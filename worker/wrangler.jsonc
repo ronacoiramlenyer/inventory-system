@@ -10,11 +10,6 @@
       "database_id": "16584618-af06-4d7a-ad57-960e4b4994d9"
     }
   ]
-  // An r2_buckets binding for signed-copy uploads (env.ATTACHMENTS) is
-  // pending -- R2 isn't enabled on the Cloudflare account yet. The routes
-  // that need it degrade to a 501 without it (see lib/signedCopy.js). Add
-  // the binding here once the "lab-management-system-attachments" bucket
-  // exists.
   // JWT_SECRET is intentionally not set here. For local dev, copy
   // .dev.vars.example to .dev.vars (gitignored). For the deployed Worker,
   // set it with `wrangler secret put JWT_SECRET` — see worker/README.md.

@@ -8,8 +8,14 @@ import { addSignedCopyRoutes } from '../lib/signedCopy.js';
 const borrowingRequests = new Hono();
 borrowingRequests.use('*', requireAuth);
 
+// Explicit column list (not b.*) -- the signed_copy_data/signed_copy_content_type
+// columns hold the actual attachment bytes, and must never be pulled along
+// with an ordinary list/detail fetch of this table.
 const SELECT = `
-  SELECT b.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
+  SELECT b.id, b.laboratory_id, b.reference_no, b.borrower_name, b.department_unit, b.date_needed, b.purpose,
+    b.return_date, b.approved_by, b.approved_by_id, b.approved_at, b.status, b.signed_copy_key,
+    b.signed_copy_uploaded_by, b.signed_copy_uploaded_at, b.created_by, b.created_at,
+    l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
     au.username AS approved_by_username, su.full_name AS signed_copy_uploaded_by_name
   FROM borrowing_requests b
   JOIN laboratories l ON l.id = b.laboratory_id

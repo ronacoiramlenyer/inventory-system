@@ -7,8 +7,15 @@ import { addSignedCopyRoutes } from '../lib/signedCopy.js';
 const incidentReports = new Hono();
 incidentReports.use('*', requireAuth);
 
+// Explicit column list (not r.*) -- the signed_copy_data/signed_copy_content_type
+// columns hold the actual attachment bytes, and must never be pulled along
+// with an ordinary list/detail fetch of this table.
 const SELECT = `
-  SELECT r.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
+  SELECT r.id, r.laboratory_id, r.reference_no, r.incident_datetime, r.class_name, r.teacher, r.incident_types,
+    r.incident_type_other, r.individuals_involved, r.detailed_description, r.immediate_actions_taken,
+    r.prepared_by, r.designation, r.signed_copy_key, r.signed_copy_uploaded_by, r.signed_copy_uploaded_at,
+    r.created_by, r.created_at,
+    l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
     u.full_name AS created_by_name, u.username AS created_by_username,
     su.full_name AS signed_copy_uploaded_by_name
   FROM incident_reports r

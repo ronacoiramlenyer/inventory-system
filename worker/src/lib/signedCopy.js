@@ -1,4 +1,4 @@
-import { dbRun } from '../db/helpers.js';
+import { dbGet, dbRun } from '../db/helpers.js';
 
 const EXT_BY_TYPE = {
   'image/jpeg': 'jpg',
@@ -6,15 +6,25 @@ const EXT_BY_TYPE = {
   'image/webp': 'webp',
   'application/pdf': 'pdf',
 };
-const MAX_BYTES = 10 * 1024 * 1024;
+// D1 caps a single row (all its BLOB/string columns combined) at 2,000,000
+// bytes -- capped well under that so the rest of the row and any bind
+// overhead always fits safely.
+const MAX_BYTES = 1.5 * 1024 * 1024;
 
 // Adds POST/GET/DELETE /:id/signed-copy routes to `router`, for a table
-// that has signed_copy_key/signed_copy_uploaded_by/signed_copy_uploaded_at
-// columns. Shared by Borrowing Requests (F-LAB-007) and Incident Reports
-// (F-LAB-009) -- both are hardcopy/digital hybrids where the actual
-// signature (borrower's, or the involved parties') is wet-ink on a printed
-// copy, not anything captured on screen, so custodians attach a photo/scan
-// of that signed copy here as the real record alongside the digital one.
+// that has signed_copy_key/signed_copy_data/signed_copy_content_type/
+// signed_copy_uploaded_by/signed_copy_uploaded_at columns. Shared by
+// Borrowing Requests (F-LAB-007) and Incident Reports (F-LAB-009) -- both
+// are hardcopy/digital hybrids where the actual signature (borrower's, or
+// the involved parties') is wet-ink on a printed copy, not anything
+// captured on screen, so custodians attach a photo/scan of that signed
+// copy here as the real record alongside the digital one.
+//
+// The file itself is stored as a BLOB directly in D1 rather than in
+// object storage (R2), since R2 isn't enabled on this Cloudflare account.
+// `getRow`'s query must NOT select signed_copy_data -- it's fetched
+// separately, only by the GET route, so an ordinary list/detail fetch of
+// the table never pulls image bytes along with it.
 export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanAccessRow }) {
   router.post('/:id/signed-copy', async (c) => {
     const user = c.get('user');
@@ -23,9 +33,6 @@ export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanA
     if (!row) return c.json({ error: 'Not found' }, 404);
     if (!userCanAccessRow(user, row)) {
       return c.json({ error: 'You do not have access to this record' }, 403);
-    }
-    if (!c.env.ATTACHMENTS) {
-      return c.json({ error: 'File storage is not configured on this deployment' }, 501);
     }
 
     const form = await c.req.formData().catch(() => null);
@@ -38,25 +45,24 @@ export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanA
       return c.json({ error: 'Only JPG, PNG, WEBP, or PDF files are allowed' }, 400);
     }
     if (file.size > MAX_BYTES) {
-      return c.json({ error: 'File is too large (max 10MB)' }, 400);
+      return c.json({ error: 'File is too large (max 1.5MB) -- try a lower-resolution photo' }, 400);
     }
 
-    const key = `${keyPrefix}/${id}-${Date.now()}.${ext}`;
-    await c.env.ATTACHMENTS.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
-    if (row.signed_copy_key) {
-      await c.env.ATTACHMENTS.delete(row.signed_copy_key).catch(() => {});
-    }
-
+    const bytes = await file.arrayBuffer();
+    const label = `${keyPrefix}-${id}-${Date.now()}.${ext}`;
     const uploadedAt = new Date().toISOString();
     await dbRun(
       c.env.DB,
-      `UPDATE ${table} SET signed_copy_key = ?, signed_copy_uploaded_by = ?, signed_copy_uploaded_at = ? WHERE id = ?`,
-      key,
+      `UPDATE ${table} SET signed_copy_key = ?, signed_copy_data = ?, signed_copy_content_type = ?,
+         signed_copy_uploaded_by = ?, signed_copy_uploaded_at = ? WHERE id = ?`,
+      label,
+      bytes,
+      file.type,
       user.id,
       uploadedAt,
       id
     );
-    return c.json({ signed_copy_key: key, signed_copy_uploaded_at: uploadedAt, signed_copy_uploaded_by_name: user.full_name });
+    return c.json({ signed_copy_key: label, signed_copy_uploaded_at: uploadedAt, signed_copy_uploaded_by_name: user.full_name });
   });
 
   router.get('/:id/signed-copy', async (c) => {
@@ -68,14 +74,14 @@ export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanA
       return c.json({ error: 'You do not have access to this record' }, 403);
     }
     if (!row.signed_copy_key) return c.json({ error: 'No signed copy attached' }, 404);
-    if (!c.env.ATTACHMENTS) {
-      return c.json({ error: 'File storage is not configured on this deployment' }, 501);
-    }
 
-    const obj = await c.env.ATTACHMENTS.get(row.signed_copy_key);
-    if (!obj) return c.json({ error: 'File not found in storage' }, 404);
-    return new Response(obj.body, {
-      headers: { 'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream' },
+    const blobRow = await dbGet(c.env.DB, `SELECT signed_copy_data, signed_copy_content_type FROM ${table} WHERE id = ?`, id);
+    if (!blobRow?.signed_copy_data) return c.json({ error: 'No signed copy attached' }, 404);
+    // D1 doesn't hand a BLOB column back as a real ArrayBuffer/TypedArray --
+    // wrapping it explicitly avoids Response() silently stringifying it
+    // (e.g. as comma-joined byte values) instead of sending raw bytes.
+    return new Response(new Uint8Array(blobRow.signed_copy_data), {
+      headers: { 'Content-Type': blobRow.signed_copy_content_type || 'application/octet-stream' },
     });
   });
 
@@ -87,12 +93,10 @@ export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanA
     if (!userCanAccessRow(user, row)) {
       return c.json({ error: 'You do not have access to this record' }, 403);
     }
-    if (row.signed_copy_key && c.env.ATTACHMENTS) {
-      await c.env.ATTACHMENTS.delete(row.signed_copy_key).catch(() => {});
-    }
     await dbRun(
       c.env.DB,
-      `UPDATE ${table} SET signed_copy_key = NULL, signed_copy_uploaded_by = NULL, signed_copy_uploaded_at = NULL WHERE id = ?`,
+      `UPDATE ${table} SET signed_copy_key = NULL, signed_copy_data = NULL, signed_copy_content_type = NULL,
+         signed_copy_uploaded_by = NULL, signed_copy_uploaded_at = NULL WHERE id = ?`,
       id
     );
     return c.body(null, 204);

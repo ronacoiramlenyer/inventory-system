@@ -200,7 +200,13 @@ CREATE TABLE IF NOT EXISTS borrowing_requests (
   -- The real signature on this form is wet-ink, on the printed copy the
   -- borrower actually signs -- these capture a photo/scan of that signed
   -- copy as the true record, alongside (not instead of) the digital one.
-  signed_copy_key TEXT,              -- R2 object key, or NULL if none attached
+  -- The bytes live in signed_copy_data (D1 has no object storage attached,
+  -- so this is stored as a BLOB directly, capped well under D1's 2MB
+  -- per-row limit) -- routes must select every other column explicitly
+  -- rather than table.*, so an ordinary fetch never pulls this along.
+  signed_copy_key TEXT,               -- display label, or NULL if none attached
+  signed_copy_data BLOB,
+  signed_copy_content_type TEXT,
   signed_copy_uploaded_by INTEGER REFERENCES users(id),
   signed_copy_uploaded_at TEXT,
   created_by INTEGER REFERENCES users(id),
@@ -256,6 +262,8 @@ CREATE TABLE IF NOT EXISTS incident_reports (
   -- wet-ink from those involved, on the printed copy, not anything captured
   -- on screen.
   signed_copy_key TEXT,
+  signed_copy_data BLOB,
+  signed_copy_content_type TEXT,
   signed_copy_uploaded_by INTEGER REFERENCES users(id),
   signed_copy_uploaded_at TEXT,
   created_by INTEGER REFERENCES users(id),
