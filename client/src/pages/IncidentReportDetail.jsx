@@ -86,6 +86,22 @@ export default function IncidentReportDetail() {
   if (!report) return <p className="text-slate-500">Loading…</p>;
 
   const selectedTypes = report.incident_types ? report.incident_types.split(', ') : [];
+  const isSignedImage = !!report?.signed_copy_key && signedCopyType?.startsWith('image/');
+  const isSignedPdf = !!report?.signed_copy_key && signedCopyType === 'application/pdf';
+
+  // Once a signed hardcopy is attached, that scan is the real record --
+  // Print should reproduce it, not the blank digital template underneath
+  // (its signature lines were never actually signed on screen). A PDF
+  // can't be dropped into the page for window.print() the way an image
+  // can, so it opens in a new tab instead, where the browser's own PDF
+  // viewer has a print control.
+  function handlePrint() {
+    if (isSignedPdf && signedCopyUrl) {
+      window.open(signedCopyUrl, '_blank');
+      return;
+    }
+    window.print();
+  }
 
   return (
     <div className="space-y-4">
@@ -97,7 +113,7 @@ export default function IncidentReportDetail() {
           ← Back to {report.laboratory_name}
         </Link>
         <button
-          onClick={() => window.print()}
+          onClick={handlePrint}
           className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
         >
           Print
@@ -107,7 +123,11 @@ export default function IncidentReportDetail() {
       <LabFormTabs laboratoryId={report.laboratory_id} active="incident-report" />
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
-        <PrintHeader />
+        {isSignedImage && signedCopyUrl && (
+          <img src={signedCopyUrl} alt="Signed incident report" className="hidden print:block w-full h-auto" />
+        )}
+        <div className={isSignedImage ? 'print:hidden' : ''}>
+          <PrintHeader />
         <h2 className="text-lg font-bold text-slate-800 mb-1">Laboratory Incident Report (LIR)</h2>
         <p className="text-sm text-slate-600 mb-4">Reference No.: {report.reference_no || '—'}</p>
 
@@ -201,7 +221,8 @@ export default function IncidentReportDetail() {
           <h3 className="font-semibold text-slate-700 text-sm">Signed Hardcopy</h3>
           <p className="text-xs text-slate-500">
             This report is meant to be signed by hand by those involved. Attach a photo or scan of the signed
-            printout here as the official record.
+            printout here as the official record. Once attached, the Print button above prints this signed copy
+            instead of the blank template.
           </p>
           {copyError && <p className="text-sm text-red-600">{copyError}</p>}
           {report.signed_copy_key ? (
@@ -261,6 +282,7 @@ export default function IncidentReportDetail() {
         </div>
 
         <PrintFooter code="F-LAB-009" date="04-01-25" />
+        </div>
       </div>
     </div>
   );

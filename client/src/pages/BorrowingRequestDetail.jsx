@@ -95,6 +95,22 @@ export default function BorrowingRequestDetail() {
 
   const inScope = req && Number(user.department_id) === Number(req.department_id);
   const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && inScope));
+  const isSignedImage = !!req?.signed_copy_key && signedCopyType?.startsWith('image/');
+  const isSignedPdf = !!req?.signed_copy_key && signedCopyType === 'application/pdf';
+
+  // Once a signed hardcopy is attached, that scan is the real record --
+  // Print should reproduce it, not the blank digital template underneath
+  // (its signature lines were never actually signed on screen). A PDF
+  // can't be dropped into the page for window.print() the way an image
+  // can, so it opens in a new tab instead, where the browser's own PDF
+  // viewer has a print control.
+  function handlePrint() {
+    if (isSignedPdf && signedCopyUrl) {
+      window.open(signedCopyUrl, '_blank');
+      return;
+    }
+    window.print();
+  }
 
   function updateItem(itemId, value) {
     setItems((rows) => rows.map((r) => (r.id === itemId ? { ...r, returned_condition: value } : r)));
@@ -142,7 +158,7 @@ export default function BorrowingRequestDetail() {
           ← Back to {req.laboratory_name}
         </Link>
         <button
-          onClick={() => window.print()}
+          onClick={handlePrint}
           className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
         >
           Print
@@ -154,7 +170,11 @@ export default function BorrowingRequestDetail() {
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
-        <PrintHeader />
+        {isSignedImage && signedCopyUrl && (
+          <img src={signedCopyUrl} alt="Signed borrowing request" className="hidden print:block w-full h-auto" />
+        )}
+        <div className={isSignedImage ? 'print:hidden' : ''}>
+          <PrintHeader />
         <div className="flex items-start justify-between mb-1">
           <h2 className="text-lg font-bold text-slate-800">Borrowing Request Form (BRF)</h2>
           <p className="text-sm text-slate-600">Date: {formatDateOnly(req.created_at)}</p>
@@ -318,7 +338,8 @@ export default function BorrowingRequestDetail() {
           <h3 className="font-semibold text-slate-700 text-sm">Signed Hardcopy</h3>
           <p className="text-xs text-slate-500">
             This form is meant to be signed by hand by the borrower. Attach a photo or scan of the signed printout
-            here as the official record.
+            here as the official record. Once attached, the Print button above prints this signed copy instead of
+            the blank template.
           </p>
           {copyError && <p className="text-sm text-red-600">{copyError}</p>}
           {req.signed_copy_key ? (
@@ -377,6 +398,7 @@ export default function BorrowingRequestDetail() {
         </div>
 
         <PrintFooter code="F-LAB-007" date="04-01-25" />
+        </div>
       </div>
     </div>
   );
