@@ -109,15 +109,17 @@ export default function Layout() {
         </div>
       </aside>
       <main className="flex-1 min-w-0 p-6">
-        <a
-          href="/help.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="no-print fixed top-4 right-6 z-50 flex items-center gap-1.5 bg-white border border-slate-200 shadow-sm rounded-full px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-emerald-700 hover:border-emerald-200 transition"
-        >
-          <span>Help / User Manual</span>
-          <span className="text-xs text-slate-400">↗</span>
-        </a>
+        <div className="no-print flex justify-end mb-3">
+          <a
+            href="/help.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 bg-white border border-slate-200 shadow-sm rounded-full px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-emerald-700 hover:border-emerald-200 transition"
+          >
+            <span>Help / User Manual</span>
+            <span className="text-xs text-slate-400">↗</span>
+          </a>
+        </div>
         <Outlet />
       </main>
     </div>
