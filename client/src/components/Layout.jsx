@@ -110,7 +110,7 @@ export default function Layout() {
       </aside>
       <main className="flex-1 min-w-0 p-6">
         <a
-          href="https://claude.ai/artifact/CK498vRgyoCpWRrvQ9sQrg"
+          href="/help.html"
           target="_blank"
           rel="noopener noreferrer"
           className="no-print fixed top-4 right-6 z-50 flex items-center gap-1.5 bg-white border border-slate-200 shadow-sm rounded-full px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-emerald-700 hover:border-emerald-200 transition"
