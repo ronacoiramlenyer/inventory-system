@@ -20,6 +20,18 @@ const emptyForm = {
   handled_by: '',
 };
 
+const CATEGORIES = ['Supplies', 'Materials', 'Chemicals', 'Glassware', 'Consumables', 'Other'];
+
+function emptyEditForm(item) {
+  return {
+    item_name: item.item_name,
+    category: item.category || '',
+    unit_of_measure: item.unit_of_measure,
+    reorder_level: item.reorder_level,
+    notes: item.notes || '',
+  };
+}
+
 export default function StockCard() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -27,6 +39,11 @@ export default function StockCard() {
   const [card, setCard] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [showCorrectForm, setShowCorrectForm] = useState(false);
+  const [correctQty, setCorrectQty] = useState('');
+  const [correctRemarks, setCorrectRemarks] = useState('');
   const [error, setError] = useState('');
 
   function load() {
@@ -45,6 +62,57 @@ export default function StockCard() {
       load();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save entry');
+    }
+  }
+
+  function startEditItem() {
+    setEditForm(emptyEditForm(card.item));
+    setShowEditForm(true);
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setError('');
+    try {
+      await api.put(`/items/${id}`, editForm);
+      setShowEditForm(false);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update item');
+    }
+  }
+
+  function startCorrectBalance() {
+    setCorrectQty(String(card.current_balance));
+    setCorrectRemarks('');
+    setShowCorrectForm(true);
+  }
+
+  async function handleCorrectSubmit(e) {
+    e.preventDefault();
+    setError('');
+    const target = Number(correctQty);
+    if (Number.isNaN(target)) {
+      setError('Enter a valid quantity');
+      return;
+    }
+    const diff = target - card.current_balance;
+    if (diff === 0) {
+      setShowCorrectForm(false);
+      return;
+    }
+    try {
+      await api.post(`/items/${id}/transactions`, {
+        entry_date: new Date().toISOString().slice(0, 10),
+        in_qty: diff > 0 ? diff : 0,
+        out_qty: diff < 0 ? -diff : 0,
+        remarks: correctRemarks.trim() || 'Correction to match physical/manual count',
+        handled_by: user.full_name,
+      });
+      setShowCorrectForm(false);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to correct balance');
     }
   }
 
@@ -86,12 +154,26 @@ export default function StockCard() {
         </Link>
         <div className="space-x-2">
           {user.role === 'admin' && (
-            <button
-              onClick={handleDeleteItem}
-              className="bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium rounded-lg px-4 py-2"
-            >
-              Delete Item
-            </button>
+            <>
+              <button
+                onClick={startEditItem}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+              >
+                Edit Item
+              </button>
+              <button
+                onClick={startCorrectBalance}
+                className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium rounded-lg px-4 py-2"
+              >
+                Correct Balance
+              </button>
+              <button
+                onClick={handleDeleteItem}
+                className="bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium rounded-lg px-4 py-2"
+              >
+                Delete Item
+              </button>
+            </>
           )}
           <button
             onClick={addYearEndMarker}
@@ -115,6 +197,125 @@ export default function StockCard() {
       </div>
 
       <LabFormTabs laboratoryId={item.laboratory_id} active="stock-cards" />
+
+      {error && <p className="text-sm text-red-600 no-print">{error}</p>}
+
+      {showEditForm && (
+        <form
+          onSubmit={handleEditSubmit}
+          className="no-print bg-white border border-slate-200 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3"
+        >
+          <div className="col-span-2">
+            <label className="block text-sm text-slate-600 mb-1">Item Name</label>
+            <input
+              required
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={editForm.item_name}
+              onChange={(e) => setEditForm({ ...editForm, item_name: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Category</label>
+            <select
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={editForm.category}
+              onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+            >
+              <option value="">—</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Unit of Measure</label>
+            <input
+              required
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={editForm.unit_of_measure}
+              onChange={(e) => setEditForm({ ...editForm, unit_of_measure: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Reorder Level</label>
+            <input
+              type="number"
+              min="0"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={editForm.reorder_level}
+              onChange={(e) => setEditForm({ ...editForm, reorder_level: e.target.value })}
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm text-slate-600 mb-1">Notes</label>
+            <input
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={editForm.notes}
+              onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+            />
+          </div>
+          <div className="col-span-full flex gap-2">
+            <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+              Save Changes
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowEditForm(false)}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {showCorrectForm && (
+        <form
+          onSubmit={handleCorrectSubmit}
+          className="no-print bg-white border border-amber-200 rounded-xl p-4 space-y-3"
+        >
+          <p className="text-sm text-slate-600">
+            Current recorded balance: <span className="font-semibold">{card.current_balance}</span>{' '}
+            {item.unit_of_measure}. Enter the actual counted quantity to record a correction entry that brings the
+            balance in line with your hardcopy/manual count.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">Actual Quantity</label>
+              <input
+                type="number"
+                required
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                value={correctQty}
+                onChange={(e) => setCorrectQty(e.target.value)}
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm text-slate-600 mb-1">Remarks</label>
+              <input
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                value={correctRemarks}
+                onChange={(e) => setCorrectRemarks(e.target.value)}
+                placeholder="Correction to match physical/manual count"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+              Save Correction
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCorrectForm(false)}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       {showForm && (
         <form
@@ -185,7 +386,6 @@ export default function StockCard() {
               onChange={(e) => setForm({ ...form, remarks: e.target.value })}
             />
           </div>
-          {error && <p className="col-span-full text-sm text-red-600">{error}</p>}
           <div className="col-span-full flex gap-2">
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
               Save Entry
