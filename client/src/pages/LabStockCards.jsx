@@ -3,7 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import LabFormTabs from '../components/LabFormTabs';
 
-const CATEGORIES = ['Equipment', 'Supplies', 'Materials', 'Chemicals', 'Glassware', 'Consumables', 'Other'];
+// Equipment is deliberately excluded here -- Stock Cards (F-LAB-006) is the
+// IN/OUT quantity ledger for consumable stock, which doesn't apply to
+// equipment; equipment lives under its own F-LAB-001 Equipment Monitoring
+// Record instead (see LabEquipment.jsx).
+const CATEGORIES = ['Supplies', 'Materials', 'Chemicals', 'Glassware', 'Consumables', 'Other'];
 const UNCATEGORIZED = 'Uncategorized';
 
 const emptyForm = {
@@ -12,8 +16,6 @@ const emptyForm = {
   unit_of_measure: 'pcs',
   initial_balance: 0,
   reorder_level: 0,
-  serial_number: '',
-  location: '',
 };
 
 export default function LabStockCards() {
@@ -50,6 +52,7 @@ export default function LabStockCards() {
 
   const groups = new Map();
   for (const item of items) {
+    if (item.category === 'Equipment') continue;
     const key = item.category || UNCATEGORIZED;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
@@ -114,49 +117,26 @@ export default function LabStockCards() {
               placeholder="e.g. pcs, bottle, box"
             />
           </div>
-          {form.category === 'Equipment' ? (
-            <>
-              <div>
-                <label className="block text-sm text-slate-600 mb-1">Serial Number</label>
-                <input
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  value={form.serial_number}
-                  onChange={(e) => setForm({ ...form, serial_number: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-600 mb-1">Location</label>
-                <input
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <label className="block text-sm text-slate-600 mb-1">Starting Balance</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  value={form.initial_balance}
-                  onChange={(e) => setForm({ ...form, initial_balance: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-600 mb-1">Reorder Level</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  value={form.reorder_level}
-                  onChange={(e) => setForm({ ...form, reorder_level: e.target.value })}
-                />
-              </div>
-            </>
-          )}
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Starting Balance</label>
+            <input
+              type="number"
+              min="0"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={form.initial_balance}
+              onChange={(e) => setForm({ ...form, initial_balance: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">Reorder Level</label>
+            <input
+              type="number"
+              min="0"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              value={form.reorder_level}
+              onChange={(e) => setForm({ ...form, reorder_level: e.target.value })}
+            />
+          </div>
           <div className="col-span-full flex gap-2">
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
               Save Item
@@ -172,7 +152,7 @@ export default function LabStockCards() {
         </form>
       )}
 
-      {items.length === 0 && (
+      {groups.size === 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-4 py-6 text-center text-slate-400">
           No items yet. Add one above, or add some from the Inventory Sheet.
         </div>
