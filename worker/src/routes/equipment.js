@@ -2,16 +2,20 @@ import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
 
-// F-LAB-001 Equipment Monitoring Record: non-consumable equipment tracked per
-// laboratory, each with its own service/maintenance log.
+// F-LAB-001 Equipment Monitoring Record: equipment is just an `items` row
+// with category = 'Equipment' -- this router is a thin view over items
+// scoped to that category, so equipment shows up in the regular Inventory
+// list too instead of living in its own separate registry.
 const equipment = new Hono();
 equipment.use('*', requireAuth);
 
 const EQUIPMENT_SELECT = `
-  SELECT e.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
-  FROM equipment e
+  SELECT e.id, e.laboratory_id, e.item_name AS name_description, e.serial_number, e.location, e.created_at,
+    l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
+  FROM items e
   JOIN laboratories l ON l.id = e.laboratory_id
   JOIN departments d ON d.id = l.department_id
+  WHERE e.category = 'Equipment'
 `;
 
 function labAccessibleToUser(user, lab) {
@@ -42,15 +46,15 @@ equipment.get('/', async (c) => {
   }
 
   let sql = EQUIPMENT_SELECT;
-  if (clauses.length) sql += ' WHERE ' + clauses.join(' AND ');
-  sql += ' ORDER BY e.name_description';
+  if (clauses.length) sql += ' AND ' + clauses.join(' AND ');
+  sql += ' ORDER BY e.item_name';
 
   return c.json(await dbAll(c.env.DB, sql, ...params));
 });
 
 equipment.get('/:id', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', c.req.param('id'));
+  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
   if (!item) return c.json({ error: 'Equipment not found' }, 404);
   if (!userCanAccessEquipment(user, item)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
@@ -70,21 +74,29 @@ equipment.post('/', async (c) => {
     return c.json({ error: 'You do not have access to that laboratory' }, 403);
   }
 
-  const result = await dbRun(
-    c.env.DB,
-    `INSERT INTO equipment (laboratory_id, name_description, serial_number, location) VALUES (?, ?, ?, ?)`,
-    laboratory_id,
-    name_description.trim(),
-    serial_number?.trim() || null,
-    location?.trim() || null
-  );
-  return c.json(await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', result.lastInsertRowid), 201);
+  try {
+    const result = await dbRun(
+      c.env.DB,
+      `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, serial_number, location)
+       VALUES (?, ?, 'Equipment', 'unit', 0, 0, ?, ?)`,
+      laboratory_id,
+      name_description.trim(),
+      serial_number?.trim() || null,
+      location?.trim() || null
+    );
+    return c.json(await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', result.lastInsertRowid), 201);
+  } catch (err) {
+    if (String(err.message).includes('UNIQUE')) {
+      return c.json({ error: 'That item already exists in this laboratory' }, 409);
+    }
+    return c.json({ error: 'Failed to create equipment' }, 500);
+  }
 });
 
 equipment.put('/:id', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
-  const existing = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', id);
+  const existing = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', id);
   if (!existing) return c.json({ error: 'Equipment not found' }, 404);
   if (!userCanAccessEquipment(user, existing)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
@@ -93,30 +105,30 @@ equipment.put('/:id', async (c) => {
   const { name_description, serial_number, location } = await c.req.json().catch(() => ({}));
   await dbRun(
     c.env.DB,
-    `UPDATE equipment SET name_description = ?, serial_number = ?, location = ? WHERE id = ?`,
+    `UPDATE items SET item_name = ?, serial_number = ?, location = ? WHERE id = ?`,
     name_description?.trim() || existing.name_description,
     serial_number?.trim() ?? existing.serial_number,
     location?.trim() ?? existing.location,
     id
   );
-  return c.json(await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', id));
+  return c.json(await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', id));
 });
 
 equipment.delete('/:id', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
-  const existing = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', id);
+  const existing = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', id);
   if (!existing) return c.json({ error: 'Equipment not found' }, 404);
   if (!userCanAccessEquipment(user, existing)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
-  await dbRun(c.env.DB, 'DELETE FROM equipment WHERE id = ?', id);
+  await dbRun(c.env.DB, 'DELETE FROM items WHERE id = ?', id);
   return c.body(null, 204);
 });
 
 equipment.get('/:id/logs', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', c.req.param('id'));
+  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
   if (!item) return c.json({ error: 'Equipment not found' }, 404);
   if (!userCanAccessEquipment(user, item)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
@@ -131,7 +143,7 @@ equipment.get('/:id/logs', async (c) => {
 
 equipment.post('/:id/logs', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', c.req.param('id'));
+  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
   if (!item) return c.json({ error: 'Equipment not found' }, 404);
   if (!userCanAccessEquipment(user, item)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
@@ -159,7 +171,7 @@ equipment.post('/:id/logs', async (c) => {
 
 equipment.delete('/:id/logs/:logId', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' WHERE e.id = ?', c.req.param('id'));
+  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
   if (!item) return c.json({ error: 'Equipment not found' }, 404);
   if (!userCanAccessEquipment(user, item)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);

@@ -27,7 +27,7 @@ function labAccessibleToUser(user, lab) {
 
 items.get('/', async (c) => {
   const user = c.get('user');
-  const { laboratory_id, low_stock } = c.req.query();
+  const { laboratory_id, low_stock, category } = c.req.query();
   const clauses = [];
   const params = [];
 
@@ -38,6 +38,10 @@ items.get('/', async (c) => {
   if (laboratory_id) {
     clauses.push('i.laboratory_id = ?');
     params.push(laboratory_id);
+  }
+  if (category) {
+    clauses.push('i.category = ?');
+    params.push(category);
   }
 
   let sql = ITEM_SELECT;
@@ -63,7 +67,7 @@ items.get('/:id', async (c) => {
 
 items.post('/', async (c) => {
   const user = c.get('user');
-  const { laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes } =
+  const { laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, serial_number, location } =
     await c.req.json().catch(() => ({}));
   if (!laboratory_id || !item_name || !unit_of_measure) {
     return c.json({ error: 'laboratory_id, item_name and unit_of_measure are required' }, 400);
@@ -77,15 +81,17 @@ items.post('/', async (c) => {
   try {
     const result = await dbRun(
       c.env.DB,
-      `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, serial_number, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       laboratory_id,
       item_name.trim(),
       category?.trim() || null,
       unit_of_measure.trim(),
       Number(initial_balance) || 0,
       Number(reorder_level) || 0,
-      notes?.trim() || null
+      notes?.trim() || null,
+      serial_number?.trim() || null,
+      location?.trim() || null
     );
     return c.json(await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', result.lastInsertRowid), 201);
   } catch (err) {
@@ -105,7 +111,7 @@ items.put('/:id', async (c) => {
     return c.json({ error: 'You do not have access to this item' }, 403);
   }
 
-  const { item_name, category, unit_of_measure, reorder_level, notes, laboratory_id } =
+  const { item_name, category, unit_of_measure, reorder_level, notes, laboratory_id, serial_number, location } =
     await c.req.json().catch(() => ({}));
   let targetLabId = existing.laboratory_id;
   if (laboratory_id && Number(laboratory_id) !== existing.laboratory_id) {
@@ -118,7 +124,8 @@ items.put('/:id', async (c) => {
 
   await dbRun(
     c.env.DB,
-    `UPDATE items SET item_name = ?, category = ?, unit_of_measure = ?, reorder_level = ?, notes = ?, laboratory_id = ?
+    `UPDATE items SET item_name = ?, category = ?, unit_of_measure = ?, reorder_level = ?, notes = ?, laboratory_id = ?,
+       serial_number = ?, location = ?
      WHERE id = ?`,
     item_name?.trim() || existing.item_name,
     category?.trim() ?? existing.category,
@@ -126,6 +133,8 @@ items.put('/:id', async (c) => {
     reorder_level !== undefined ? Number(reorder_level) : existing.reorder_level,
     notes?.trim() ?? existing.notes,
     targetLabId,
+    serial_number?.trim() ?? existing.serial_number,
+    location?.trim() ?? existing.location,
     id
   );
   return c.json(await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', id));

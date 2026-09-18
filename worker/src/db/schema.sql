@@ -45,11 +45,13 @@ CREATE TABLE IF NOT EXISTS items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   item_name TEXT NOT NULL,
-  category TEXT,                    -- e.g. "Equipment", "Reagent", "Consumable"
+  category TEXT,                    -- "Equipment" | "Supplies" | "Materials" | "Chemicals" | "Glassware" | "Consumables" | "Other"
   unit_of_measure TEXT NOT NULL,    -- e.g. "pcs", "bottle", "box"
   initial_balance INTEGER NOT NULL DEFAULT 0,
   reorder_level INTEGER NOT NULL DEFAULT 0,
   notes TEXT,
+  serial_number TEXT,               -- meaningful for category = "Equipment" (F-LAB-001)
+  location TEXT,                    -- meaningful for category = "Equipment" (F-LAB-001)
   import_batch_id TEXT,             -- set when created via bulk Import Items, so a bad batch can be deleted together
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(laboratory_id, item_name)
@@ -102,20 +104,13 @@ CREATE TABLE IF NOT EXISTS inventory_count_items (
 CREATE INDEX IF NOT EXISTS idx_inv_counts_lab ON inventory_counts(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(inventory_count_id);
 
--- F-LAB-001 Equipment Monitoring Record: non-consumable equipment (as opposed
--- to the quantity-tracked `items`), each with its own service/maintenance log.
-CREATE TABLE IF NOT EXISTS equipment (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
-  name_description TEXT NOT NULL,
-  serial_number TEXT,
-  location TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
+-- F-LAB-001 Equipment Monitoring Record: a service/maintenance log against
+-- an `items` row whose category = "Equipment" -- equipment is just an item
+-- category, not a separate registry, so it shows up in the regular
+-- Inventory list too.
 CREATE TABLE IF NOT EXISTS equipment_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+  equipment_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
   entry_date TEXT NOT NULL,         -- YYYY-MM-DD
   service_performed TEXT NOT NULL,  -- e.g. "Preventive", "Repair", "Calibration"
   request_id TEXT,                  -- reference to an F-LAB-004 Equipment Work Request (free text for now)
@@ -125,7 +120,6 @@ CREATE TABLE IF NOT EXISTS equipment_logs (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_equipment_lab ON equipment(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);
 
 -- F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment

@@ -25,6 +25,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
   const [lab, setLab] = useState(null);
   const [rows, setRows] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [equipmentItems, setEquipmentItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -37,9 +38,19 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
     api.get('/departments').then((res) => setDepartments(res.data));
+    api.get('/items', { params: { laboratory_id: id, category: 'Equipment' } }).then((res) => setEquipmentItems(res.data));
     loadRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  function selectEquipment(itemId) {
+    const picked = equipmentItems.find((it) => String(it.id) === itemId);
+    setForm((f) => ({
+      ...f,
+      equipment_name_description: picked ? picked.item_name : '',
+      serial_number: picked?.serial_number || f.serial_number,
+    }));
+  }
 
   function startNew() {
     setEditingId(null);
@@ -119,12 +130,26 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
         >
           <div className="col-span-2">
             <label className="block text-sm text-slate-600 mb-1">Equipment Name & Description</label>
-            <input
+            <select
               required
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              value={form.equipment_name_description}
-              onChange={(e) => setForm({ ...form, equipment_name_description: e.target.value })}
-            />
+              value={equipmentItems.find((it) => it.item_name === form.equipment_name_description)?.id ?? ''}
+              onChange={(e) => selectEquipment(e.target.value)}
+            >
+              <option value="" disabled>
+                Select equipment from Inventory…
+              </option>
+              {equipmentItems.map((it) => (
+                <option key={it.id} value={it.id}>
+                  {it.item_name}
+                </option>
+              ))}
+            </select>
+            {equipmentItems.length === 0 && (
+              <p className="text-xs text-slate-400 mt-1">
+                No equipment in this lab's Inventory yet — add one from the Inventory list first.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">Equipment ID/Serial Number</label>
