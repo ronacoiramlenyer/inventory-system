@@ -207,9 +207,9 @@ export default function EquipmentMonitoringRecord() {
             <tbody>
               {padRows(logs, MIN_ROWS).map((log) => (
                 <tr key={log.id}>
-                  <td className="border border-slate-300 px-3 py-2">{log.entry_date}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{log.entry_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{log.service_performed}</td>
-                  <td className="border border-slate-300 px-3 py-2">{log.request_id}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{log.request_id}</td>
                   <td className="border border-slate-300 px-3 py-2">{log.status}</td>
                   <td className="border border-slate-300 px-3 py-2">{log.logged_by}</td>
                   <td className="border border-slate-300 px-3 py-2 no-print text-center">

@@ -83,7 +83,7 @@ export default function LabWorkRequests() {
             <tbody>
               {padRows(requests, MIN_ROWS).map((r) => (
                 <tr key={r.id}>
-                  <td className="border border-slate-300 px-3 py-2">
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">
                     {r.__blank ? null : (
                       <Link to={`/work-requests/${r.id}`} className="text-emerald-700 hover:underline">
                         {r.request_no}
@@ -93,8 +93,8 @@ export default function LabWorkRequests() {
                   <td className="border border-slate-300 px-3 py-2">{r.equipment_name_description}</td>
                   <td className="border border-slate-300 px-3 py-2">{r.serial_number}</td>
                   <td className="border border-slate-300 px-3 py-2">{r.nature_of_request}</td>
-                  <td className="border border-slate-300 px-3 py-2">{r.date_requested}</td>
-                  <td className="border border-slate-300 px-3 py-2">{r.date_needed}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.date_requested}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.date_needed}</td>
                   <td className="border border-slate-300 px-3 py-2">
                     {!r.__blank && (
                       <span className={`text-xs font-semibold rounded-full px-2 py-1 ${STATUS_STYLES[r.status] || ''}`}>
@@ -102,7 +102,7 @@ export default function LabWorkRequests() {
                       </span>
                     )}
                   </td>
-                  <td className="border border-slate-300 px-3 py-2">{r.date_completed}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.date_completed}</td>
                   <td className="border border-slate-300 px-3 py-2">{r.remarks}</td>
                 </tr>
               ))}

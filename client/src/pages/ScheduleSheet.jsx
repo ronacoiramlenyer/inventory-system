@@ -249,8 +249,8 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                   <td className="border border-slate-300 px-3 py-2">{row.frequency}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.department}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.location}</td>
-                  <td className="border border-slate-300 px-3 py-2">{row.scheduled_date}</td>
-                  <td className="border border-slate-300 px-3 py-2">{row.actual_date}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.scheduled_date}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.actual_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.remarks}</td>
                   <td className="border border-slate-300 px-3 py-2 no-print text-center space-x-2">
                     {!row.__blank && (

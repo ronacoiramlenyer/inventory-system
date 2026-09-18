@@ -200,7 +200,7 @@ export default function LabWasteDisposalLog() {
             <tbody>
               {padRows(rows, MIN_ROWS).map((row) => (
                 <tr key={row.id}>
-                  <td className="border border-slate-300 px-3 py-2">{row.turnover_date}</td>
+                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.turnover_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.waste_description}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.waste_classification}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.quantity_volume}</td>

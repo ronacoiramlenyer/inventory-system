@@ -297,7 +297,7 @@ export default function StockCard() {
                   </tr>
                 ) : (
                   <tr key={entry.id}>
-                    <td className="border border-slate-300 px-3 py-2">{entry.entry_date}</td>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{entry.entry_date}</td>
                     <td className="border border-slate-300 px-3 py-2 text-right">
                       {entry.beginning_balance}
                     </td>
