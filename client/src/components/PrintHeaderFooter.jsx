@@ -5,9 +5,9 @@
 // sheet at least shows more than 1 rather than a permanently-stuck "1 of 1"
 // -- rowsPerPage should roughly match how many table rows this particular
 // print layout actually fits on one sheet.
-export function estimatePageLabel(rowCount, rowsPerPage = 20, prefix = '') {
+export function estimatePageLabel(rowCount, rowsPerPage = 20) {
   const total = Math.max(1, Math.ceil(rowCount / rowsPerPage));
-  return `${prefix}1 of ${total}`;
+  return `Page 1 of ${total}`;
 }
 
 // Matches the official F-LAB template's print header (school seal + page
