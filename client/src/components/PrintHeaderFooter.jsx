@@ -39,17 +39,18 @@ export function PrintHeader({ pageLabel = 'Page 1 of 1' }) {
 // colSpan must match the number of print-visible <th> columns in that
 // table (i.e. excluding any no-print action column).
 //
-// Centered rather than spread edge-to-edge (like PrintHeader's own
-// grid-cols-3 layout): some of these tables are wider than the printable
-// page and get clipped on the right in print, which silently clipped a
-// right-aligned page label right along with it.
+// Uses the same 3-column grid as PrintHeader (empty / logo centered / page
+// label at the far right) instead of centering logo+label together as one
+// block -- that made the label look glued to the logo's right edge rather
+// than sitting at the true top-right corner of the table.
 export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
   return (
     <tr className="hidden print:table-row">
-      <th colSpan={colSpan} className="p-0 border-0 font-normal text-left pb-3">
-        <div className="print:flex items-center justify-center gap-3">
-          <img src="/lsgh-logo.png" alt="La Salle Green Hills" className="h-14 w-auto" />
-          <span className="italic text-sm text-slate-700">{pageLabel}</span>
+      <th colSpan={colSpan} className="p-0 border-0 font-normal pb-3">
+        <div className="print:grid grid-cols-3 items-center w-full">
+          <span />
+          <img src="/lsgh-logo.png" alt="La Salle Green Hills" className="h-14 w-auto justify-self-center" />
+          <span className="italic text-sm text-slate-700 justify-self-end">{pageLabel}</span>
         </div>
       </th>
     </tr>

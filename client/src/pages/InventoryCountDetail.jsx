@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { readSheet } from 'read-excel-file/universal';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
+import ProgressBar, { useProgress } from '../components/ProgressBar';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 
@@ -48,6 +49,7 @@ async function parseImportFile(file) {
 export default function InventoryCountDetail() {
   const { id } = useParams();
   const confirmDialog = useConfirm();
+  const { progress, label: progressLabel, start, advance, finish, stop } = useProgress();
   const [count, setCount] = useState(null);
   const [rows, setRows] = useState([]);
   const [preparedBy, setPreparedBy] = useState('');
@@ -114,9 +116,10 @@ export default function InventoryCountDetail() {
   // Returns whether the save actually succeeded, so callers like
   // handleApply can tell a real failure apart from a normal completion
   // instead of barreling ahead regardless.
-  async function handleSave() {
+  async function handleSave({ withProgress = true } = {}) {
     setError('');
     setSaving(true);
+    if (withProgress) start('Saving changes…');
     try {
       const { data } = await api.put(`/inventory-counts/${id}`, {
         prepared_by: preparedBy,
@@ -130,15 +133,18 @@ export default function InventoryCountDetail() {
       });
       if (data.errors?.length) {
         setError(data.errors.join(' '));
+        if (withProgress) stop();
         return false;
       }
       load();
       setImportSummary('');
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1500);
+      if (withProgress) finish();
       return true;
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save');
+      if (withProgress) stop();
       return false;
     } finally {
       setSaving(false);
@@ -211,13 +217,20 @@ export default function InventoryCountDetail() {
     if (!applyConfirmed) return;
     setError('');
     setApplying(true);
+    start('Saving changes…');
     try {
-      const saved = await handleSave();
-      if (!saved) return;
+      const saved = await handleSave({ withProgress: false });
+      if (!saved) {
+        stop();
+        return;
+      }
+      advance('Applying adjustments to stock…');
       await api.post(`/inventory-counts/${id}/apply`);
       load();
+      finish();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to apply adjustments');
+      stop();
     } finally {
       setApplying(false);
     }
@@ -285,6 +298,8 @@ export default function InventoryCountDetail() {
       </div>
 
       <LabFormTabs laboratoryId={count.laboratory_id} active="inventory-sheet" />
+
+      <ProgressBar progress={progress} label={progressLabel} />
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
       {importSummary && <p className="text-sm text-slate-600 no-print">{importSummary}</p>}
