@@ -163,37 +163,51 @@ export default function EquipmentMonitoringRecord() {
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
           <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record (EMR)</h2>
-          <table className="mb-4 text-sm w-full border-collapse">
-            <tbody>
-              <tr>
-                <td
-                  rowSpan={3}
-                  className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top w-32"
-                >
-                  Equipment Information
-                </td>
-                <td className="border border-slate-300 px-3 py-1.5 font-medium w-64">
-                  Equipment Name &amp; Description:
-                </td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.name_description}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-medium">Equipment ID/Serial Number:</td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.serial_number}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-medium">Location:</td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.location}</td>
-              </tr>
-            </tbody>
-          </table>
 
+          {/* The equipment info block lives in this table's own <thead>,
+              alongside the seal/page-label row and the column headers, so
+              all of it repeats together at the top of every physical page
+              this table breaks across -- keeping it in a separate table
+              before this one meant the seal only ever rendered wherever
+              this table happened to start in the page flow (i.e. after
+              the info block, mid-page), not at the actual top of the page. */}
           <table className="w-full text-sm border-collapse">
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(logs.length, MIN_ROWS), MIN_ROWS)}
                 colSpan={5}
               />
+              <tr>
+                <td
+                  rowSpan={3}
+                  colSpan={1}
+                  className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top w-32"
+                >
+                  Equipment Information
+                </td>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
+                  Equipment Name &amp; Description:
+                </td>
+                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
+                  {item.name_description}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
+                  Equipment ID/Serial Number:
+                </td>
+                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
+                  {item.serial_number}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
+                  Location:
+                </td>
+                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
+                  {item.location}
+                </td>
+              </tr>
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">

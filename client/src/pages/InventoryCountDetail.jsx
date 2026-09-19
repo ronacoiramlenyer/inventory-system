@@ -306,15 +306,29 @@ export default function InventoryCountDetail() {
         <div className="p-6">
           <h2 className="text-lg font-bold text-slate-800 mb-4">Inventory Sheet</h2>
 
-          <table className="mb-4 text-sm">
-            <tbody>
+          {/* The lab/prepared-by info lives in this table's own <thead>,
+              alongside the seal/page-label row and the column headers, so
+              all of it repeats together at the top of every physical page
+              this table breaks across -- keeping it in a separate table
+              before this one meant the seal only ever rendered wherever
+              this table happened to start in the page flow (i.e. after the
+              info block, mid-page), not at the actual top of the page. */}
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <PrintHeaderRow pageLabel={estimatePageLabel(rows.length, 10)} colSpan={7} />
               <tr>
-                <td className="px-1 py-1.5 font-semibold w-32">Laboratory:</td>
-                <td className="px-1 py-1.5">{count.laboratory_name}</td>
+                <td colSpan={2} className="px-1 py-1.5 font-semibold w-32">
+                  Laboratory:
+                </td>
+                <td colSpan={6} className="px-1 py-1.5">
+                  {count.laboratory_name}
+                </td>
               </tr>
               <tr>
-                <td className="px-1 py-1.5 font-semibold">Prepared by:</td>
-                <td className="px-1 py-1.5">
+                <td colSpan={2} className="px-1 py-1.5 font-semibold">
+                  Prepared by:
+                </td>
+                <td colSpan={6} className="px-1 py-1.5">
                   {readOnly ? (
                     preparedBy
                   ) : (
@@ -326,12 +340,6 @@ export default function InventoryCountDetail() {
                   )}
                 </td>
               </tr>
-            </tbody>
-          </table>
-
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <PrintHeaderRow pageLabel={estimatePageLabel(rows.length, 10)} colSpan={7} />
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Item No.</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Description</th>

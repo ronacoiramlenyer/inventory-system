@@ -409,41 +409,52 @@ export default function StockCard() {
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
           <h2 className="text-lg font-bold text-slate-800 mb-4">Stock Card</h2>
-          <table className="mb-4 text-sm">
-            <tbody>
-              <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 w-40">
-                  DEPARTMENT
-                </td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.department_name}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                  LABORATORY
-                </td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.laboratory_name}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                  ITEM NAME
-                </td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.item_name}</td>
-              </tr>
-              <tr>
-                <td className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                  UNIT OF MEASURE
-                </td>
-                <td className="border border-slate-300 px-3 py-1.5">{item.unit_of_measure}</td>
-              </tr>
-            </tbody>
-          </table>
 
+          {/* The item info block lives in this table's own <thead>, alongside
+              the seal/page-label row and the column headers, so all of it
+              repeats together at the top of every physical page this table
+              breaks across -- keeping it in a separate table before this one
+              meant the seal only ever rendered wherever this table happened
+              to start in the page flow (i.e. after the info block, mid-page),
+              not at the actual top of the page. */}
           <table className="w-full text-sm border-collapse">
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS), MIN_ROWS)}
                 colSpan={7}
               />
+              <tr>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 w-40">
+                  DEPARTMENT
+                </td>
+                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
+                  {item.department_name}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
+                  LABORATORY
+                </td>
+                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
+                  {item.laboratory_name}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
+                  ITEM NAME
+                </td>
+                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
+                  {item.item_name}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
+                  UNIT OF MEASURE
+                </td>
+                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
+                  {item.unit_of_measure}
+                </td>
+              </tr>
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-right">
