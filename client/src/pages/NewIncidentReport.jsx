@@ -11,6 +11,7 @@ export default function NewIncidentReport() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [form, setForm] = useState({
     incident_datetime: '',
@@ -30,7 +31,9 @@ export default function NewIncidentReport() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submitting) return;
     setError('');
+    setSubmitting(true);
     try {
       const { data } = await api.post('/incident-reports', {
         ...form,
@@ -40,6 +43,7 @@ export default function NewIncidentReport() {
       navigate(`/incident-reports/${data.id}`, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to submit report');
+      setSubmitting(false);
     }
   }
 
@@ -154,8 +158,11 @@ export default function NewIncidentReport() {
           </div>
         </div>
 
-        <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
-          Submit Report
+        <button
+          disabled={submitting}
+          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+        >
+          {submitting ? 'Submitting…' : 'Submit Report'}
         </button>
       </form>
     </div>

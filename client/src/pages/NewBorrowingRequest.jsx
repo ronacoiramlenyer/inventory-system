@@ -9,6 +9,7 @@ export default function NewBorrowingRequest() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     borrower_name: '',
     department_unit: '',
@@ -32,7 +33,9 @@ export default function NewBorrowingRequest() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submitting) return;
     setError('');
+    setSubmitting(true);
     try {
       const { data } = await api.post('/borrowing-requests', {
         ...form,
@@ -42,6 +45,7 @@ export default function NewBorrowingRequest() {
       navigate(`/borrowing-requests/${data.id}`, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to submit request');
+      setSubmitting(false);
     }
   }
 
@@ -153,8 +157,11 @@ export default function NewBorrowingRequest() {
           </ul>
         </div>
 
-        <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
-          Submit Request
+        <button
+          disabled={submitting}
+          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+        >
+          {submitting ? 'Submitting…' : 'Submit Request'}
         </button>
       </form>
     </div>

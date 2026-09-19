@@ -13,6 +13,7 @@ export default function NewWorkRequest() {
   const [lab, setLab] = useState(null);
   const [equipmentItems, setEquipmentItems] = useState([]);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     equipment_item_id: '',
     equipment_name_description: '',
@@ -40,7 +41,9 @@ export default function NewWorkRequest() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submitting) return;
     setError('');
+    setSubmitting(true);
     try {
       const { data } = await api.post('/work-requests', { ...form, laboratory_id: id });
       navigate(`/work-requests/${data.id}`, {
@@ -49,6 +52,7 @@ export default function NewWorkRequest() {
       });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to submit request');
+      setSubmitting(false);
     }
   }
 
@@ -143,8 +147,11 @@ export default function NewWorkRequest() {
         </div>
 
         <div className="flex gap-2">
-          <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
-            Submit Request
+          <button
+            disabled={submitting}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+          >
+            {submitting ? 'Submitting…' : 'Submit Request'}
           </button>
         </div>
       </form>

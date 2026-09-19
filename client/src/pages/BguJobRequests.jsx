@@ -46,6 +46,7 @@ export default function BguJobRequests() {
   const [statusEditId, setStatusEditId] = useState(null);
   const [statusValue, setStatusValue] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   function loadRows() {
     api.get('/bgu-job-requests').then((res) => setRows(res.data));
@@ -64,17 +65,21 @@ export default function BguJobRequests() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submitting) return;
     setError('');
     if (!form.laboratory_id) {
       setError('Select the laboratory this request originates from');
       return;
     }
+    setSubmitting(true);
     try {
       await api.post('/bgu-job-requests', form);
       setShowForm(false);
       loadRows();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -206,8 +211,11 @@ export default function BguJobRequests() {
             />
           </div>
           <div className="col-span-full flex gap-2">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
-              Save
+            <button
+              disabled={submitting}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              {submitting ? 'Saving…' : 'Save'}
             </button>
             <button
               type="button"
