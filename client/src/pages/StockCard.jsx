@@ -424,51 +424,56 @@ export default function StockCard() {
                 colSpan={7}
               />
               <PrintTitleRow title="Stock Card" colSpan={7} />
-              {/* A single full-width cell with an internal flex row, rather
-                  than splitting label/value across colSpans that line up
-                  with the data columns below -- Beginning Balance/Remarks
-                  are wider than Date, so a colSpan-2 label cell ended up
-                  stretched across both, leaving a large gap before the
-                  value started in column 3. */}
+              {/* A compact box confined to the first 2 real columns (plus a
+                  borderless filler cell for the rest of the row), matching
+                  the official template's narrow label/value box -- an
+                  earlier version spanned the full row width, which
+                  stretched the box across the whole table and made every
+                  row much taller than the template's tight single-line
+                  rows. */}
               <tr>
-                <td colSpan={7} className="border border-slate-300 p-0">
+                <td colSpan={2} className="border border-slate-300 p-0">
                   <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
                       DEPARTMENT
                     </span>
-                    <span className="px-3 py-1.5">{item.department_name}</span>
+                    <span className="px-2 py-0.5">{item.department_name}</span>
                   </div>
                 </td>
+                <td colSpan={5} className="border-0 p-0"></td>
               </tr>
               <tr>
-                <td colSpan={7} className="border border-slate-300 p-0">
+                <td colSpan={2} className="border border-slate-300 p-0">
                   <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
                       LABORATORY
                     </span>
-                    <span className="px-3 py-1.5">{item.laboratory_name}</span>
+                    <span className="px-2 py-0.5">{item.laboratory_name}</span>
                   </div>
                 </td>
+                <td colSpan={5} className="border-0 p-0"></td>
               </tr>
               <tr>
-                <td colSpan={7} className="border border-slate-300 p-0">
+                <td colSpan={2} className="border border-slate-300 p-0">
                   <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
                       ITEM NAME
                     </span>
-                    <span className="px-3 py-1.5">{item.item_name}</span>
+                    <span className="px-2 py-0.5">{item.item_name}</span>
                   </div>
                 </td>
+                <td colSpan={5} className="border-0 p-0"></td>
               </tr>
               <tr>
-                <td colSpan={7} className="border border-slate-300 p-0">
+                <td colSpan={2} className="border border-slate-300 p-0">
                   <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
                       UNIT OF MEASURE
                     </span>
-                    <span className="px-3 py-1.5">{item.unit_of_measure}</span>
+                    <span className="px-2 py-0.5">{item.unit_of_measure}</span>
                   </div>
                 </td>
+                <td colSpan={5} className="border-0 p-0"></td>
               </tr>
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
