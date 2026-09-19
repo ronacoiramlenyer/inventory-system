@@ -131,6 +131,7 @@ export default function InventoryCountDetail() {
         return false;
       }
       load();
+      setImportSummary('');
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1500);
       return true;
@@ -185,7 +186,7 @@ export default function InventoryCountDetail() {
       });
 
       setImportSummary(
-        `${matched} row(s) matched an existing item and were updated. ${added} new row(s) were added for items not on this sheet yet — review them below, then Save.`
+        `${matched} row(s) matched an existing item and were updated. ${added} new row(s) were added for items not on this sheet yet — review them below, then click the highlighted Save button.`
       );
     } catch (err) {
       setError(err.message || 'Failed to read that file');
@@ -251,7 +252,11 @@ export default function InventoryCountDetail() {
               <button
                 onClick={handleSave}
                 disabled={saving || applying}
-                className="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+                className={
+                  importSummary && !saving
+                    ? 'bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 animate-pulse ring-4 ring-emerald-300'
+                    : 'bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2'
+                }
               >
                 {saving ? 'Saving…' : savedFlash ? 'Saved ✓' : 'Save'}
               </button>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
@@ -20,13 +21,27 @@ const STATUS_STYLES = {
 
 export default function LabWorkRequests() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [lab, setLab] = useState(null);
   const [requests, setRequests] = useState([]);
 
+  function loadRequests() {
+    api.get('/work-requests', { params: { laboratory_id: id } }).then((res) => setRequests(res.data));
+  }
+
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
-    api.get('/work-requests', { params: { laboratory_id: id } }).then((res) => setRequests(res.data));
+    loadRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Temporary: lets an admin clean up a bad/duplicate entry directly from
+  // the log, since there's no other way to remove one yet.
+  async function handleDelete(requestId) {
+    if (!confirm('Delete this entry? This cannot be undone.')) return;
+    await api.delete(`/work-requests/${requestId}`);
+    loadRequests();
+  }
 
   if (!lab) return <p className="text-slate-500">Loading…</p>;
 
@@ -81,6 +96,9 @@ export default function LabWorkRequests() {
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Status</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date Completed</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Remarks</th>
+                {user.role === 'admin' && (
+                  <th className="border border-slate-300 px-3 py-2 no-print w-16">&nbsp;</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -107,6 +125,18 @@ export default function LabWorkRequests() {
                   </td>
                   <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.date_completed}</td>
                   <td className="border border-slate-300 px-3 py-2">{r.remarks}</td>
+                  {user.role === 'admin' && (
+                    <td className="border border-slate-300 px-3 py-2 no-print text-center">
+                      {!r.__blank && (
+                        <button
+                          onClick={() => handleDelete(r.id)}
+                          className="text-slate-400 hover:text-red-600 text-xs underline"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
