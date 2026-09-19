@@ -57,6 +57,24 @@ export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
   );
 }
 
+// Repeats the on-screen form title (and an optional subtitle line, e.g.
+// "Laboratory: X") as the second row of the table's own <thead>, right
+// after PrintHeaderRow -- these forms render their title as a normal <h2>
+// (and sometimes a <p>) *before* the <table>, which put them above the
+// seal in print despite PrintHeaderRow existing, since document flow just
+// follows JSX order. The on-screen h2/p should carry `print:hidden` so
+// they don't print twice once this takes over for print.
+export function PrintTitleRow({ title, subtitle, colSpan, center = false }) {
+  return (
+    <tr className="hidden print:table-row">
+      <th colSpan={colSpan} className={`p-0 border-0 font-normal pb-4 ${center ? 'text-center' : 'text-left'}`}>
+        <div className="text-lg font-bold text-slate-800">{title}</div>
+        {subtitle && <div className="text-sm font-normal text-slate-800 mt-1">{subtitle}</div>}
+      </th>
+    </tr>
+  );
+}
+
 // position:fixed is one of the few pagination behaviors browsers *do*
 // support reliably for print -- a fixed element repeats on every printed
 // page -- so this uses it instead of being placed once at the end of the

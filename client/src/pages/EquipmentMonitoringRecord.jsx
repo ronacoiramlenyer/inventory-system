@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
 const SERVICE_OPTIONS = ['Preventive', 'Repair', 'Calibration'];
@@ -162,7 +162,7 @@ export default function EquipmentMonitoringRecord() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record (EMR)</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Equipment Monitoring Record (EMR)</h2>
 
           {/* The equipment info block lives in this table's own <thead>,
               alongside the seal/page-label row and the column headers, so
@@ -177,6 +177,7 @@ export default function EquipmentMonitoringRecord() {
                 pageLabel={estimatePageLabel(Math.max(logs.length, MIN_ROWS), MIN_ROWS)}
                 colSpan={5}
               />
+              <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={5} />
               <tr>
                 <td
                   rowSpan={3}

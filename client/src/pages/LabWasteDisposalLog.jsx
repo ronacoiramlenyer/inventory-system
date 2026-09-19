@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
@@ -177,8 +177,8 @@ export default function LabWasteDisposalLog() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Waste Disposal Log</h2>
-          <p className="text-sm text-slate-500 mb-3">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 text-center print:hidden">Waste Disposal Log</h2>
+          <p className="text-sm text-slate-500 mb-3 print:hidden">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
@@ -187,6 +187,16 @@ export default function LabWasteDisposalLog() {
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)}
                 colSpan={8}
+              />
+              <PrintTitleRow
+                title="Waste Disposal Log"
+                subtitle={
+                  <>
+                    <span className="font-semibold">Laboratory:</span> {lab.name}
+                  </>
+                }
+                colSpan={8}
+                center
               />
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date of Turnover</th>

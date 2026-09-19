@@ -4,7 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
@@ -73,8 +73,8 @@ export default function LabWorkRequests() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Sheet (EMS)</h2>
-          <p className="text-sm text-slate-500 mb-3">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Equipment Monitoring Sheet (EMS)</h2>
+          <p className="text-sm text-slate-500 mb-3 print:hidden">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
@@ -82,6 +82,15 @@ export default function LabWorkRequests() {
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(requests.length, MIN_ROWS), MIN_ROWS)}
+                colSpan={9}
+              />
+              <PrintTitleRow
+                title="Equipment Monitoring Sheet (EMS)"
+                subtitle={
+                  <>
+                    <span className="font-semibold">Laboratory:</span> {lab.name}
+                  </>
+                }
                 colSpan={9}
               />
               <tr className="bg-slate-100">

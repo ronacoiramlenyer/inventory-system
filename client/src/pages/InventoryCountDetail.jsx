@@ -5,7 +5,7 @@ import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import ProgressBar, { useProgress } from '../components/ProgressBar';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 
 const normalize = (s) => String(s ?? '').trim().toLowerCase();
 let tempKeySeq = 0;
@@ -319,7 +319,7 @@ export default function InventoryCountDetail() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Inventory Sheet</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Inventory Sheet</h2>
 
           {/* The lab/prepared-by info lives in this table's own <thead>,
               alongside the seal/page-label row and the column headers, so
@@ -331,6 +331,7 @@ export default function InventoryCountDetail() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <PrintHeaderRow pageLabel={estimatePageLabel(rows.length, 10)} colSpan={7} />
+              <PrintTitleRow title="Inventory Sheet" colSpan={7} />
               {/* A single full-width cell with an internal flex row, rather
                   than splitting label/value across colSpans that line up
                   with the data columns below -- the Description column is

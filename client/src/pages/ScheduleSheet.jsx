@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
 const MIN_ROWS = 10;
@@ -241,8 +241,8 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">{formTitle}</h2>
-          <p className="text-sm text-slate-500 mb-3">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">{formTitle}</h2>
+          <p className="text-sm text-slate-500 mb-3 print:hidden">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
@@ -250,6 +250,15 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)}
+                colSpan={9}
+              />
+              <PrintTitleRow
+                title={formTitle}
+                subtitle={
+                  <>
+                    <span className="font-semibold">Laboratory:</span> {lab.name}
+                  </>
+                }
                 colSpan={9}
               />
               <tr className="bg-slate-100">

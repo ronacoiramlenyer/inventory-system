@@ -4,7 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
@@ -408,7 +408,7 @@ export default function StockCard() {
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Stock Card</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Stock Card</h2>
 
           {/* The item info block lives in this table's own <thead>, alongside
               the seal/page-label row and the column headers, so all of it
@@ -423,6 +423,7 @@ export default function StockCard() {
                 pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS), MIN_ROWS)}
                 colSpan={7}
               />
+              <PrintTitleRow title="Stock Card" colSpan={7} />
               {/* A single full-width cell with an internal flex row, rather
                   than splitting label/value across colSpans that line up
                   with the data columns below -- Beginning Balance/Remarks
