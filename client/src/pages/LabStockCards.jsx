@@ -163,12 +163,18 @@ export default function LabStockCards() {
           <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 font-semibold text-slate-700 text-sm">
             {category}
           </div>
-          <table className="w-full text-sm">
+          {/* table-fixed with explicit widths on Unit/Balance -- each
+              category renders its own independent <table>, so with the
+              default auto layout the Item column's width (and everything
+              after it) was sized off that table's own longest item name,
+              making the Unit/Balance columns land in different
+              horizontal positions from one category block to the next. */}
+          <table className="w-full text-sm table-fixed">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
                 <th className="px-4 py-2 text-left font-medium">Item</th>
-                <th className="px-4 py-2 text-left font-medium">Unit</th>
-                <th className="px-4 py-2 text-right font-medium">Balance</th>
+                <th className="px-4 py-2 text-left font-medium w-32">Unit</th>
+                <th className="px-4 py-2 text-right font-medium w-28">Balance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
