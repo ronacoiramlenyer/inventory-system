@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 
 const emptyForm = { name_description: '', serial_number: '', location: '' };
 
 export default function LabEquipment() {
   const { id } = useParams();
+  const confirmDialog = useConfirm();
   const [lab, setLab] = useState(null);
   const [equipment, setEquipment] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -37,7 +39,7 @@ export default function LabEquipment() {
   }
 
   async function handleDelete(equipmentId) {
-    if (!confirm('Delete this equipment and its monitoring record?')) return;
+    if (!(await confirmDialog('Delete this equipment and its monitoring record?'))) return;
     await api.delete(`/equipment/${equipmentId}`);
     loadEquipment();
   }

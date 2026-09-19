@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { refreshNotifications } from '../api/notifications';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import OtherRequestsTabs from '../components/OtherRequestsTabs';
 
 const MANAGE_STATUS_OPTIONS = ['Filed', 'In Progress', 'Completed'];
@@ -37,6 +38,7 @@ function canManageFiledRow(user, row) {
 // approval -> Filed -> Secretary fulfillment workflow as F-LAB-004.
 export default function BguJobRequests() {
   const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const [labs, setLabs] = useState([]);
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm());
@@ -107,7 +109,7 @@ export default function BguJobRequests() {
   }
 
   async function handleDelete(rowId) {
-    if (!confirm('Delete this job request?')) return;
+    if (!(await confirmDialog('Delete this job request?'))) return;
     try {
       await api.delete(`/bgu-job-requests/${rowId}`);
       loadRows();

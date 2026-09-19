@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
@@ -23,6 +24,7 @@ const emptyForm = {
 // Calibration Schedule -- identically shaped, only the noun differs.
 export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, code }) {
   const { id } = useParams();
+  const confirmDialog = useConfirm();
   const [lab, setLab] = useState(null);
   const [rows, setRows] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -93,7 +95,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
   }
 
   async function handleDelete(rowId) {
-    if (!confirm('Delete this schedule entry?')) return;
+    if (!(await confirmDialog('Delete this schedule entry?'))) return;
     await api.delete(`/${apiBase}/${rowId}`);
     loadRows();
   }

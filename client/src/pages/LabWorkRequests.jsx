@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
@@ -22,6 +23,7 @@ const STATUS_STYLES = {
 export default function LabWorkRequests() {
   const { id } = useParams();
   const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const [lab, setLab] = useState(null);
   const [requests, setRequests] = useState([]);
 
@@ -38,7 +40,7 @@ export default function LabWorkRequests() {
   // Temporary: lets an admin clean up a bad/duplicate entry directly from
   // the log, since there's no other way to remove one yet.
   async function handleDelete(requestId) {
-    if (!confirm('Delete this entry? This cannot be undone.')) return;
+    if (!(await confirmDialog('Delete this entry? This cannot be undone.'))) return;
     await api.delete(`/work-requests/${requestId}`);
     loadRequests();
   }

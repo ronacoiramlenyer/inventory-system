@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
 
@@ -28,6 +29,7 @@ function formatSignedAt(value) {
 
 export default function IncidentReportDetail() {
   const { id } = useParams();
+  const confirmDialog = useConfirm();
   const [report, setReport] = useState(null);
   const [signedCopyUrl, setSignedCopyUrl] = useState(null);
   const [signedCopyType, setSignedCopyType] = useState(null);
@@ -78,7 +80,7 @@ export default function IncidentReportDetail() {
   }
 
   async function handleRemoveSignedCopy() {
-    if (!confirm('Remove the attached signed copy?')) return;
+    if (!(await confirmDialog('Remove the attached signed copy?'))) return;
     await api.delete(`/incident-reports/${id}/signed-copy`);
     load();
   }

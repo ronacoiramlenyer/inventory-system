@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { useConfirm } from '../context/ConfirmContext';
 
 export default function Departments() {
+  const confirmDialog = useConfirm();
   const [departments, setDepartments] = useState([]);
   const [name, setName] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -38,7 +40,7 @@ export default function Departments() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this department? Its laboratories and staff accounts will be affected.')) return;
+    if (!(await confirmDialog('Delete this department? Its laboratories and staff accounts will be affected.'))) return;
     await api.delete(`/departments/${id}`);
     load();
   }

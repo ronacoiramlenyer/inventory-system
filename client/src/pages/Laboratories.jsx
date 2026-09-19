@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 const emptyForm = { name: '', location: '', department_id: '' };
 
@@ -13,6 +14,7 @@ const STATUS_STYLES = {
 
 export default function Laboratories() {
   const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const isAdmin = user.role === 'admin';
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -78,7 +80,7 @@ export default function Laboratories() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this laboratory and all its items? This cannot be undone.')) return;
+    if (!(await confirmDialog('Delete this laboratory and all its items? This cannot be undone.'))) return;
     await api.delete(`/laboratories/${id}`);
     load();
   }

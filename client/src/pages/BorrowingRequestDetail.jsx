@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
 
@@ -29,6 +30,7 @@ function formatDateOnly(value) {
 export default function BorrowingRequestDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const [req, setReq] = useState(null);
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState('');
@@ -88,7 +90,7 @@ export default function BorrowingRequestDetail() {
   }
 
   async function handleRemoveSignedCopy() {
-    if (!confirm('Remove the attached signed copy?')) return;
+    if (!(await confirmDialog('Remove the attached signed copy?'))) return;
     await api.delete(`/borrowing-requests/${id}/signed-copy`);
     load();
   }

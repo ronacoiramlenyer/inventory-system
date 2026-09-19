@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
@@ -35,6 +36,7 @@ function emptyEditForm(item) {
 export default function StockCard() {
   const { id } = useParams();
   const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const navigate = useNavigate();
   const [card, setCard] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -128,13 +130,16 @@ export default function StockCard() {
   }
 
   async function handleDeleteEntry(entryId) {
-    if (!confirm('Delete this entry?')) return;
+    if (!(await confirmDialog('Delete this entry?'))) return;
     await api.delete(`/transactions/${entryId}`);
     load();
   }
 
   async function handleDeleteItem() {
-    if (!confirm(`Delete "${card.item.item_name}" and its entire stock card history? This cannot be undone.`)) return;
+    if (
+      !(await confirmDialog(`Delete "${card.item.item_name}" and its entire stock card history? This cannot be undone.`))
+    )
+      return;
     await api.delete(`/items/${id}`);
     navigate(`/laboratories/${card.item.laboratory_id}/stock-cards`);
   }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { refreshNotifications } from '../api/notifications';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import OtherRequestsTabs from '../components/OtherRequestsTabs';
 
 const MANAGE_STATUS_OPTIONS = ['Filed', 'Released', 'Denied'];
@@ -41,6 +42,7 @@ function canManageFiledRow(user, row) {
 // Secretary fulfillment workflow as the Equipment Work Request.
 export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
   const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const [labs, setLabs] = useState([]);
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm());
@@ -112,7 +114,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
   }
 
   async function handleDelete(rowId) {
-    if (!confirm('Delete this requisition entry?')) return;
+    if (!(await confirmDialog('Delete this requisition entry?'))) return;
     try {
       await api.delete(`/${apiBase}/${rowId}`);
       loadRows();

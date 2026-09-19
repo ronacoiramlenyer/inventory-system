@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
@@ -22,6 +23,7 @@ const emptyForm = {
 
 export default function LabWasteDisposalLog() {
   const { id } = useParams();
+  const confirmDialog = useConfirm();
   const [lab, setLab] = useState(null);
   const [rows, setRows] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -52,7 +54,7 @@ export default function LabWasteDisposalLog() {
   }
 
   async function handleDelete(rowId) {
-    if (!confirm('Delete this entry?')) return;
+    if (!(await confirmDialog('Delete this entry?'))) return;
     await api.delete(`/waste-disposal-log/${rowId}`);
     loadRows();
   }

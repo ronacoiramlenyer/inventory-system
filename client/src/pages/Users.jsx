@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 const emptyForm = {
   full_name: '',
@@ -20,6 +21,7 @@ const ROLE_LABELS = {
 
 export default function Users() {
   const { user: currentUser } = useAuth();
+  const confirmDialog = useConfirm();
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -56,7 +58,7 @@ export default function Users() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this account?')) return;
+    if (!(await confirmDialog('Delete this account?'))) return;
     try {
       await api.delete(`/users/${id}`);
       load();

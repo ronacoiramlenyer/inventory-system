@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { readSheet } from 'read-excel-file/universal';
 import api from '../api/client';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 
@@ -46,6 +47,7 @@ async function parseImportFile(file) {
 
 export default function InventoryCountDetail() {
   const { id } = useParams();
+  const confirmDialog = useConfirm();
   const [count, setCount] = useState(null);
   const [rows, setRows] = useState([]);
   const [preparedBy, setPreparedBy] = useState('');
@@ -95,7 +97,7 @@ export default function InventoryCountDetail() {
   }
 
   async function removeSavedRow(rowId) {
-    if (!confirm('Remove this item? Since it was added on this sheet, it will be deleted entirely.')) return;
+    if (!(await confirmDialog('Remove this item? Since it was added on this sheet, it will be deleted entirely.'))) return;
     try {
       await api.delete(`/inventory-counts/${id}/items/${rowId}`);
       load();
@@ -196,13 +198,17 @@ export default function InventoryCountDetail() {
   async function handleApply() {
     const unfilled = rows.filter((r) => r.quantity_actual === '' || r.quantity_actual === null);
     if (unfilled.length > 0) {
-      if (!confirm(`${unfilled.length} item(s) have no actual quantity entered and will be treated as no change. Continue?`)) {
-        return;
-      }
+      const proceed = await confirmDialog(
+        `${unfilled.length} item(s) have no actual quantity entered and will be treated as no change. Continue?`,
+        { confirmLabel: 'Continue' }
+      );
+      if (!proceed) return;
     }
-    if (!confirm('Apply these variances to stock? This creates adjustment entries on each item\'s stock card and cannot be edited afterward.')) {
-      return;
-    }
+    const applyConfirmed = await confirmDialog(
+      "Apply these variances to stock? This creates adjustment entries on each item's stock card and cannot be edited afterward.",
+      { confirmLabel: 'Apply' }
+    );
+    if (!applyConfirmed) return;
     setError('');
     setApplying(true);
     try {
@@ -254,7 +260,7 @@ export default function InventoryCountDetail() {
                 disabled={saving || applying}
                 className={
                   importSummary && !saving
-                    ? 'bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 animate-pulse ring-4 ring-emerald-300'
+                    ? 'bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 animate-bounce ring-4 ring-amber-300'
                     : 'bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2'
                 }
               >
