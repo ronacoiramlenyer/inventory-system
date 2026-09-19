@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 
 const STATUS_STYLES = {
@@ -11,13 +13,28 @@ const STATUS_STYLES = {
 
 export default function LabBorrowingRequests() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const [lab, setLab] = useState(null);
   const [requests, setRequests] = useState([]);
 
+  function loadRequests() {
+    api.get('/borrowing-requests', { params: { laboratory_id: id } }).then((res) => setRequests(res.data));
+  }
+
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
-    api.get('/borrowing-requests', { params: { laboratory_id: id } }).then((res) => setRequests(res.data));
+    loadRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Temporary: lets an admin clean up a bad/duplicate entry directly from
+  // the log, since there's no other way to remove one yet.
+  async function handleDelete(requestId) {
+    if (!(await confirmDialog('Delete this entry? This cannot be undone.'))) return;
+    await api.delete(`/borrowing-requests/${requestId}`);
+    loadRequests();
+  }
 
   if (!lab) return <p className="text-slate-500">Loading…</p>;
 
@@ -47,6 +64,7 @@ export default function LabBorrowingRequests() {
               <th className="px-4 py-2 text-left font-medium">Date Needed</th>
               <th className="px-4 py-2 text-left font-medium">Return Date</th>
               <th className="px-4 py-2 text-left font-medium">Status</th>
+              {user.role === 'admin' && <th className="px-4 py-2 w-16"></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -66,11 +84,21 @@ export default function LabBorrowingRequests() {
                     {r.status}
                   </span>
                 </td>
+                {user.role === 'admin' && (
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => handleDelete(r.id)}
+                      className="text-slate-400 hover:text-red-600 text-xs underline"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
             {requests.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={user.role === 'admin' ? 7 : 6} className="px-4 py-6 text-center text-slate-400">
                   No borrowing requests yet.
                 </td>
               </tr>
