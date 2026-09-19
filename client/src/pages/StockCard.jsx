@@ -158,14 +158,16 @@ export default function StockCard() {
           ← Back to {item.laboratory_name}
         </Link>
         <div className="space-x-2">
+          {(user.role === 'staff' || user.role === 'admin') && (
+            <button
+              onClick={startEditItem}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+            >
+              Edit Item
+            </button>
+          )}
           {user.role === 'admin' && (
             <>
-              <button
-                onClick={startEditItem}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
-              >
-                Edit Item
-              </button>
               <button
                 onClick={startCorrectBalance}
                 className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-medium rounded-lg px-4 py-2"
