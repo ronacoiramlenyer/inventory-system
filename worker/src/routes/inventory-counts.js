@@ -288,18 +288,36 @@ inventoryCounts.post('/:id/apply', async (c) => {
 
   const today = new Date().toISOString().slice(0, 10);
   for (const row of rows) {
-    if (!row.item_id || !row.variance) continue;
-    const inQty = row.variance > 0 ? row.variance : 0;
-    const outQty = row.variance < 0 ? Math.abs(row.variance) : 0;
+    if (!row.item_id) continue;
+
+    if (row.variance) {
+      const inQty = row.variance > 0 ? row.variance : 0;
+      const outQty = row.variance < 0 ? Math.abs(row.variance) : 0;
+      await dbRun(
+        c.env.DB,
+        `INSERT INTO transactions (item_id, entry_date, in_qty, out_qty, remarks, handled_by, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        row.item_id,
+        today,
+        inQty,
+        outQty,
+        `Physical count adjustment (Inventory Sheet #${count.id})`,
+        count.prepared_by,
+        user.id
+      );
+    }
+
+    // A divider row on the item's Stock Card marking this reconciliation
+    // point, whether or not the count changed its balance -- inserted after
+    // any adjustment above so it lands below it (both dated today, and
+    // display order falls back to insertion id).
     await dbRun(
       c.env.DB,
-      `INSERT INTO transactions (item_id, entry_date, in_qty, out_qty, remarks, handled_by, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (item_id, entry_date, remarks, handled_by, is_period_marker, created_by)
+       VALUES (?, ?, ?, ?, 1, ?)`,
       row.item_id,
       today,
-      inQty,
-      outQty,
-      `Physical count adjustment (Inventory Sheet #${count.id})`,
+      `Inventory Sheet #${count.id} applied`,
       count.prepared_by,
       user.id
     );

@@ -7,6 +7,16 @@
   body {
     background: white !important;
   }
+  /* Chrome (and most browsers) drop background colors when printing
+     unless the person manually checks "Background graphics" in the print
+     dialog -- off by default. Without this, every background this app
+     relies on for legibility (column-header shading, info-box labels, the
+     Stock Card period-marker divider) silently disappears on a real
+     printout even though it looks correct in the on-screen preview. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   /* The repeating PrintFooter is position:fixed so it shows on every page,
      but fixed elements don't reserve flow space -- without this, a table
      that fills close to a page's bottom edge prints right under (or
