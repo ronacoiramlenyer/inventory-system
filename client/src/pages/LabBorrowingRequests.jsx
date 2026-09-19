@@ -44,12 +44,14 @@ export default function LabBorrowingRequests() {
         <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">
           ← Back to Laboratories
         </Link>
-        <Link
-          to={`/laboratories/${id}/borrowing-requests/new`}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
-        >
-          + New Request
-        </Link>
+        {(user.role === 'staff' || user.role === 'admin') && (
+          <Link
+            to={`/laboratories/${id}/borrowing-requests/new`}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+          >
+            + New Request
+          </Link>
+        )}
       </div>
 
       <LabFormTabs laboratoryId={id} active="borrowing-request" />

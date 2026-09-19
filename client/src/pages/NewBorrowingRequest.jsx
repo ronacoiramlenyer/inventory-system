@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 
 const emptyItem = { description: '', equipment_id_text: '' };
 
 export default function NewBorrowingRequest() {
   const { id } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -47,6 +49,19 @@ export default function NewBorrowingRequest() {
       setError(err.response?.data?.error || 'Failed to submit request');
       setSubmitting(false);
     }
+  }
+
+  if (user.role !== 'staff' && user.role !== 'admin') {
+    return (
+      <div className="space-y-4">
+        <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">
+          ← Back to Laboratories
+        </Link>
+        <p className="text-sm text-red-600">
+          Only the lab custodian (staff) can file a Borrowing Request for this laboratory.
+        </p>
+      </div>
+    );
   }
 
   return (

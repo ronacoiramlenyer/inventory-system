@@ -91,6 +91,13 @@ borrowingRequests.get('/:id', async (c) => {
 
 borrowingRequests.post('/', async (c) => {
   const user = c.get('user');
+  // A Borrowing Request has to originate from the lab custodian (staff) --
+  // subject coordinators approve these, not file them, and other roles
+  // have no business creating one.
+  if (user.role !== 'staff' && user.role !== 'admin') {
+    return c.json({ error: 'Only the lab custodian (staff) can file a Borrowing Request' }, 403);
+  }
+
   const { laboratory_id, borrower_name, department_unit, date_needed, purpose, return_date, items } =
     await c.req.json().catch(() => ({}));
 
