@@ -130,6 +130,12 @@ CREATE TABLE IF NOT EXISTS maintenance_schedule_items (
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   item_no INTEGER NOT NULL,
   equipment_name_description TEXT NOT NULL,
+  -- The equipment picked from the dropdown, if any -- lets completing this
+  -- row (actual_date filled in) auto-log an entry on that equipment's own
+  -- F-LAB-001 Equipment Monitoring Record. NULL for rows saved before this
+  -- column existed, or if the free-text description doesn't match an
+  -- Inventory item.
+  equipment_item_id INTEGER REFERENCES items(id),
   serial_number TEXT,
   frequency TEXT,
   department TEXT,
@@ -145,6 +151,8 @@ CREATE TABLE IF NOT EXISTS calibration_schedule_items (
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   item_no INTEGER NOT NULL,
   equipment_name_description TEXT NOT NULL,
+  -- Same idea as maintenance_schedule_items.equipment_item_id.
+  equipment_item_id INTEGER REFERENCES items(id),
   serial_number TEXT,
   frequency TEXT,
   department TEXT,
@@ -166,6 +174,10 @@ CREATE TABLE IF NOT EXISTS work_requests (
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   request_no TEXT NOT NULL UNIQUE,  -- EWR-YYYY-###, auto-generated
   equipment_name_description TEXT NOT NULL,
+  -- The equipment picked from the dropdown, if any -- lets completing this
+  -- request auto-log an entry on that equipment's own F-LAB-001 Equipment
+  -- Monitoring Record. NULL for rows saved before this column existed.
+  equipment_item_id INTEGER REFERENCES items(id),
   serial_number TEXT,
   date_requested TEXT NOT NULL,     -- YYYY-MM-DD
   date_needed TEXT,

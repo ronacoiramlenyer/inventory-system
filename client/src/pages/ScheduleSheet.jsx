@@ -8,6 +8,7 @@ import { padRows } from '../utils/padRows';
 const MIN_ROWS = 10;
 
 const emptyForm = {
+  equipment_item_id: '',
   equipment_name_description: '',
   serial_number: '',
   frequency: '',
@@ -47,6 +48,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
     const picked = equipmentItems.find((it) => String(it.id) === itemId);
     setForm((f) => ({
       ...f,
+      equipment_item_id: itemId,
       equipment_name_description: picked ? picked.item_name : '',
       serial_number: picked?.serial_number || f.serial_number,
     }));
@@ -61,6 +63,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
   function startEdit(row) {
     setEditingId(row.id);
     setForm({
+      equipment_item_id: row.equipment_item_id ? String(row.equipment_item_id) : '',
       equipment_name_description: row.equipment_name_description,
       serial_number: row.serial_number || '',
       frequency: row.frequency || '',
@@ -133,7 +136,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
             <select
               required
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              value={equipmentItems.find((it) => it.item_name === form.equipment_name_description)?.id ?? ''}
+              value={form.equipment_item_id}
               onChange={(e) => selectEquipment(e.target.value)}
             >
               <option value="" disabled>

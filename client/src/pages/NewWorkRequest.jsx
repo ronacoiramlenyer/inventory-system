@@ -11,8 +11,10 @@ export default function NewWorkRequest() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [lab, setLab] = useState(null);
+  const [equipmentItems, setEquipmentItems] = useState([]);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
+    equipment_item_id: '',
     equipment_name_description: '',
     serial_number: '',
     date_needed: '',
@@ -23,7 +25,18 @@ export default function NewWorkRequest() {
 
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
+    api.get('/items', { params: { laboratory_id: id, category: 'Equipment' } }).then((res) => setEquipmentItems(res.data));
   }, [id]);
+
+  function selectEquipment(itemId) {
+    const picked = equipmentItems.find((it) => String(it.id) === itemId);
+    setForm((f) => ({
+      ...f,
+      equipment_item_id: itemId,
+      equipment_name_description: picked ? picked.item_name : '',
+      serial_number: picked?.serial_number || f.serial_number,
+    }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -57,12 +70,26 @@ export default function NewWorkRequest() {
 
         <div>
           <label className="block text-sm text-slate-600 mb-1">Equipment Name & Description</label>
-          <input
+          <select
             required
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-            value={form.equipment_name_description}
-            onChange={(e) => setForm({ ...form, equipment_name_description: e.target.value })}
-          />
+            value={form.equipment_item_id}
+            onChange={(e) => selectEquipment(e.target.value)}
+          >
+            <option value="" disabled>
+              Select equipment from Inventory…
+            </option>
+            {equipmentItems.map((it) => (
+              <option key={it.id} value={it.id}>
+                {it.item_name}
+              </option>
+            ))}
+          </select>
+          {equipmentItems.length === 0 && (
+            <p className="text-xs text-slate-400 mt-1">
+              No equipment in this lab's Inventory yet — add one from the Inventory list first.
+            </p>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

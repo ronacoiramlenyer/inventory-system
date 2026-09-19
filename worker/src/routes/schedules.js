@@ -1,11 +1,14 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { logEquipmentService } from '../lib/autoLogEquipment.js';
 
 // F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
 // Calibration Schedule are identically shaped, so both routers are built
-// from this one factory, parametrized by their (fixed, hardcoded) table name.
-export function createScheduleRoutes(table) {
+// from this one factory, parametrized by their (fixed, hardcoded) table
+// name, the equipment_logs service type it corresponds to, and a short
+// label used to tag the auto-logged entry's request_id.
+export function createScheduleRoutes(table, serviceType, scheduleLabel) {
   const router = new Hono();
   router.use('*', requireAuth);
 
@@ -52,8 +55,16 @@ export function createScheduleRoutes(table) {
 
   router.post('/', async (c) => {
     const user = c.get('user');
-    const { laboratory_id, equipment_name_description, serial_number, frequency, department, location, scheduled_date } =
-      await c.req.json().catch(() => ({}));
+    const {
+      laboratory_id,
+      equipment_item_id,
+      equipment_name_description,
+      serial_number,
+      frequency,
+      department,
+      location,
+      scheduled_date,
+    } = await c.req.json().catch(() => ({}));
     if (!laboratory_id || !equipment_name_description?.trim()) {
       return c.json({ error: 'laboratory_id and equipment_name_description are required' }, 400);
     }
@@ -71,10 +82,11 @@ export function createScheduleRoutes(table) {
 
     const result = await dbRun(
       c.env.DB,
-      `INSERT INTO ${table} (laboratory_id, item_no, equipment_name_description, serial_number, frequency, department, location, scheduled_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO ${table} (laboratory_id, item_no, equipment_item_id, equipment_name_description, serial_number, frequency, department, location, scheduled_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       laboratory_id,
       maxItemNo.n + 1,
+      equipment_item_id || null,
       equipment_name_description.trim(),
       serial_number?.trim() || null,
       frequency?.trim() || null,
@@ -94,23 +106,51 @@ export function createScheduleRoutes(table) {
       return c.json({ error: 'You do not have access to this schedule item' }, 403);
     }
 
-    const { equipment_name_description, serial_number, frequency, department, location, scheduled_date, actual_date, remarks } =
-      await c.req.json().catch(() => ({}));
+    const {
+      equipment_item_id,
+      equipment_name_description,
+      serial_number,
+      frequency,
+      department,
+      location,
+      scheduled_date,
+      actual_date,
+      remarks,
+    } = await c.req.json().catch(() => ({}));
+
+    const newEquipmentItemId = equipment_item_id ?? existing.equipment_item_id;
+    const newActualDate = actual_date ?? existing.actual_date;
 
     await dbRun(
       c.env.DB,
-      `UPDATE ${table} SET equipment_name_description = ?, serial_number = ?, frequency = ?, department = ?, location = ?,
+      `UPDATE ${table} SET equipment_item_id = ?, equipment_name_description = ?, serial_number = ?, frequency = ?, department = ?, location = ?,
          scheduled_date = ?, actual_date = ?, remarks = ? WHERE id = ?`,
+      newEquipmentItemId || null,
       equipment_name_description?.trim() || existing.equipment_name_description,
       serial_number?.trim() ?? existing.serial_number,
       frequency?.trim() ?? existing.frequency,
       department?.trim() ?? existing.department,
       location?.trim() ?? existing.location,
       scheduled_date ?? existing.scheduled_date,
-      actual_date ?? existing.actual_date,
+      newActualDate,
       remarks?.trim() ?? existing.remarks,
       id
     );
+
+    // Filling in Actual Date for the first (or a new) time means this
+    // maintenance/calibration was actually performed -- log it against the
+    // equipment's own F-LAB-001 record, if it's linked to one.
+    if (newActualDate && newActualDate !== existing.actual_date) {
+      await logEquipmentService(c.env.DB, {
+        equipmentItemId: newEquipmentItemId,
+        entryDate: newActualDate,
+        servicePerformed: serviceType,
+        requestId: `${scheduleLabel}-${id}`,
+        loggedBy: user.full_name,
+        createdBy: user.id,
+      });
+    }
+
     return c.json(await dbGet(c.env.DB, SELECT + ' WHERE s.id = ?', id));
   });
 
@@ -129,5 +169,5 @@ export function createScheduleRoutes(table) {
   return router;
 }
 
-export const maintenanceScheduleRoutes = createScheduleRoutes('maintenance_schedule_items');
-export const calibrationScheduleRoutes = createScheduleRoutes('calibration_schedule_items');
+export const maintenanceScheduleRoutes = createScheduleRoutes('maintenance_schedule_items', 'Preventive', 'PMS');
+export const calibrationScheduleRoutes = createScheduleRoutes('calibration_schedule_items', 'Calibration', 'ECS');

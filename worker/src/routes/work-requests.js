@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { logEquipmentService } from '../lib/autoLogEquipment.js';
 
 // F-LAB-004 Equipment Work Request (the official per-request form) and
 // F-LAB-005 Equipment Monitoring Sheet (the per-lab log of those requests)
@@ -110,6 +111,7 @@ workRequests.post('/', async (c) => {
   const user = c.get('user');
   const {
     laboratory_id,
+    equipment_item_id,
     equipment_name_description,
     serial_number,
     date_needed,
@@ -133,11 +135,12 @@ workRequests.post('/', async (c) => {
   const result = await dbRun(
     c.env.DB,
     `INSERT INTO work_requests
-      (laboratory_id, request_no, equipment_name_description, serial_number, date_requested, date_needed,
+      (laboratory_id, request_no, equipment_item_id, equipment_name_description, serial_number, date_requested, date_needed,
        nature_of_request, detailed_description, requested_by, status, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     laboratory_id,
     requestNo,
+    equipment_item_id || null,
     equipment_name_description.trim(),
     serial_number?.trim() || null,
     today,
@@ -186,6 +189,7 @@ workRequests.put('/:id', async (c) => {
   }
 
   const {
+    equipment_item_id,
     equipment_name_description,
     serial_number,
     date_needed,
@@ -203,12 +207,16 @@ workRequests.put('/:id', async (c) => {
   // Secretary is working the filed request.
   const canApprove = userCanApprove(user, existing);
   const canManage = userCanManageFiled(user, existing);
+  const newEquipmentItemId = equipment_item_id ?? existing.equipment_item_id;
+  const newStatus = canManage ? status?.trim() || existing.status : existing.status;
+  const newDateCompleted = canManage ? date_completed ?? existing.date_completed : existing.date_completed;
 
   await dbRun(
     c.env.DB,
-    `UPDATE work_requests SET equipment_name_description = ?, serial_number = ?, date_needed = ?,
+    `UPDATE work_requests SET equipment_item_id = ?, equipment_name_description = ?, serial_number = ?, date_needed = ?,
        nature_of_request = ?, detailed_description = ?, requested_by = ?, approved_by = ?, status = ?,
        date_completed = ?, remarks = ? WHERE id = ?`,
+    newEquipmentItemId || null,
     equipment_name_description?.trim() || existing.equipment_name_description,
     serial_number?.trim() ?? existing.serial_number,
     date_needed ?? existing.date_needed,
@@ -216,11 +224,26 @@ workRequests.put('/:id', async (c) => {
     detailed_description?.trim() ?? existing.detailed_description,
     requested_by?.trim() ?? existing.requested_by,
     canApprove ? approved_by?.trim() ?? existing.approved_by : existing.approved_by,
-    canManage ? status?.trim() || existing.status : existing.status,
-    canManage ? date_completed ?? existing.date_completed : existing.date_completed,
+    newStatus,
+    newDateCompleted,
     remarks?.trim() ?? existing.remarks,
     id
   );
+
+  // Moving to Completed for the first time means the work actually
+  // happened -- log it against the equipment's own F-LAB-001 record, if
+  // it's linked to one.
+  if (newStatus === 'Completed' && existing.status !== 'Completed') {
+    await logEquipmentService(c.env.DB, {
+      equipmentItemId: newEquipmentItemId,
+      entryDate: newDateCompleted || new Date().toISOString().slice(0, 10),
+      servicePerformed: nature_of_request?.trim() || existing.nature_of_request,
+      requestId: existing.request_no,
+      loggedBy: user.full_name,
+      createdBy: user.id,
+    });
+  }
+
   return c.json(await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', id));
 });
 
