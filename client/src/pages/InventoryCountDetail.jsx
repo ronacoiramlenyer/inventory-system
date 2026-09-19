@@ -331,28 +331,34 @@ export default function InventoryCountDetail() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <PrintHeaderRow pageLabel={estimatePageLabel(rows.length, 10)} colSpan={7} />
+              {/* A single full-width cell with an internal flex row, rather
+                  than splitting label/value across colSpans that line up
+                  with the data columns below -- the Description column is
+                  much wider than Item No., so a colSpan-2 label cell ended
+                  up stretched across both, leaving a large gap before the
+                  value started in column 3. */}
               <tr>
-                <td colSpan={2} className="px-1 py-1.5 font-semibold w-32">
-                  Laboratory:
-                </td>
-                <td colSpan={6} className="px-1 py-1.5">
-                  {count.laboratory_name}
+                <td colSpan={7} className="px-1 py-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold w-32 shrink-0">Laboratory:</span>
+                    <span>{count.laboratory_name}</span>
+                  </div>
                 </td>
               </tr>
               <tr>
-                <td colSpan={2} className="px-1 py-1.5 font-semibold">
-                  Prepared by:
-                </td>
-                <td colSpan={6} className="px-1 py-1.5">
-                  {readOnly ? (
-                    preparedBy
-                  ) : (
-                    <input
-                      className="border border-slate-300 rounded px-2 py-1 text-sm"
-                      value={preparedBy}
-                      onChange={(e) => setPreparedBy(e.target.value)}
-                    />
-                  )}
+                <td colSpan={7} className="px-1 py-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold w-32 shrink-0">Prepared by:</span>
+                    {readOnly ? (
+                      <span>{preparedBy}</span>
+                    ) : (
+                      <input
+                        className="border border-slate-300 rounded px-2 py-1 text-sm"
+                        value={preparedBy}
+                        onChange={(e) => setPreparedBy(e.target.value)}
+                      />
+                    )}
+                  </div>
                 </td>
               </tr>
               <tr className="bg-slate-100">

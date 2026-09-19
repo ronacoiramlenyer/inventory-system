@@ -423,36 +423,50 @@ export default function StockCard() {
                 pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS), MIN_ROWS)}
                 colSpan={7}
               />
+              {/* A single full-width cell with an internal flex row, rather
+                  than splitting label/value across colSpans that line up
+                  with the data columns below -- Beginning Balance/Remarks
+                  are wider than Date, so a colSpan-2 label cell ended up
+                  stretched across both, leaving a large gap before the
+                  value started in column 3. */}
               <tr>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 w-40">
-                  DEPARTMENT
-                </td>
-                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
-                  {item.department_name}
+                <td colSpan={7} className="border border-slate-300 p-0">
+                  <div className="flex items-stretch">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                      DEPARTMENT
+                    </span>
+                    <span className="px-3 py-1.5">{item.department_name}</span>
+                  </div>
                 </td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                  LABORATORY
-                </td>
-                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
-                  {item.laboratory_name}
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                  ITEM NAME
-                </td>
-                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
-                  {item.item_name}
+                <td colSpan={7} className="border border-slate-300 p-0">
+                  <div className="flex items-stretch">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                      LABORATORY
+                    </span>
+                    <span className="px-3 py-1.5">{item.laboratory_name}</span>
+                  </div>
                 </td>
               </tr>
               <tr>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50">
-                  UNIT OF MEASURE
+                <td colSpan={7} className="border border-slate-300 p-0">
+                  <div className="flex items-stretch">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                      ITEM NAME
+                    </span>
+                    <span className="px-3 py-1.5">{item.item_name}</span>
+                  </div>
                 </td>
-                <td colSpan={6} className="border border-slate-300 px-3 py-1.5">
-                  {item.unit_of_measure}
+              </tr>
+              <tr>
+                <td colSpan={7} className="border border-slate-300 p-0">
+                  <div className="flex items-stretch">
+                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-3 py-1.5 w-40 shrink-0">
+                      UNIT OF MEASURE
+                    </span>
+                    <span className="px-3 py-1.5">{item.unit_of_measure}</span>
+                  </div>
                 </td>
               </tr>
               <tr className="bg-slate-100">
