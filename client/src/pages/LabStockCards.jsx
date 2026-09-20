@@ -8,7 +8,13 @@ import LabFormTabs from '../components/LabFormTabs';
 // IN/OUT quantity ledger for consumable stock, which doesn't apply to
 // equipment; equipment lives under its own F-LAB-001 Equipment Monitoring
 // Record instead (see LabEquipment.jsx).
-const CATEGORIES = ['Supplies', 'Materials', 'Chemicals', 'Glassware', 'Consumables', 'Other'];
+// Kept deliberately minimal -- Equipment is its own third bucket, tracked
+// separately via F-LAB-001 (see the note above) rather than as a category
+// choice here, so these are the only two a general lab item needs. A
+// science-specific "Chemicals" bucket didn't generalize across the
+// school's other labs (culinary, robotics, arts, music), so everything
+// non-equipment now falls under one of these two.
+const CATEGORIES = ['Supplies/Consumables', 'Materials'];
 const UNCATEGORIZED = 'Uncategorized';
 
 const emptyForm = {

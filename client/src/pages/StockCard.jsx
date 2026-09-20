@@ -21,7 +21,10 @@ const emptyForm = {
   handled_by: '',
 };
 
-const CATEGORIES = ['Supplies', 'Materials', 'Chemicals', 'Glassware', 'Consumables', 'Other'];
+// Kept in sync with LabStockCards.jsx -- Equipment is its own bucket
+// handled entirely separately (F-LAB-001), so a general item only ever
+// needs to choose between these two.
+const CATEGORIES = ['Supplies/Consumables', 'Materials'];
 
 function emptyEditForm(item) {
   return {
