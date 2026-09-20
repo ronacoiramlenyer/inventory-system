@@ -10,8 +10,8 @@ import { requireAuth } from '../middleware/auth.js';
 // this endpoint only counts, it doesn't grant any new access.
 const NON_TERMINAL_FILED = {
   work_requests: ['Filed', 'In Progress'],
-  bookstore_requisitions: ['Filed'],
-  supplies_requisitions: ['Filed'],
+  bookstore_requisitions: ['Filed', 'In Progress'],
+  supplies_requisitions: ['Filed', 'In Progress'],
   bgu_job_requests: ['Filed', 'In Progress'],
 };
 
@@ -56,10 +56,11 @@ notifications.get('/summary', async (c) => {
   // Same roles that can approve/manage in the request routes themselves.
   const canApprove = user.role === 'admin' || user.role === 'subject_coordinator';
   const canManageFiled = user.role === 'admin' || user.role === 'secretary';
-  // Staff is the one who marks an EWR Completed once the Secretary has it
-  // In Progress -- see userCanCompleteWork in work-requests.js -- so an
-  // In-Progress EWR shows up for staff too, alongside the Secretary, until
-  // it's Completed and drops off both.
+  // Staff is the one who marks an EWR Completed / a requisition Released /
+  // a BGU job Completed once the Secretary has it In Progress -- see
+  // userCanCompleteWork / userCanCompleteRequest in work-requests.js and
+  // requisitions.js -- so an In-Progress one shows up for staff too,
+  // alongside the Secretary, until staff finishes it and it drops off both.
   const canCompleteWork = user.role === 'staff';
 
   if (!canApprove && !canManageFiled && !canCompleteWork) {
@@ -79,7 +80,8 @@ notifications.get('/summary', async (c) => {
 
   const otherRequests =
     (canApprove ? bookstore.pending + supplies.pending + bgu.pending : 0) +
-    (canManageFiled ? bookstore.filed + supplies.filed + bgu.filed : 0);
+    (canManageFiled ? bookstore.filed + supplies.filed + bgu.filed : 0) +
+    (canCompleteWork ? bookstore.inProgress + supplies.inProgress + bgu.inProgress : 0);
   const filedRequests =
     (canApprove ? workRequests.pending : 0) +
     (canManageFiled ? workRequests.filed : 0) +
@@ -89,7 +91,7 @@ notifications.get('/summary', async (c) => {
   // can each show their own badge instead of one combined number on the
   // parent nav item, which didn't say which request type actually needs
   // attention.
-  const countFor = (t) => (canApprove ? t.pending : 0) + (canManageFiled ? t.filed : 0);
+  const countFor = (t) => (canApprove ? t.pending : 0) + (canManageFiled ? t.filed : 0) + (canCompleteWork ? t.inProgress : 0);
   const other_requests_by_type = {
     bookstore: countFor(bookstore),
     supplies: countFor(supplies),

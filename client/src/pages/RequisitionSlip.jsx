@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import OtherRequestsTabs from '../components/OtherRequestsTabs';
 
-const MANAGE_STATUS_OPTIONS = ['Filed', 'Released', 'Denied'];
+const MANAGE_STATUS_OPTIONS = ['Filed', 'In Progress', 'Released', 'Denied'];
 
 function emptyForm(laboratoryId) {
   return {
@@ -32,6 +32,12 @@ function canApproveRow(user, row) {
 
 function canManageFiledRow(user, row) {
   return canApproveRow(user, row) || (user.role === 'secretary' && inScope(user, row));
+}
+
+// Released is staff's call once the Secretary has it In Progress -- see
+// userCanCompleteRequest server-side.
+function canCompleteRow(user, row) {
+  return canApproveRow(user, row) || (user.role === 'staff' && inScope(user, row));
 }
 
 // Shared by the Bookstore Requisition Slip and Supplies Requisition Slip --
@@ -115,6 +121,17 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
       refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update status');
+    }
+  }
+
+  async function handleComplete(row) {
+    setError('');
+    try {
+      await api.put(`/${apiBase}/${row.id}`, { status: 'Released' });
+      loadRows();
+      refreshNotifications();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to mark this request Released');
     }
   }
 
@@ -258,7 +275,10 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
               value={statusValue}
               onChange={(e) => setStatusValue(e.target.value)}
             >
-              {MANAGE_STATUS_OPTIONS.map((opt) => (
+              {(user.role === 'secretary'
+                ? MANAGE_STATUS_OPTIONS.filter((opt) => opt !== 'Released')
+                : MANAGE_STATUS_OPTIONS
+              ).map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>
@@ -301,6 +321,7 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
               {rows.map((row) => {
                 const showApprove = row.status === 'Pending' && canApproveRow(user, row);
                 const showManage = row.status !== 'Pending' && canManageFiledRow(user, row);
+                const showComplete = row.status === 'In Progress' && canCompleteRow(user, row);
                 const showDelete = user.role === 'admin' || row.status === 'Pending';
                 return (
                   <tr key={row.id}>
@@ -322,6 +343,11 @@ export default function RequisitionSlip({ apiBase, tabKey, formTitle }) {
                       {showManage && (
                         <button onClick={() => startStatusEdit(row)} className="text-slate-500 hover:text-slate-800 text-xs underline">
                           Update Status
+                        </button>
+                      )}
+                      {showComplete && (
+                        <button onClick={() => handleComplete(row)} className="text-emerald-700 hover:text-emerald-900 text-xs underline">
+                          Mark Released
                         </button>
                       )}
                       {showDelete && (

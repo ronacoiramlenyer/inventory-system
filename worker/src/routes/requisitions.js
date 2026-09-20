@@ -50,11 +50,24 @@ export function createRequisitionRoutes(table) {
   }
 
   // Once filed, the Subject Coordinator/admin and the department's
-  // Secretary can both move the status forward.
+  // Secretary can both move the status forward -- to In Progress or Denied.
+  // Neither of them marks it Released, though: see userCanCompleteRequest.
   function userCanManageFiled(user, row) {
     if (!row) return false;
     if (userCanApprove(user, row)) return true;
     return user.role === 'secretary' && inUserScope(user, row);
+  }
+
+  // Released is the lab custodian's (staff's) call, not the Secretary's --
+  // the Secretary marks a request In Progress once she's started processing
+  // it, but staff is the one who actually receives the released item, so
+  // they're the one who confirms it's in hand. A Subject Coordinator/admin
+  // can still release a request directly, same override they have over
+  // every other status.
+  function userCanCompleteRequest(user, row) {
+    if (!row) return false;
+    if (userCanApprove(user, row)) return true;
+    return user.role === 'staff' && inUserScope(user, row);
   }
 
   router.get('/', async (c) => {
@@ -146,10 +159,21 @@ export function createRequisitionRoutes(table) {
       await c.req.json().catch(() => ({}));
 
     // Approved-by is the Subject Coordinator's identity, so only they/admin
-    // can set it. Status can also move once the department's Secretary is
-    // working the filed request.
+    // can set it. Filed/In Progress/Denied move once the department's
+    // Secretary is working the request; Released is staff's call
+    // specifically (or a Coordinator/admin override) -- see
+    // userCanCompleteRequest.
     const canApprove = userCanApprove(user, existing);
     const canManage = userCanManageFiled(user, existing);
+    const canComplete = userCanCompleteRequest(user, existing);
+
+    const desiredStatus = status?.trim();
+    let newStatus = existing.status;
+    if (desiredStatus === 'Released') {
+      if (canComplete) newStatus = 'Released';
+    } else if (desiredStatus && canManage) {
+      newStatus = desiredStatus;
+    }
 
     await dbRun(
       c.env.DB,
@@ -162,7 +186,7 @@ export function createRequisitionRoutes(table) {
       purpose?.trim() ?? existing.purpose,
       requested_by?.trim() ?? existing.requested_by,
       canApprove ? approved_by?.trim() ?? existing.approved_by : existing.approved_by,
-      canManage ? status || existing.status : existing.status,
+      newStatus,
       id
     );
     return c.json(await dbGet(c.env.DB, SELECT + ' WHERE r.id = ?', id));

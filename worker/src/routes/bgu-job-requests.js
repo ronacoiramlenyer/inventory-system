@@ -41,10 +41,25 @@ function userCanApprove(user, row) {
   return user.role === 'subject_coordinator' && inUserScope(user, row);
 }
 
+// Once filed, the Subject Coordinator/admin and the department's Secretary
+// can both move the status forward -- to In Progress. Neither of them
+// marks it Completed, though: see userCanCompleteWork below.
 function userCanManageFiled(user, row) {
   if (!row) return false;
   if (userCanApprove(user, row)) return true;
   return user.role === 'secretary' && inUserScope(user, row);
+}
+
+// Completed is the lab custodian's (staff's) call, not the Secretary's --
+// the Secretary marks a job In Progress once BGU has started it, but staff
+// is the one who actually sees the job through at the lab, so they're the
+// one who confirms it's done. A Subject Coordinator/admin can still
+// complete a request directly, same override they have over every other
+// status.
+function userCanCompleteWork(user, row) {
+  if (!row) return false;
+  if (userCanApprove(user, row)) return true;
+  return user.role === 'staff' && inUserScope(user, row);
 }
 
 bguJobRequests.get('/', async (c) => {
@@ -138,6 +153,15 @@ bguJobRequests.put('/:id', async (c) => {
 
   const canApprove = userCanApprove(user, existing);
   const canManage = userCanManageFiled(user, existing);
+  const canComplete = userCanCompleteWork(user, existing);
+
+  const desiredStatus = status?.trim();
+  let newStatus = existing.status;
+  if (desiredStatus === 'Completed') {
+    if (canComplete) newStatus = 'Completed';
+  } else if (desiredStatus && canManage) {
+    newStatus = desiredStatus;
+  }
 
   await dbRun(
     c.env.DB,
@@ -148,7 +172,7 @@ bguJobRequests.put('/:id', async (c) => {
     description?.trim() || existing.description,
     requested_by?.trim() ?? existing.requested_by,
     canApprove ? approved_by?.trim() ?? existing.approved_by : existing.approved_by,
-    canManage ? status || existing.status : existing.status,
+    newStatus,
     id
   );
   return c.json(await dbGet(c.env.DB, SELECT + ' WHERE b.id = ?', id));

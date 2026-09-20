@@ -32,6 +32,12 @@ function canManageFiledRow(user, row) {
   return canApproveRow(user, row) || (user.role === 'secretary' && inScope(user, row));
 }
 
+// Completed is staff's call once the Secretary has it In Progress -- see
+// userCanCompleteWork server-side.
+function canCompleteRow(user, row) {
+  return canApproveRow(user, row) || (user.role === 'staff' && inScope(user, row));
+}
+
 // A request to BGU (Building & Grounds Unit) to perform a job, not the lab's
 // own F-LAB form, so it lives at the top level, is tagged to whichever lab
 // the staff picks, and follows the same Pending -> Subject Coordinator
@@ -110,6 +116,17 @@ export default function BguJobRequests() {
       refreshNotifications();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update status');
+    }
+  }
+
+  async function handleComplete(row) {
+    setError('');
+    try {
+      await api.put(`/bgu-job-requests/${row.id}`, { status: 'Completed' });
+      loadRows();
+      refreshNotifications();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to mark this request Completed');
     }
   }
 
@@ -240,7 +257,10 @@ export default function BguJobRequests() {
               value={statusValue}
               onChange={(e) => setStatusValue(e.target.value)}
             >
-              {MANAGE_STATUS_OPTIONS.map((opt) => (
+              {(user.role === 'secretary'
+                ? MANAGE_STATUS_OPTIONS.filter((opt) => opt !== 'Completed')
+                : MANAGE_STATUS_OPTIONS
+              ).map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>
@@ -281,6 +301,7 @@ export default function BguJobRequests() {
               {rows.map((row) => {
                 const showApprove = row.status === 'Pending' && canApproveRow(user, row);
                 const showManage = row.status !== 'Pending' && canManageFiledRow(user, row);
+                const showComplete = row.status === 'In Progress' && canCompleteRow(user, row);
                 const showDelete = user.role === 'admin' || row.status === 'Pending';
                 return (
                   <tr key={row.id}>
@@ -300,6 +321,11 @@ export default function BguJobRequests() {
                       {showManage && (
                         <button onClick={() => startStatusEdit(row)} className="text-slate-500 hover:text-slate-800 text-xs underline">
                           Update Status
+                        </button>
+                      )}
+                      {showComplete && (
+                        <button onClick={() => handleComplete(row)} className="text-emerald-700 hover:text-emerald-900 text-xs underline">
+                          Mark Completed
                         </button>
                       )}
                       {showDelete && (
