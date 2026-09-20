@@ -48,10 +48,10 @@ export function createScheduleRoutes(table, serviceType, scheduleLabel) {
 
     let sql = SELECT;
     if (clauses.length) sql += ' WHERE ' + clauses.join(' AND ');
-    // Latest date of service first -- SQLite treats NULL as lowest, so
-    // undated rows naturally sort to the end here rather than needing a
-    // separate NULLS LAST clause.
-    sql += ' ORDER BY s.scheduled_date DESC, s.id DESC';
+    // Oldest date of service first, undated rows last -- SQLite treats
+    // NULL as lowest, so plain ASC would put undated rows at the top;
+    // sorting on "IS NULL" first pushes them to the end instead.
+    sql += ' ORDER BY s.scheduled_date IS NULL, s.scheduled_date ASC, s.id ASC';
 
     return c.json(await dbAll(c.env.DB, sql, ...params));
   });
