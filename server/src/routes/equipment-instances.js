@@ -56,6 +56,58 @@ router.post('/bulk', (req, res) => {
   }
 });
 
+// GET /api/equipment-instances/migration-status - Check for logs needing migration
+router.get('/migration-status', (req, res) => {
+  const orphanedLogs = db.prepare(`
+    SELECT COUNT(*) as count
+    FROM equipment_logs
+    WHERE equipment_instance_id IS NULL AND equipment_id IS NOT NULL
+  `).get();
+
+  const itemsNeedingMigration = db.prepare(`
+    SELECT DISTINCT i.id, i.item_name, COUNT(DISTINCT el.id) as orphaned_log_count
+    FROM items i
+    LEFT JOIN equipment_logs el ON el.equipment_id = i.id AND el.equipment_instance_id IS NULL
+    WHERE el.id IS NOT NULL AND i.category = 'Equipment'
+    GROUP BY i.id
+  `).all();
+
+  res.json({
+    total_orphaned_logs: orphanedLogs.count,
+    items_needing_migration: itemsNeedingMigration,
+  });
+});
+
+// POST /api/equipment-instances/:instanceId/adopt-logs/:itemId - Auto-migrate logs from item to instance
+router.post('/:instanceId/adopt-logs/:itemId', (req, res) => {
+  const instance = db.prepare(INSTANCE_SELECT + ' WHERE ei.id = ?').get(req.params.instanceId);
+  if (!instance) return res.status(404).json({ error: 'Instance not found' });
+  if (!userCanAccessInstance(req.user, instance)) {
+    return res.status(403).json({ error: 'You do not have access to this instance' });
+  }
+
+  const item = db.prepare('SELECT i.*, l.department_id FROM items i JOIN laboratories l ON l.id = i.laboratory_id WHERE i.id = ?').get(req.params.itemId);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  if (!userCanAccessInstance(req.user, item)) {
+    return res.status(403).json({ error: 'You do not have access to this item' });
+  }
+
+  try {
+    const result = db.prepare(`
+      UPDATE equipment_logs
+      SET equipment_instance_id = ?
+      WHERE equipment_id = ? AND equipment_instance_id IS NULL
+    `).run(req.params.instanceId, req.params.itemId);
+
+    res.json({
+      message: 'Logs migrated successfully',
+      logs_updated: result.changes,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to migrate logs' });
+  }
+});
+
 // GET /api/equipment-instances/item/:itemId - List all instances for an item
 router.get('/item/:itemId', (req, res) => {
   const item = db.prepare('SELECT i.*, l.department_id FROM items i JOIN laboratories l ON l.id = i.laboratory_id WHERE i.id = ?').get(req.params.itemId);
