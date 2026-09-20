@@ -26,6 +26,7 @@ import NewIncidentReport from './pages/NewIncidentReport';
 import IncidentReportDetail from './pages/IncidentReportDetail';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
+import AdminPanel from './pages/AdminPanel';
 import InventoryCountDetail from './pages/InventoryCountDetail';
 import BookstoreRequisition from './pages/BookstoreRequisition';
 import SuppliesRequisition from './pages/SuppliesRequisition';
@@ -95,6 +96,14 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <Users />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin"
+          element={
+            <AdminRoute>
+              <AdminPanel />
             </AdminRoute>
           }
         />

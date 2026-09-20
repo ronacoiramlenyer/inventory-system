@@ -68,7 +68,11 @@ export default function Layout() {
     navItems.push({ to: '/work-requests', label: 'Equipment Work Requests', badge: notifCounts.filed_requests });
   }
   if (user?.role === 'admin') {
-    navItems.push({ to: '/departments', label: 'Departments' }, { to: '/users', label: 'Staff Accounts' });
+    navItems.push(
+      { to: '/admin', label: 'Admin Panel' },
+      { to: '/departments', label: 'Departments' },
+      { to: '/users', label: 'Staff Accounts' }
+    );
   }
 
   return (

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
 import departmentsRoutes from './routes/departments.js';
 import usersRoutes from './routes/users.js';
 import laboratoriesRoutes from './routes/laboratories.js';
@@ -27,6 +28,7 @@ app.use('/api/*', cors());
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
 app.route('/api/auth', authRoutes);
+app.route('/api/admin', adminRoutes);
 app.route('/api/departments', departmentsRoutes);
 app.route('/api/users', usersRoutes);
 app.route('/api/laboratories', laboratoriesRoutes);
