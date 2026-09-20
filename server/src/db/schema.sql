@@ -60,9 +60,23 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Equipment instances represent individual physical units of an equipment item.
+-- E.g., if inventory has "5 Air Purifiers", there are 5 equipment_instances,
+-- each with its own serial_number, location, and maintenance logs.
+CREATE TABLE IF NOT EXISTS equipment_instances (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  serial_number TEXT NOT NULL,
+  location TEXT,
+  status TEXT,                       -- e.g. "Active", "In Storage", "Retired", "Under Repair"
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(item_id, serial_number)
+);
+
 CREATE TABLE IF NOT EXISTS equipment_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  equipment_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  equipment_id INTEGER REFERENCES items(id) ON DELETE CASCADE,  -- deprecated: use equipment_instance_id
+  equipment_instance_id INTEGER REFERENCES equipment_instances(id) ON DELETE CASCADE,
   entry_date TEXT NOT NULL,         -- YYYY-MM-DD
   service_performed TEXT NOT NULL,  -- e.g. "Preventive", "Repair", "Calibration"
   request_id TEXT,                  -- reference to an F-LAB-004 Equipment Work Request (free text for now)
