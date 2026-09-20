@@ -40,6 +40,19 @@ jobs:
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE calibration_schedule_items ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE work_requests ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
 
+          # One-time data cleanup after collapsing the category list down to
+          # Equipment / Tools & Materials / Consumables -- renames items
+          # still holding a category value from the old 6-option list to
+          # its unambiguous new equivalent. Safe to re-run: each WHERE
+          # clause matches nothing once already applied. Items left as
+          # Other/NULL ("Uncategorized") aren't touched here since neither
+          # maps confidently to one new bucket -- reassign those by hand
+          # with the bulk "move to category" tool on the Inventory list.
+          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Materials';" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Glassware';" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Consumables' WHERE category = 'Supplies';" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Consumables' WHERE category = 'Chemicals';" || true
+
       # One-time cleanup after renaming the project -- deletes the old
       # inventory-system-api Worker and lsgh-lab-inventory Pages project
       # now that we deploy under their new names below. Safe to remove
