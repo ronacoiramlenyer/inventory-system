@@ -3,6 +3,23 @@
 ## Overview
 The system has been redesigned to support tracking individual equipment units separately, enabling proper management of multiple physical units per equipment type on the F-LAB-001 Equipment Monitoring Record.
 
+## Where the code lives
+
+There are two backends in this repo and only one of them ships:
+
+- **`worker/`** — Hono + Cloudflare D1. **This is the deployed API**, published by
+  `.github/workflows/deploy-cloudflare.yml` on pushes to the default branch. The
+  instances routes are in `worker/src/routes/equipment-instances.js`, the tables in
+  `worker/src/db/schema.sql`, and the production D1 migrations are inline in that
+  workflow.
+- **`server/`** — Express + `node:sqlite`. Local development only; nothing deploys it.
+  It carries a parallel copy of the instances routes that is already drifting from the
+  Worker's. Treat the Worker as the source of truth, and prefer deleting `server/`
+  over keeping the two in sync.
+
+Endpoint paths below are identical in both, but only the Worker's are reachable from
+the live site.
+
 ## Architecture
 
 ### Data Model
