@@ -9,6 +9,7 @@ import laboratoriesRoutes from './routes/laboratories.js';
 import itemsRoutes from './routes/items.js';
 import transactionsRoutes from './routes/transactions.js';
 import dashboardRoutes from './routes/dashboard.js';
+import equipmentRoutes from './routes/equipment.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/api/laboratories', laboratoriesRoutes);
 app.use('/api/items', itemsRoutes);
 app.use('/api', transactionsRoutes); // /api/items/:itemId/stock-card, /api/items/:itemId/transactions, /api/transactions/:id
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/equipment', equipmentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

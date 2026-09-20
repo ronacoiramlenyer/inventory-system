@@ -60,9 +60,22 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS equipment_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  equipment_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  entry_date TEXT NOT NULL,         -- YYYY-MM-DD
+  service_performed TEXT NOT NULL,  -- e.g. "Preventive", "Repair", "Calibration"
+  request_id TEXT,                  -- reference to an F-LAB-004 Equipment Work Request (free text for now)
+  status TEXT,
+  logged_by TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_dept ON laboratories(department_id);
 CREATE INDEX IF NOT EXISTS idx_labs_status ON laboratories(status);
 CREATE INDEX IF NOT EXISTS idx_items_lab ON items(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_txn_item ON transactions(item_id);
 CREATE INDEX IF NOT EXISTS idx_txn_date ON transactions(item_id, entry_date, id);
+CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);

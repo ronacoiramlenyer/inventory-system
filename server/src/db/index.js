@@ -33,7 +33,12 @@ function runMigrations() {
     if (existing) continue;
 
     const migration = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    db.exec(migration);
+    try {
+      db.exec(migration);
+    } catch (err) {
+      if (!err.message.includes('duplicate column')) throw err;
+      console.log(`Migration ${file} already applied or not needed, skipping`);
+    }
     db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(file);
   }
 }
