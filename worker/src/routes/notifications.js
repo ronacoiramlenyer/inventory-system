@@ -24,7 +24,7 @@ async function tableCounts(db, table, user) {
 
   if (user.role === 'secretary') {
     const ids = (user.department_ids || []).map(Number);
-    if (!ids.length) return { pending: 0, filed: 0 };
+    if (!ids.length) return { pending: 0, filed: 0, inProgress: 0 };
     clauses.push(`l.department_id IN (${ids.map(() => '?').join(',')})`);
     scopeParams.push(...ids);
   } else if (user.role !== 'admin') {
@@ -39,14 +39,15 @@ async function tableCounts(db, table, user) {
     db,
     `SELECT
        COALESCE(SUM(CASE WHEN t.status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending,
-       COALESCE(SUM(CASE WHEN t.status IN (${filedPlaceholders}) THEN 1 ELSE 0 END), 0) AS filed
+       COALESCE(SUM(CASE WHEN t.status IN (${filedPlaceholders}) THEN 1 ELSE 0 END), 0) AS filed,
+       COALESCE(SUM(CASE WHEN t.status = 'In Progress' THEN 1 ELSE 0 END), 0) AS in_progress
      FROM ${table} t
      JOIN laboratories l ON l.id = t.laboratory_id
      WHERE ${clauses.join(' AND ')}`,
     ...nonTerminal,
     ...scopeParams
   );
-  return { pending: row?.pending || 0, filed: row?.filed || 0 };
+  return { pending: row?.pending || 0, filed: row?.filed || 0, inProgress: row?.in_progress || 0 };
 }
 
 notifications.get('/summary', async (c) => {
@@ -55,8 +56,13 @@ notifications.get('/summary', async (c) => {
   // Same roles that can approve/manage in the request routes themselves.
   const canApprove = user.role === 'admin' || user.role === 'subject_coordinator';
   const canManageFiled = user.role === 'admin' || user.role === 'secretary';
+  // Staff is the one who marks an EWR Completed once the Secretary has it
+  // In Progress -- see userCanCompleteWork in work-requests.js -- so an
+  // In-Progress EWR shows up for staff too, alongside the Secretary, until
+  // it's Completed and drops off both.
+  const canCompleteWork = user.role === 'staff';
 
-  if (!canApprove && !canManageFiled) {
+  if (!canApprove && !canManageFiled && !canCompleteWork) {
     return c.json({ other_requests: 0, filed_requests: 0 });
   }
 
@@ -70,7 +76,10 @@ notifications.get('/summary', async (c) => {
   const otherRequests =
     (canApprove ? bookstore.pending + supplies.pending + bgu.pending : 0) +
     (canManageFiled ? bookstore.filed + supplies.filed + bgu.filed : 0);
-  const filedRequests = (canApprove ? workRequests.pending : 0) + (canManageFiled ? workRequests.filed : 0);
+  const filedRequests =
+    (canApprove ? workRequests.pending : 0) +
+    (canManageFiled ? workRequests.filed : 0) +
+    (canCompleteWork ? workRequests.inProgress : 0);
 
   return c.json({ other_requests: otherRequests, filed_requests: filedRequests });
 });

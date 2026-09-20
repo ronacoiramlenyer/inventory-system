@@ -51,11 +51,23 @@ function userCanApprove(user, row) {
 }
 
 // Once filed, the Subject Coordinator/admin and the department's Secretary
-// can both move the status forward (In Progress / Completed / Rejected).
+// can both move the status forward -- to In Progress or Rejected. Neither
+// of them marks it Completed, though: see userCanCompleteWork below.
 function userCanManageFiled(user, row) {
   if (!row) return false;
   if (userCanApprove(user, row)) return true;
   return user.role === 'secretary' && inUserScope(user, row);
+}
+
+// Completed is the lab custodian's (staff's) call, not the Secretary's --
+// the Secretary marks a request In Progress to hand it to staff, and staff
+// is the one who actually did (or verified) the work, so they're the one
+// who confirms it's done. A Subject Coordinator/admin can still complete a
+// request directly, same override power they have over every other status.
+function userCanCompleteWork(user, row) {
+  if (!row) return false;
+  if (userCanApprove(user, row)) return true;
+  return user.role === 'staff' && inUserScope(user, row);
 }
 
 async function nextRequestNo(db) {
@@ -280,13 +292,23 @@ workRequests.put('/:id', async (c) => {
   } = await c.req.json().catch(() => ({}));
 
   // Approved-by is the Subject Coordinator's identity, so only they/admin can
-  // set it. Status and date completed can also move once the department's
-  // Secretary is working the filed request.
+  // set it. Filed/In Progress/Rejected move once the department's Secretary
+  // is working the request; Completed is staff's call specifically (or a
+  // Coordinator/admin override) -- see userCanCompleteWork.
   const canApprove = userCanApprove(user, existing);
   const canManage = userCanManageFiled(user, existing);
+  const canCompleteWork = userCanCompleteWork(user, existing);
   const newEquipmentItemId = equipment_item_id ?? existing.equipment_item_id;
-  const newStatus = canManage ? status?.trim() || existing.status : existing.status;
-  const newDateCompleted = canManage ? date_completed ?? existing.date_completed : existing.date_completed;
+
+  const desiredStatus = status?.trim();
+  let newStatus = existing.status;
+  if (desiredStatus === 'Completed') {
+    if (canCompleteWork) newStatus = 'Completed';
+  } else if (desiredStatus && canManage) {
+    newStatus = desiredStatus;
+  }
+  const canTouchCompletion = canManage || canCompleteWork;
+  const newDateCompleted = canTouchCompletion ? date_completed ?? existing.date_completed : existing.date_completed;
 
   await dbRun(
     c.env.DB,

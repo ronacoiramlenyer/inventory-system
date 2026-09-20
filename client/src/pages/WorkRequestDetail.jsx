@@ -19,6 +19,8 @@ export default function WorkRequestDetail() {
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
   const [justApproved, setJustApproved] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completeForm, setCompleteForm] = useState({ date_completed: '', remarks: '' });
 
   function load() {
     api.get(`/work-requests/${id}`).then((res) => {
@@ -27,6 +29,10 @@ export default function WorkRequestDetail() {
         approved_by: res.data.approved_by || '',
         status: res.data.status === 'Pending' ? 'Filed' : res.data.status,
         date_completed: res.data.date_completed || '',
+        remarks: res.data.remarks || '',
+      });
+      setCompleteForm({
+        date_completed: res.data.date_completed || new Date().toISOString().slice(0, 10),
         remarks: res.data.remarks || '',
       });
     });
@@ -41,6 +47,11 @@ export default function WorkRequestDetail() {
       : Number(user.department_id) === Number(req.department_id));
   const canApprove = req && (user.role === 'admin' || (user.role === 'subject_coordinator' && inScope));
   const canManage = canApprove || (req && user.role === 'secretary' && inScope);
+  // Completed is staff's call once the Secretary has it In Progress (a
+  // Coordinator/admin can still do it directly, same override they have
+  // over every other status) -- matches userCanCompleteWork server-side.
+  const canCompleteWork = canApprove || (req && user.role === 'staff' && inScope);
+  const statusOptionsForRole = user.role === 'secretary' ? STATUS_OPTIONS.filter((s) => s !== 'Completed') : STATUS_OPTIONS;
 
   async function handleApprove() {
     setError('');
@@ -54,6 +65,21 @@ export default function WorkRequestDetail() {
       setError(err.response?.data?.error || 'Failed to approve request');
     } finally {
       setApproving(false);
+    }
+  }
+
+  async function handleComplete(e) {
+    e.preventDefault();
+    setError('');
+    setCompleting(true);
+    try {
+      await api.put(`/work-requests/${id}`, { status: 'Completed', ...completeForm });
+      load();
+      refreshNotifications();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to mark this request completed');
+    } finally {
+      setCompleting(false);
     }
   }
 
@@ -210,7 +236,7 @@ export default function WorkRequestDetail() {
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
-                  {STATUS_OPTIONS.map((opt) => (
+                  {statusOptionsForRole.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>
@@ -252,6 +278,37 @@ export default function WorkRequestDetail() {
               className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
             >
               {saving ? 'Saving…' : 'Save'}
+            </button>
+          </form>
+        ) : req.status === 'In Progress' && canCompleteWork ? (
+          <form onSubmit={handleComplete} className="no-print bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-3">
+            <p className="text-sm text-amber-800">
+              The Secretary has this in progress. Mark it Completed once the work is actually done.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Date Completed</label>
+                <input
+                  type="date"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={completeForm.date_completed}
+                  onChange={(e) => setCompleteForm({ ...completeForm, date_completed: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Remarks</label>
+                <input
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={completeForm.remarks}
+                  onChange={(e) => setCompleteForm({ ...completeForm, remarks: e.target.value })}
+                />
+              </div>
+            </div>
+            <button
+              disabled={completing}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              {completing ? 'Saving…' : 'Mark Completed'}
             </button>
           </form>
         ) : (
