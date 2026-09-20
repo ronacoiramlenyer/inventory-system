@@ -21,10 +21,12 @@ const emptyForm = {
   handled_by: '',
 };
 
-// Kept in sync with LabStockCards.jsx -- Equipment is its own bucket
-// handled entirely separately (F-LAB-001), so a general item only ever
-// needs to choose between these two.
-const CATEGORIES = ['Tools & Materials', 'Consumables'];
+// Kept in sync with LabStockCards.jsx and the Inventory Sheet's own
+// category picker. Equipment is included here too so a miscategorized
+// item can be corrected either way -- promoting one to Equipment moves
+// it off the Stock Cards list and onto the EMR (F-LAB-001) on next load,
+// since both pages read the same `items` row filtered by this column.
+const CATEGORIES = ['Equipment', 'Tools & Materials', 'Consumables'];
 
 function emptyEditForm(item) {
   return {
@@ -33,6 +35,8 @@ function emptyEditForm(item) {
     unit_of_measure: item.unit_of_measure,
     reorder_level: item.reorder_level,
     notes: item.notes || '',
+    serial_number: item.serial_number || '',
+    location: item.location || '',
   };
 }
 
@@ -266,6 +270,26 @@ export default function StockCard() {
               onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
             />
           </div>
+          {editForm.category === 'Equipment' && (
+            <>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Serial Number</label>
+                <input
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={editForm.serial_number}
+                  onChange={(e) => setEditForm({ ...editForm, serial_number: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">Location</label>
+                <input
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                />
+              </div>
+            </>
+          )}
           <div className="col-span-full flex gap-2">
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
               Save Changes

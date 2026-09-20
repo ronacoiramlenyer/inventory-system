@@ -4,19 +4,15 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 
-// Equipment is deliberately excluded here -- Stock Cards (F-LAB-006) is the
-// IN/OUT quantity ledger for consumable stock, which doesn't apply to
-// equipment; equipment lives under its own F-LAB-001 Equipment Monitoring
-// Record instead (see LabEquipment.jsx).
-// Kept deliberately minimal -- Equipment is its own third bucket, tracked
-// separately via F-LAB-001 (see the note above) rather than as a category
-// choice here, so these are the only two a general lab item needs: durable
-// reusable stuff that isn't itself under maintenance/repair tracking
-// (Tools & Materials -- a screwdriver and a bolt of fabric are the same
-// kind of thing for this purpose), and stuff that gets used up
-// (Consumables). Neither references a specific discipline, so it holds
-// across the school's other labs (culinary, robotics, arts, music) too.
-const CATEGORIES = ['Tools & Materials', 'Consumables'];
+// Equipment items are excluded from the grouped listing below -- Stock
+// Cards (F-LAB-006) is the IN/OUT quantity ledger for consumable stock,
+// which doesn't apply to equipment; equipment lives under its own
+// F-LAB-001 Equipment Monitoring Record instead (see LabEquipment.jsx).
+// Equipment is still included as a bulk "move to category" target,
+// though, so a general item that was miscategorized can be promoted to
+// Equipment from here -- it just disappears from this list on the next
+// load, same as if it had been created as Equipment from the start.
+const CATEGORIES = ['Equipment', 'Tools & Materials', 'Consumables'];
 const UNCATEGORIZED = 'Uncategorized';
 
 export default function LabStockCards() {
