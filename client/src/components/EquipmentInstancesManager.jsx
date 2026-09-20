@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
+import EquipmentLogsMigrationHelper from './EquipmentLogsMigrationHelper';
 
 const STATUS_OPTIONS = ['Active', 'In Storage', 'Under Repair', 'Retired', 'Loaned', 'Decommissioned'];
 
@@ -108,6 +109,8 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <EquipmentLogsMigrationHelper itemId={itemId} instances={instances} />
 
       {instances.length === 0 ? (
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-center">
