@@ -65,42 +65,11 @@ items.get('/:id', async (c) => {
   return c.json(item);
 });
 
-items.post('/', async (c) => {
-  const user = c.get('user');
-  const { laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, serial_number, location } =
-    await c.req.json().catch(() => ({}));
-  if (!laboratory_id || !item_name || !unit_of_measure) {
-    return c.json({ error: 'laboratory_id, item_name and unit_of_measure are required' }, 400);
-  }
-
-  const lab = await dbGet(c.env.DB, 'SELECT * FROM laboratories WHERE id = ?', laboratory_id);
-  if (!labAccessibleToUser(user, lab)) {
-    return c.json({ error: 'You do not have access to that laboratory' }, 403);
-  }
-
-  try {
-    const result = await dbRun(
-      c.env.DB,
-      `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, serial_number, location)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      laboratory_id,
-      item_name.trim(),
-      category?.trim() || null,
-      unit_of_measure.trim(),
-      Number(initial_balance) || 0,
-      Number(reorder_level) || 0,
-      notes?.trim() || null,
-      serial_number?.trim() || null,
-      location?.trim() || null
-    );
-    return c.json(await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', result.lastInsertRowid), 201);
-  } catch (err) {
-    if (String(err.message).includes('UNIQUE')) {
-      return c.json({ error: 'That item already exists in this laboratory' }, 409);
-    }
-    return c.json({ error: 'Failed to create item' }, 500);
-  }
-});
+// No POST route here -- a new item (of any category, including Equipment)
+// can only be created through the Inventory Sheet's "add row" flow
+// (see inventory-counts.js), so there's exactly one place that has to
+// enforce a category being chosen and stay in sync with the EMR/Stock
+// Card lists that read from this table.
 
 items.put('/:id', async (c) => {
   const user = c.get('user');

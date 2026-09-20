@@ -181,8 +181,17 @@ inventoryCounts.put('/:id', async (c) => {
       // already matches by name in this lab) and link a new count-item row to it.
       const description = row.description?.trim();
       const unit = row.unit?.trim();
+      const category = row.category?.trim();
       if (!description || !unit) {
         errors.push(`A new row is missing ${!description ? 'a description' : 'a unit'} and was skipped.`);
+        continue;
+      }
+      // The Inventory Sheet is the only place a new item gets created (the
+      // standalone Add Item/Add Equipment forms were removed), so a
+      // category has to be chosen here -- otherwise the item would never
+      // show up on the Inventory list or, if it's equipment, on the EMR.
+      if (!category) {
+        errors.push(`"${description}": missing a category and was skipped.`);
         continue;
       }
 
@@ -197,11 +206,14 @@ inventoryCounts.put('/:id', async (c) => {
         try {
           const result = await dbRun(
             c.env.DB,
-            `INSERT INTO items (laboratory_id, item_name, unit_of_measure, initial_balance, reorder_level)
-             VALUES (?, ?, ?, 0, 0)`,
+            `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, serial_number, location)
+             VALUES (?, ?, ?, ?, 0, 0, ?, ?)`,
             count.laboratory_id,
             description,
-            unit
+            category,
+            unit,
+            row.serial_number?.trim() || null,
+            row.location?.trim() || null
           );
           item = await dbGet(c.env.DB, 'SELECT * FROM items WHERE id = ?', result.lastInsertRowid);
           createdNewItem = 1;

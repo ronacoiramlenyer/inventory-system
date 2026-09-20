@@ -19,22 +19,12 @@ import LabFormTabs from '../components/LabFormTabs';
 const CATEGORIES = ['Tools & Materials', 'Consumables'];
 const UNCATEGORIZED = 'Uncategorized';
 
-const emptyForm = {
-  item_name: '',
-  category: CATEGORIES[0],
-  unit_of_measure: 'pcs',
-  initial_balance: 0,
-  reorder_level: 0,
-};
-
 export default function LabStockCards() {
   const { id } = useParams();
   const { user } = useAuth();
   const canEditCategory = user.role === 'staff' || user.role === 'admin';
   const [lab, setLab] = useState(null);
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [bulkCategory, setBulkCategory] = useState(CATEGORIES[0]);
@@ -48,19 +38,6 @@ export default function LabStockCards() {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
     loadItems();
   }, [id]);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    try {
-      await api.post('/items', { ...form, laboratory_id: id });
-      setForm(emptyForm);
-      setShowForm(false);
-      loadItems();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add item');
-    }
-  }
 
   function toggleSelected(itemId) {
     setSelected((s) => {
@@ -103,12 +80,6 @@ export default function LabStockCards() {
         <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">
           ← Back to Laboratories
         </Link>
-        <button
-          onClick={() => setShowForm((s) => !s)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
-        >
-          + Add Item
-        </button>
       </div>
 
       <h1 className="text-2xl font-bold text-slate-800">{lab.name}</h1>
@@ -117,82 +88,13 @@ export default function LabStockCards() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white border border-slate-200 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3"
-        >
-          <div className="col-span-2">
-            <label className="block text-sm text-slate-600 mb-1">Item Name</label>
-            <input
-              required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              value={form.item_name}
-              onChange={(e) => setForm({ ...form, item_name: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Category</label>
-            <select
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Unit of Measure</label>
-            <input
-              required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              value={form.unit_of_measure}
-              onChange={(e) => setForm({ ...form, unit_of_measure: e.target.value })}
-              placeholder="e.g. pcs, bottle, box"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Starting Balance</label>
-            <input
-              type="number"
-              min="0"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              value={form.initial_balance}
-              onChange={(e) => setForm({ ...form, initial_balance: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Reorder Level</label>
-            <input
-              type="number"
-              min="0"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              value={form.reorder_level}
-              onChange={(e) => setForm({ ...form, reorder_level: e.target.value })}
-            />
-          </div>
-          <div className="col-span-full flex gap-2">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
-              Save Item
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
       {groups.size === 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-4 py-6 text-center text-slate-400">
-          No items yet. Add one above, or add some from the Inventory Sheet.
+          No items yet. Add one from the{' '}
+          <Link to={`/laboratories/${id}`} className="text-emerald-700 hover:underline">
+            Inventory Sheet
+          </Link>
+          .
         </div>
       )}
 

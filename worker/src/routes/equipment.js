@@ -18,12 +18,6 @@ const EQUIPMENT_SELECT = `
   WHERE e.category = 'Equipment'
 `;
 
-function labAccessibleToUser(user, lab) {
-  if (!lab) return false;
-  if (user.role === 'admin') return true;
-  return Number(lab.department_id) === Number(user.department_id) && lab.status === 'approved';
-}
-
 function userCanAccessEquipment(user, item) {
   if (!item) return false;
   if (user.role === 'admin') return true;
@@ -62,36 +56,9 @@ equipment.get('/:id', async (c) => {
   return c.json(item);
 });
 
-equipment.post('/', async (c) => {
-  const user = c.get('user');
-  const { laboratory_id, name_description, serial_number, location } = await c.req.json().catch(() => ({}));
-  if (!laboratory_id || !name_description?.trim()) {
-    return c.json({ error: 'laboratory_id and name_description are required' }, 400);
-  }
-
-  const lab = await dbGet(c.env.DB, 'SELECT * FROM laboratories WHERE id = ?', laboratory_id);
-  if (!labAccessibleToUser(user, lab)) {
-    return c.json({ error: 'You do not have access to that laboratory' }, 403);
-  }
-
-  try {
-    const result = await dbRun(
-      c.env.DB,
-      `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, serial_number, location)
-       VALUES (?, ?, 'Equipment', 'unit', 0, 0, ?, ?)`,
-      laboratory_id,
-      name_description.trim(),
-      serial_number?.trim() || null,
-      location?.trim() || null
-    );
-    return c.json(await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', result.lastInsertRowid), 201);
-  } catch (err) {
-    if (String(err.message).includes('UNIQUE')) {
-      return c.json({ error: 'That item already exists in this laboratory' }, 409);
-    }
-    return c.json({ error: 'Failed to create equipment' }, 500);
-  }
-});
+// No POST route here -- new equipment is only created through the
+// Inventory Sheet's "add row" flow (category = Equipment), same as any
+// other item; see inventory-counts.js.
 
 equipment.put('/:id', async (c) => {
   const user = c.get('user');

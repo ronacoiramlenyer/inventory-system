@@ -11,6 +11,14 @@ const normalize = (s) => String(s ?? '').trim().toLowerCase();
 let tempKeySeq = 0;
 const nextTempKey = () => `new-${++tempKeySeq}`;
 
+// The Inventory Sheet is the only place a brand-new item can be created --
+// the standalone "+ Add Item" (Stock Cards) and "+ Add Equipment" (EMR)
+// forms were removed so every item, whatever its category, has to pass
+// through here first. A row that becomes Equipment shows up on the EMR
+// picker automatically since it's the same `items` row filtered by
+// category -- no separate sync needed.
+const CATEGORY_OPTIONS = ['Equipment', 'Tools & Materials', 'Consumables'];
+
 // Reads a filled-out F-LAB-010 Inventory Sheet export: finds the header row
 // (wherever it is) by looking for a "Description" cell, then reads rows
 // below it until the Description column goes empty.
@@ -85,6 +93,9 @@ export default function InventoryCountDetail() {
         id: null,
         item_no: rs.length + 1,
         description: '',
+        category: '',
+        serial_number: '',
+        location: '',
         unit: defaultUnit,
         quantity_recorded: 0,
         quantity_actual: '',
@@ -118,6 +129,11 @@ export default function InventoryCountDetail() {
   // instead of barreling ahead regardless.
   async function handleSave({ withProgress = true } = {}) {
     setError('');
+    const missingCategory = rows.some((r) => !r.id && r.description?.trim() && !r.category);
+    if (missingCategory) {
+      setError('Pick a category for each new row before saving.');
+      return false;
+    }
     setSaving(true);
     if (withProgress) start('Saving changes…');
     try {
@@ -129,6 +145,9 @@ export default function InventoryCountDetail() {
           unit: r.unit,
           quantity_actual: r.quantity_actual,
           remarks: r.remarks,
+          category: r.category,
+          serial_number: r.serial_number,
+          location: r.location,
         })),
       });
       if (data.errors?.length) {
@@ -183,6 +202,9 @@ export default function InventoryCountDetail() {
             id: null,
             item_no: next.length + 1,
             description: found.description,
+            category: '',
+            serial_number: '',
+            location: '',
             unit: found.unit ? String(found.unit).trim() : defaultUnit,
             quantity_recorded: 0,
             quantity_actual: found.actual ?? '',
@@ -194,7 +216,9 @@ export default function InventoryCountDetail() {
       });
 
       setImportSummary(
-        `${matched} row(s) matched an existing item and were updated. ${added} new row(s) were added for items not on this sheet yet — review them below, then click the highlighted Save button.`
+        added > 0
+          ? `${matched} row(s) matched an existing item and were updated. ${added} new row(s) were added for items not on this sheet yet — pick a category for each, then click the highlighted Save button.`
+          : `${matched} row(s) matched an existing item and were updated — review them below, then click the highlighted Save button.`
       );
     } catch (err) {
       setError(err.message || 'Failed to read that file');
@@ -386,12 +410,44 @@ export default function InventoryCountDetail() {
                     <td className="border border-slate-300 px-3 py-2">{row.item_no}</td>
                     <td className="border border-slate-300 px-3 py-2">
                       {isNew ? (
-                        <input
-                          className="w-full border border-slate-300 rounded px-2 py-1 text-sm"
-                          placeholder="Item name"
-                          value={row.description}
-                          onChange={(e) => updateRow(key, 'description', e.target.value)}
-                        />
+                        <div className="space-y-1">
+                          <input
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm"
+                            placeholder="Item name"
+                            value={row.description}
+                            onChange={(e) => updateRow(key, 'description', e.target.value)}
+                          />
+                          <select
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-xs"
+                            value={row.category}
+                            onChange={(e) => updateRow(key, 'category', e.target.value)}
+                          >
+                            <option value="" disabled>
+                              Category…
+                            </option>
+                            {CATEGORY_OPTIONS.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                          {row.category === 'Equipment' && (
+                            <div className="grid grid-cols-2 gap-1">
+                              <input
+                                className="border border-slate-300 rounded px-2 py-1 text-xs"
+                                placeholder="Serial No."
+                                value={row.serial_number}
+                                onChange={(e) => updateRow(key, 'serial_number', e.target.value)}
+                              />
+                              <input
+                                className="border border-slate-300 rounded px-2 py-1 text-xs"
+                                placeholder="Location"
+                                value={row.location}
+                                onChange={(e) => updateRow(key, 'location', e.target.value)}
+                              />
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <Link to={`/items/${row.item_id}`} className="text-emerald-700 hover:underline no-print">
                           {row.description}
