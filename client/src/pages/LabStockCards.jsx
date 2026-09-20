@@ -10,11 +10,13 @@ import LabFormTabs from '../components/LabFormTabs';
 // Record instead (see LabEquipment.jsx).
 // Kept deliberately minimal -- Equipment is its own third bucket, tracked
 // separately via F-LAB-001 (see the note above) rather than as a category
-// choice here, so these are the only two a general lab item needs. A
-// science-specific "Chemicals" bucket didn't generalize across the
-// school's other labs (culinary, robotics, arts, music), so everything
-// non-equipment now falls under one of these two.
-const CATEGORIES = ['Supplies/Consumables', 'Materials'];
+// choice here, so these are the only two a general lab item needs: durable
+// reusable stuff that isn't itself under maintenance/repair tracking
+// (Tools & Materials -- a screwdriver and a bolt of fabric are the same
+// kind of thing for this purpose), and stuff that gets used up
+// (Consumables). Neither references a specific discipline, so it holds
+// across the school's other labs (culinary, robotics, arts, music) too.
+const CATEGORIES = ['Tools & Materials', 'Consumables'];
 const UNCATEGORIZED = 'Uncategorized';
 
 const emptyForm = {

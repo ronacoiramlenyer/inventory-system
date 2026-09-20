@@ -24,7 +24,7 @@ const emptyForm = {
 // Kept in sync with LabStockCards.jsx -- Equipment is its own bucket
 // handled entirely separately (F-LAB-001), so a general item only ever
 // needs to choose between these two.
-const CATEGORIES = ['Supplies/Consumables', 'Materials'];
+const CATEGORIES = ['Tools & Materials', 'Consumables'];
 
 function emptyEditForm(item) {
   return {
