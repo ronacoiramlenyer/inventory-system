@@ -171,18 +171,32 @@ export default function EquipmentMonitoringRecord() {
               before this one meant the seal only ever rendered wherever
               this table happened to start in the page flow (i.e. after
               the info block, mid-page), not at the actual top of the page. */}
-          <table className="w-full text-sm border-collapse">
+          {/* table-fixed + colgroup, same fix as the other multi-page
+              forms. The true column count here is 6 (the Equipment
+              Information block's row uses colSpan 1+2+3), not 5 -- the
+              colSpan on PrintHeaderRow/PrintTitleRow below was out of sync
+              with that, which is its own contributor to the header not
+              lining up/repeating correctly. */}
+          <table className="w-full text-sm print:text-xs border-collapse table-fixed">
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[24%]" />
+              <col className="w-[20%]" />
+              <col className="w-[20%]" />
+              <col className="w-[14%]" />
+              <col className="w-[10%] no-print" />
+            </colgroup>
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(logs.length, MIN_ROWS), MIN_ROWS)}
-                colSpan={5}
+                colSpan={6}
               />
-              <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={5} />
+              <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={6} />
               <tr>
                 <td
                   rowSpan={3}
                   colSpan={1}
-                  className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top w-32"
+                  className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top"
                 >
                   Equipment Information
                 </td>
@@ -210,17 +224,17 @@ export default function EquipmentMonitoringRecord() {
                 </td>
               </tr>
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Service Performed (Preventive, Repair, Calibration)
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Request ID (referenced to EWR)
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Status (on repair, on loan, …)
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Logged by</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Logged by</th>
                 <th className="border border-slate-300 px-3 py-2 no-print w-16">&nbsp;</th>
               </tr>
             </thead>

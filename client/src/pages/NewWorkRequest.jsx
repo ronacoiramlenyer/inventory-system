@@ -70,6 +70,19 @@ export default function NewWorkRequest() {
 
   if (!lab) return <p className="text-slate-500">Loading…</p>;
 
+  if (user.role !== 'staff' && user.role !== 'admin') {
+    return (
+      <div className="space-y-4">
+        <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">
+          ← Back to Laboratories
+        </Link>
+        <p className="text-sm text-red-600">
+          Only the lab custodian (staff) can file an Equipment Work Request for this laboratory.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Link to="/laboratories" className="text-sm text-slate-500 hover:text-slate-800">

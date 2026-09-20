@@ -182,7 +182,19 @@ export default function LabWasteDisposalLog() {
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
-          <table className="w-full text-sm border-collapse">
+          {/* table-fixed + colgroup, same fix as the other multi-page forms. */}
+          <table className="w-full text-sm print:text-xs border-collapse table-fixed">
+            <colgroup>
+              <col className="w-[10%]" />
+              <col className="w-[16%]" />
+              <col className="w-[12%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+              <col className="w-[6%] no-print" />
+            </colgroup>
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)}
@@ -199,16 +211,16 @@ export default function LabWasteDisposalLog() {
                 center
               />
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date of Turnover</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Description of Waste</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date of Turnover</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Description of Waste</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Classification of Waste
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Quantity / Volume</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Disposal Method</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Remarks</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Received by</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Logged by</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Quantity / Volume</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Disposal Method</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Remarks</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Received by</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Logged by</th>
                 <th className="border border-slate-300 px-3 py-2 no-print w-16">&nbsp;</th>
               </tr>
             </thead>

@@ -99,7 +99,8 @@ workRequests.get('/pending-schedule', async (c) => {
       FROM ${table} s
       JOIN laboratories l ON l.id = s.laboratory_id
       WHERE NOT EXISTS (
-        SELECT 1 FROM work_requests w WHERE w.source_type = '${sourceType}' AND w.source_schedule_id = s.id
+        SELECT 1 FROM work_requests w
+        WHERE w.source_type = '${sourceType}' AND w.source_schedule_id = s.id AND w.status != 'Rejected'
       )
     `;
     if (clauses.length) sql += ' AND ' + clauses.join(' AND ');
@@ -157,6 +158,13 @@ workRequests.get('/:id', async (c) => {
 
 workRequests.post('/', async (c) => {
   const user = c.get('user');
+  // An EWR has to originate from the lab custodian (staff), same as a
+  // Borrowing Request and a PMS/ECS schedule entry -- the Subject
+  // Coordinator approves/files it, the Secretary works it, neither of them
+  // originates it.
+  if (user.role !== 'staff' && user.role !== 'admin') {
+    return c.json({ error: 'Only the lab custodian (staff) can file an Equipment Work Request' }, 403);
+  }
   const {
     laboratory_id,
     equipment_item_id,
@@ -181,11 +189,13 @@ workRequests.post('/', async (c) => {
 
   // Filing from a PMS/ECS due entry (see GET /pending-schedule) -- make sure
   // it hasn't already been turned into a request by someone else in the
-  // meantime, so the same due date doesn't end up with two EWRs.
+  // meantime, so the same due date doesn't end up with two live EWRs. A
+  // Rejected one doesn't count -- that's exactly what reopens the entry in
+  // /pending-schedule for re-filing, so the guard has to agree with it.
   if (source_type && source_schedule_id) {
     const already = await dbGet(
       c.env.DB,
-      'SELECT id FROM work_requests WHERE source_type = ? AND source_schedule_id = ?',
+      "SELECT id FROM work_requests WHERE source_type = ? AND source_schedule_id = ? AND status != 'Rejected'",
       source_type,
       source_schedule_id
     );

@@ -1,14 +1,12 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
-import { logEquipmentService } from '../lib/autoLogEquipment.js';
 
 // F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
 // Calibration Schedule are identically shaped, so both routers are built
 // from this one factory, parametrized by their (fixed, hardcoded) table
-// name, the equipment_logs service type it corresponds to, and a short
-// label used to tag the auto-logged entry's request_id.
-export function createScheduleRoutes(table, serviceType, scheduleLabel) {
+// name.
+export function createScheduleRoutes(table) {
   const router = new Hono();
   router.use('*', requireAuth);
 
@@ -146,19 +144,11 @@ export function createScheduleRoutes(table, serviceType, scheduleLabel) {
       id
     );
 
-    // Filling in Actual Date for the first (or a new) time means this
-    // maintenance/calibration was actually performed -- log it against the
-    // equipment's own F-LAB-001 record, if it's linked to one.
-    if (newActualDate && newActualDate !== existing.actual_date) {
-      await logEquipmentService(c.env.DB, {
-        equipmentItemId: newEquipmentItemId,
-        entryDate: newActualDate,
-        servicePerformed: serviceType,
-        requestId: `${scheduleLabel}-${id}`,
-        loggedBy: user.full_name,
-        createdBy: user.id,
-      });
-    }
+    // Actual Date here is just this schedule's own record -- it no longer
+    // auto-logs to F-LAB-001 on its own. Filing this entry as a real EWR
+    // (see /work-requests/pending-schedule) and completing that request is
+    // now the one path that logs to EMR, so the same maintenance event
+    // can't end up logged twice (once from here, once from the EWR).
 
     return c.json(await dbGet(c.env.DB, SELECT + ' WHERE s.id = ?', id));
   });
@@ -178,5 +168,5 @@ export function createScheduleRoutes(table, serviceType, scheduleLabel) {
   return router;
 }
 
-export const maintenanceScheduleRoutes = createScheduleRoutes('maintenance_schedule_items', 'Preventive', 'PMS');
-export const calibrationScheduleRoutes = createScheduleRoutes('calibration_schedule_items', 'Calibration', 'ECS');
+export const maintenanceScheduleRoutes = createScheduleRoutes('maintenance_schedule_items');
+export const calibrationScheduleRoutes = createScheduleRoutes('calibration_schedule_items');

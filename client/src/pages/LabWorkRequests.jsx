@@ -60,12 +60,14 @@ export default function LabWorkRequests() {
           ← Back to Laboratories
         </Link>
         <div className="space-x-2">
-          <Link
-            to={`/laboratories/${id}/work-requests/new`}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
-          >
-            + New Request
-          </Link>
+          {(user.role === 'staff' || user.role === 'admin') && (
+            <Link
+              to={`/laboratories/${id}/work-requests/new`}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              + New Request
+            </Link>
+          )}
           <button
             onClick={() => window.print()}
             className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
@@ -82,7 +84,7 @@ export default function LabWorkRequests() {
           as it's declared, however far off the date) until someone files
           it as a real EWR below. Ad-hoc Repair requests skip this list
           entirely and go straight through "+ New Request". */}
-      {pendingSchedule.length > 0 && (
+      {(user.role === 'staff' || user.role === 'admin') && pendingSchedule.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 no-print">
           <h3 className="text-sm font-semibold text-amber-800 mb-2">
             Due from Schedule (PMS/ECS) — not yet filed as an EWR
@@ -127,7 +129,24 @@ export default function LabWorkRequests() {
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
-          <table className="w-full text-sm border-collapse">
+          {/* table-fixed + colgroup, same fix as ScheduleSheet -- without
+              it, this 9-column table's true width ran past the printable
+              page, clipping the page-label and Remarks off every page and
+              (from the resulting over-wrapped header row) stopping the
+              header/footer from repeating on pages after 1. */}
+          <table className="w-full text-sm print:text-xs border-collapse table-fixed">
+            <colgroup>
+              <col className="w-[13%]" />
+              <col className="w-[12%]" />
+              <col className="w-[9%]" />
+              <col className="w-[9%]" />
+              <col className="w-[9%]" />
+              <col className="w-[9%]" />
+              <col className="w-[8%]" />
+              <col className="w-[9%]" />
+              <col className="w-[16%]" />
+              <col className="w-[6%] no-print" />
+            </colgroup>
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(requests.length, MIN_ROWS), MIN_ROWS)}
@@ -143,19 +162,19 @@ export default function LabWorkRequests() {
                 colSpan={9}
               />
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Request No.
                   <br />
                   (EWR-YYYY-###)
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Equipment Name</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Equipment ID</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Nature of Request</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date Requested</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date Needed</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Status</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date Completed</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Remarks</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Equipment Name</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Equipment ID</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Nature of Request</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date Requested</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date Needed</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Status</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date Completed</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Remarks</th>
                 {user.role === 'admin' && (
                   <th className="border border-slate-300 px-3 py-2 no-print w-16">&nbsp;</th>
                 )}
