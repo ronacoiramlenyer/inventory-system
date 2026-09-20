@@ -188,6 +188,12 @@ CREATE TABLE IF NOT EXISTS work_requests (
   status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected'
   date_completed TEXT,
   remarks TEXT,
+  -- Set when this EWR was filed from a due PMS/ECS entry (see
+  -- GET /work-requests/pending-schedule) rather than typed up ad hoc (e.g.
+  -- a Repair) -- 'PMS'/'ECS' + the source row's id in that table, so the
+  -- same due entry doesn't get filed as an EWR twice.
+  source_type TEXT,
+  source_schedule_id INTEGER,
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

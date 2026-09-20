@@ -39,6 +39,8 @@ jobs:
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE maintenance_schedule_items ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE calibration_schedule_items ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE work_requests ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE work_requests ADD COLUMN source_type TEXT;" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE work_requests ADD COLUMN source_schedule_id INTEGER;" || true
 
           # One-time data cleanup after collapsing the category list down to
           # Equipment / Tools & Materials / Consumables -- renames items

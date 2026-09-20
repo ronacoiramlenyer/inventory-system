@@ -58,6 +58,12 @@ export function createScheduleRoutes(table, serviceType, scheduleLabel) {
 
   router.post('/', async (c) => {
     const user = c.get('user');
+    // PMS/ECS schedules are declared by the lab custodian (staff) -- they're
+    // the one who knows the equipment's actual maintenance/calibration
+    // cadence; other roles only review or act on what staff has scheduled.
+    if (user.role !== 'staff' && user.role !== 'admin') {
+      return c.json({ error: 'Only the lab custodian (staff) can declare a schedule entry' }, 403);
+    }
     const {
       laboratory_id,
       equipment_item_id,

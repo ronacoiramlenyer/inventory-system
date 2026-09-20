@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
@@ -47,6 +48,7 @@ const emptyForm = {
 // Calibration Schedule -- identically shaped, only the noun differs.
 export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, code }) {
   const { id } = useParams();
+  const { user } = useAuth();
   const confirmDialog = useConfirm();
   const [lab, setLab] = useState(null);
   const [rows, setRows] = useState([]);
@@ -147,12 +149,14 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
           ← Back to Laboratories
         </Link>
         <div className="space-x-2">
-          <button
-            onClick={startNew}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
-          >
-            + Add Row
-          </button>
+          {(user.role === 'staff' || user.role === 'admin') && (
+            <button
+              onClick={startNew}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              + Add Row
+            </button>
+          )}
           <button
             onClick={() => window.print()}
             className="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg px-4 py-2"
@@ -301,7 +305,34 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
-          <table className="w-full text-sm border-collapse">
+          {/* table-fixed + an explicit colgroup -- without it, the natural
+              (auto) table layout sizes columns off cell content, and with
+              nine fairly wordy columns the table's true width ran wider
+              than the printable page. Anything past that edge (the Remarks
+              column, and the page-label span in PrintHeaderRow's colSpan
+              cell above it) got silently clipped off every printed page,
+              not just page 1. Pinning widths via <col> keeps the table
+              exactly page-width regardless of cell content.
+              print:text-xs -- at the normal text-sm size, several of these
+              narrow columns wrap their header label across 3-4 lines,
+              which makes the repeating header block itself so tall that
+              Chrome stops repeating it on pages after the first (the
+              header/footer would then only appear once, on page 1, and
+              everything printed below the fold on later pages, causing
+              the very "not persistent on every page" symptom reported). */}
+          <table className="w-full text-sm print:text-xs border-collapse table-fixed">
+            <colgroup>
+              <col className="w-[6%]" />
+              <col className="w-[13%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+              <col className="w-[11%]" />
+              <col className="w-[9%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+              <col className="w-[15%]" />
+              <col className="w-[6%] no-print" />
+            </colgroup>
             <thead>
               <PrintHeaderRow
                 pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)}
@@ -317,23 +348,23 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                 colSpan={9}
               />
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Item No.</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Item No.</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Equipment Name & Description
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Equipment ID/Serial Number
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Frequency</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Department</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Location</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Frequency</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Department</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Location</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Scheduled Date of {dateNoun}
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Actual Date of {dateNoun}
                 </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Remarks</th>
+                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Remarks</th>
                 <th className="border border-slate-300 px-3 py-2 no-print w-24">&nbsp;</th>
               </tr>
             </thead>

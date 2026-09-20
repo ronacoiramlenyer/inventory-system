@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
@@ -10,16 +10,23 @@ export default function NewWorkRequest() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Arriving from the "Due from Schedule" list on the EMS page (a PMS/ECS
+  // entry being filed as a real EWR) pre-fills the form from that entry and
+  // carries its source_type/source_schedule_id through on submit, so the
+  // same due date can't be filed twice -- see GET /work-requests/pending-schedule.
+  const sourceType = searchParams.get('source_type');
+  const sourceScheduleId = searchParams.get('source_schedule_id');
   const [lab, setLab] = useState(null);
   const [equipmentItems, setEquipmentItems] = useState([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    equipment_item_id: '',
-    equipment_name_description: '',
-    serial_number: '',
-    date_needed: '',
-    nature_of_request: NATURE_OPTIONS[0],
+    equipment_item_id: searchParams.get('equipment_item_id') || '',
+    equipment_name_description: searchParams.get('equipment_name_description') || '',
+    serial_number: searchParams.get('serial_number') || '',
+    date_needed: searchParams.get('date_needed') || '',
+    nature_of_request: searchParams.get('nature_of_request') || NATURE_OPTIONS[0],
     detailed_description: '',
     requested_by: user.full_name,
   });
@@ -45,7 +52,12 @@ export default function NewWorkRequest() {
     setError('');
     setSubmitting(true);
     try {
-      const { data } = await api.post('/work-requests', { ...form, laboratory_id: id });
+      const { data } = await api.post('/work-requests', {
+        ...form,
+        laboratory_id: id,
+        source_type: sourceType || undefined,
+        source_schedule_id: sourceScheduleId || undefined,
+      });
       navigate(`/work-requests/${data.id}`, {
         replace: true,
         state: { justSubmitted: true },
@@ -67,6 +79,12 @@ export default function NewWorkRequest() {
       <LabFormTabs laboratoryId={id} active="equipment-work-request" />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      {sourceType && (
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 max-w-2xl">
+          Filing this from a due {sourceType === 'PMS' ? 'Preventive Maintenance' : 'Calibration'} schedule entry.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-white border border-slate-300 rounded-xl p-6 space-y-4 max-w-2xl">
         <h2 className="text-lg font-bold text-slate-800 text-center">Equipment Work Request (EWR)</h2>

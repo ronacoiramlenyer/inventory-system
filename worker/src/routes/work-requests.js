@@ -70,6 +70,54 @@ async function nextRequestNo(db) {
   return `${prefix}${seq}`;
 }
 
+// PMS (F-LAB-002) and ECS (F-LAB-003) entries describe maintenance/calibration
+// that's *due*, possibly well ahead of time -- they don't become an actual,
+// sendable request until someone turns that due entry into a real EWR. This
+// lists every PMS/ECS row for the lab that hasn't been turned into one yet
+// (regardless of how far off its scheduled_date is), so staff have a single
+// place to see what's ready to file, alongside ad-hoc Repair requests which
+// skip this list entirely and go straight to "+ New Request".
+workRequests.get('/pending-schedule', async (c) => {
+  const user = c.get('user');
+  const { laboratory_id } = c.req.query();
+  const clauses = [];
+  const params = [];
+
+  if (user.role !== 'admin') {
+    clauses.push('l.department_id = ?', "l.status = 'approved'");
+    params.push(user.department_id);
+  }
+  if (laboratory_id) {
+    clauses.push('s.laboratory_id = ?');
+    params.push(laboratory_id);
+  }
+
+  async function pending(table, sourceType) {
+    let sql = `
+      SELECT s.id, s.laboratory_id, s.equipment_item_id, s.equipment_name_description, s.serial_number,
+        s.frequency, s.department, s.location, s.scheduled_date, '${sourceType}' AS source_type
+      FROM ${table} s
+      JOIN laboratories l ON l.id = s.laboratory_id
+      WHERE NOT EXISTS (
+        SELECT 1 FROM work_requests w WHERE w.source_type = '${sourceType}' AND w.source_schedule_id = s.id
+      )
+    `;
+    if (clauses.length) sql += ' AND ' + clauses.join(' AND ');
+    return dbAll(c.env.DB, sql, ...params);
+  }
+
+  const [pms, ecs] = await Promise.all([
+    pending('maintenance_schedule_items', 'PMS'),
+    pending('calibration_schedule_items', 'ECS'),
+  ]);
+  const combined = [...pms, ...ecs].sort((a, b) => {
+    if (!a.scheduled_date) return 1;
+    if (!b.scheduled_date) return -1;
+    return a.scheduled_date.localeCompare(b.scheduled_date);
+  });
+  return c.json(combined);
+});
+
 workRequests.get('/', async (c) => {
   const user = c.get('user');
   const { laboratory_id } = c.req.query();
@@ -118,6 +166,8 @@ workRequests.post('/', async (c) => {
     nature_of_request,
     detailed_description,
     requested_by,
+    source_type,
+    source_schedule_id,
   } = await c.req.json().catch(() => ({}));
 
   if (!laboratory_id || !equipment_name_description?.trim()) {
@@ -129,6 +179,21 @@ workRequests.post('/', async (c) => {
     return c.json({ error: 'You do not have access to that laboratory' }, 403);
   }
 
+  // Filing from a PMS/ECS due entry (see GET /pending-schedule) -- make sure
+  // it hasn't already been turned into a request by someone else in the
+  // meantime, so the same due date doesn't end up with two EWRs.
+  if (source_type && source_schedule_id) {
+    const already = await dbGet(
+      c.env.DB,
+      'SELECT id FROM work_requests WHERE source_type = ? AND source_schedule_id = ?',
+      source_type,
+      source_schedule_id
+    );
+    if (already) {
+      return c.json({ error: 'This schedule entry already has an EWR filed for it' }, 409);
+    }
+  }
+
   const requestNo = await nextRequestNo(c.env.DB);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -136,8 +201,8 @@ workRequests.post('/', async (c) => {
     c.env.DB,
     `INSERT INTO work_requests
       (laboratory_id, request_no, equipment_item_id, equipment_name_description, serial_number, date_requested, date_needed,
-       nature_of_request, detailed_description, requested_by, status, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       nature_of_request, detailed_description, requested_by, status, created_by, source_type, source_schedule_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     laboratory_id,
     requestNo,
     equipment_item_id || null,
@@ -150,7 +215,9 @@ workRequests.post('/', async (c) => {
     requested_by?.trim() || user.full_name,
     // Awaits Subject Coordinator approval before it's filed for the Secretary to see.
     'Pending',
-    user.id
+    user.id,
+    source_type?.trim() || null,
+    source_schedule_id || null
   );
   const created = await dbGet(c.env.DB, SELECT + ' WHERE w.id = ?', result.lastInsertRowid);
   return c.json(created, 201);

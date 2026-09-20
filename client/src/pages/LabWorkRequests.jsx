@@ -26,14 +26,20 @@ export default function LabWorkRequests() {
   const confirmDialog = useConfirm();
   const [lab, setLab] = useState(null);
   const [requests, setRequests] = useState([]);
+  const [pendingSchedule, setPendingSchedule] = useState([]);
 
   function loadRequests() {
     api.get('/work-requests', { params: { laboratory_id: id } }).then((res) => setRequests(res.data));
   }
 
+  function loadPendingSchedule() {
+    api.get('/work-requests/pending-schedule', { params: { laboratory_id: id } }).then((res) => setPendingSchedule(res.data));
+  }
+
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
     loadRequests();
+    loadPendingSchedule();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -70,6 +76,49 @@ export default function LabWorkRequests() {
       </div>
 
       <LabFormTabs laboratoryId={id} active="equipment-monitoring-sheet" />
+
+      {/* Maintenance/calibration due from PMS or ECS doesn't become an
+          actual, sendable request on its own -- it shows up here (as soon
+          as it's declared, however far off the date) until someone files
+          it as a real EWR below. Ad-hoc Repair requests skip this list
+          entirely and go straight through "+ New Request". */}
+      {pendingSchedule.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 no-print">
+          <h3 className="text-sm font-semibold text-amber-800 mb-2">
+            Due from Schedule (PMS/ECS) — not yet filed as an EWR
+          </h3>
+          <div className="space-y-2">
+            {pendingSchedule.map((s) => (
+              <div
+                key={`${s.source_type}-${s.id}`}
+                className="flex items-center justify-between gap-3 bg-white rounded-lg border border-amber-100 px-3 py-2 text-sm"
+              >
+                <div>
+                  <span className="font-medium text-slate-800">{s.equipment_name_description}</span>{' '}
+                  <span className="text-slate-500">
+                    — {s.source_type === 'PMS' ? 'Preventive Maintenance' : 'Calibration'}
+                    {s.scheduled_date ? ` due ${s.scheduled_date}` : ' (no date set)'}
+                  </span>
+                </div>
+                <Link
+                  to={`/laboratories/${id}/work-requests/new?${new URLSearchParams({
+                    source_type: s.source_type,
+                    source_schedule_id: s.id,
+                    equipment_item_id: s.equipment_item_id || '',
+                    equipment_name_description: s.equipment_name_description || '',
+                    serial_number: s.serial_number || '',
+                    nature_of_request: s.source_type === 'PMS' ? 'Preventive' : 'Calibration',
+                    date_needed: s.scheduled_date || '',
+                  }).toString()}`}
+                  className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg px-3 py-1.5"
+                >
+                  File EWR
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
