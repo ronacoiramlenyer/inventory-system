@@ -90,7 +90,7 @@ export function PrintTitleRow({ title, subtitle, colSpan, center = false }) {
 // document's flow, which only ever landed on the last page.
 export function PrintFooter({ code, date, rev = 'Rev. 0' }) {
   return (
-    <p className="hidden print:block print:fixed print:bottom-2 print:right-6 text-right text-xs text-slate-600">
+    <p className="hidden print:block print:fixed print:bottom-0 print:right-6 text-right text-xs text-slate-600">
       {code} {rev} ({date})
     </p>
   );

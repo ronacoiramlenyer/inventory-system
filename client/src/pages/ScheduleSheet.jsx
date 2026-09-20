@@ -4,8 +4,8 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
-import { padRows } from '../utils/padRows';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { padRows, paginatePrintRows } from '../utils/padRows';
 
 const MIN_ROWS = 10;
 
@@ -299,28 +299,17 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
       )}
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
-        <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">{formTitle}</h2>
-          <p className="text-sm text-slate-500 mb-3 print:hidden">
+        <div className="p-6 print:hidden">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">{formTitle}</h2>
+          <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
           {/* table-fixed + an explicit colgroup -- without it, the natural
               (auto) table layout sizes columns off cell content, and with
               nine fairly wordy columns the table's true width ran wider
-              than the printable page. Anything past that edge (the Remarks
-              column, and the page-label span in PrintHeaderRow's colSpan
-              cell above it) got silently clipped off every printed page,
-              not just page 1. Pinning widths via <col> keeps the table
-              exactly page-width regardless of cell content.
-              print:text-xs -- at the normal text-sm size, several of these
-              narrow columns wrap their header label across 3-4 lines,
-              which makes the repeating header block itself so tall that
-              Chrome stops repeating it on pages after the first (the
-              header/footer would then only appear once, on page 1, and
-              everything printed below the fold on later pages, causing
-              the very "not persistent on every page" symptom reported). */}
-          <table className="w-full text-sm print:text-xs border-collapse table-fixed">
+              than its container. */}
+          <table className="w-full text-sm border-collapse table-fixed">
             <colgroup>
               <col className="w-[6%]" />
               <col className="w-[13%]" />
@@ -331,22 +320,9 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
               <col className="w-[10%]" />
               <col className="w-[10%]" />
               <col className="w-[15%]" />
-              <col className="w-[6%] no-print" />
+              <col className="w-[6%]" />
             </colgroup>
             <thead>
-              <PrintHeaderRow
-                pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)}
-                colSpan={9}
-              />
-              <PrintTitleRow
-                title={formTitle}
-                subtitle={
-                  <>
-                    <span className="font-semibold">Laboratory:</span> {lab.name}
-                  </>
-                }
-                colSpan={9}
-              />
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Item No.</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
@@ -365,7 +341,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                   Actual Date of {dateNoun}
                 </th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Remarks</th>
-                <th className="border border-slate-300 px-3 py-2 no-print w-24">&nbsp;</th>
+                <th className="border border-slate-300 px-3 py-2 w-24">&nbsp;</th>
               </tr>
             </thead>
             <tbody>
@@ -380,7 +356,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                   <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.scheduled_date}</td>
                   <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.actual_date}</td>
                   <td className="border border-slate-300 px-3 py-2">{row.remarks}</td>
-                  <td className="border border-slate-300 px-3 py-2 no-print text-center space-x-2">
+                  <td className="border border-slate-300 px-3 py-2 text-center space-x-2">
                     {!row.__blank && (
                       <>
                         <button onClick={() => startEdit(row)} className="text-slate-500 hover:text-slate-800 text-xs underline">
@@ -399,7 +375,82 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
               ))}
             </tbody>
           </table>
+        </div>
 
+        {/* Chrome has no way to tell a printed page its own page number, so
+            a single table relying on the browser's native page breaks can
+            never show a genuinely incrementing "Page 2 of N" -- every
+            repeating header row is the same element with the same text on
+            every page it lands on. Splitting the rows into fixed-size
+            chunks ourselves and rendering each chunk as its own <table>,
+            forced onto its own page, is the only way to give each page its
+            own correct label. */}
+        <div className="hidden print:block p-6">
+          {paginatePrintRows(rows, MIN_ROWS).map((pageRows, pageIndex, allPages) => (
+            <table
+              key={pageIndex}
+              className="w-full text-xs border-collapse table-fixed"
+              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
+            >
+              <colgroup>
+                <col className="w-[7%]" />
+                <col className="w-[13%]" />
+                <col className="w-[11%]" />
+                <col className="w-[10%]" />
+                <col className="w-[11%]" />
+                <col className="w-[9%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+                <col className="w-[17%]" />
+              </colgroup>
+              <thead>
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={9} />
+                <PrintTitleRow
+                  title={formTitle}
+                  subtitle={
+                    <>
+                      <span className="font-semibold">Laboratory:</span> {lab.name}
+                    </>
+                  }
+                  colSpan={9}
+                />
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Item No.</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
+                    Equipment Name & Description
+                  </th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
+                    Equipment ID/Serial Number
+                  </th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Frequency</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Department</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Location</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
+                    Scheduled Date of {dateNoun}
+                  </th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
+                    Actual Date of {dateNoun}
+                  </th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((row, i) => (
+                  <tr key={row.id}>
+                    <td className="border border-slate-300 px-3 py-2">{pageIndex * MIN_ROWS + i + 1}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.equipment_name_description}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.serial_number}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.frequency}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.department}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.location}</td>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.scheduled_date}</td>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.actual_date}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.remarks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
           <PrintFooter code={code} date="04-01-25" />
         </div>
       </div>
