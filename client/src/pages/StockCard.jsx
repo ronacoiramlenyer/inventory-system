@@ -6,6 +6,7 @@ import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
+import EquipmentInstancesManager from '../components/EquipmentInstancesManager';
 
 // A printed page realistically fits ~10 rows of this table once the
 // browser's own print margins/header/footer are accounted for.
@@ -610,6 +611,21 @@ export default function StockCard() {
           <PrintFooter code="F-LAB-006" date="04-01-25" />
         </div>
       </div>
+
+      {item.category === 'Equipment' && (
+        <div className="bg-white border border-slate-300 rounded-xl overflow-hidden">
+          <div className="p-6">
+            <EquipmentInstancesManager
+              itemId={id}
+              itemName={item.item_name}
+              quantity={card.current_balance}
+              onInstancesCreated={() => {
+                // Instances created successfully
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
