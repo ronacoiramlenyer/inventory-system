@@ -54,7 +54,11 @@ export default function Layout() {
     navItems.push({ to: '/borrowing-requests', label: 'Borrowing Requests' });
   }
   navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
-  if (user?.role === 'secretary' || user?.role === 'admin') {
+  // Subject Coordinators approve Pending EWRs (same as they do for the
+  // other request types above) -- without a nav entry here, a coordinator
+  // had no way to even find a Pending EWR to approve, since it isn't
+  // scoped to a single laboratory the way the EMS list under each lab is.
+  if (user?.role === 'secretary' || user?.role === 'admin' || user?.role === 'subject_coordinator') {
     navItems.push({ to: '/work-requests', label: 'Equipment Work Requests', badge: notifCounts.filed_requests });
   }
   if (user?.role === 'admin') {

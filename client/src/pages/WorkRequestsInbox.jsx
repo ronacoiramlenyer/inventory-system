@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_STYLES = {
+  Pending: 'bg-amber-100 text-amber-700',
   Filed: 'bg-indigo-100 text-indigo-700',
   'In Progress': 'bg-sky-100 text-sky-700',
   Completed: 'bg-emerald-100 text-emerald-700',
@@ -10,15 +12,23 @@ const STATUS_STYLES = {
 };
 
 export default function WorkRequestsInbox() {
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
     api.get('/work-requests').then((res) => setRequests(res.data));
   }, []);
 
+  // A Secretary only ever sees Filed-or-later requests (the backend itself
+  // excludes Pending for that role), so the page really is just "filed"
+  // ones for her. A Subject Coordinator/admin gets everything back, Pending
+  // included -- that's the whole point, since Pending is exactly what
+  // needs their approval -- so the heading shouldn't call it "Filed" only.
+  const heading = user.role === 'secretary' ? 'Filed Equipment Work Requests' : 'Equipment Work Requests';
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-800">Filed Equipment Work Requests</h1>
+      <h1 className="text-2xl font-bold text-slate-800">{heading}</h1>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
