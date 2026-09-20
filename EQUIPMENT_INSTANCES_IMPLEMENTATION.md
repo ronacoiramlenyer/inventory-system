@@ -269,7 +269,33 @@ Location: Lab Room 201
 ### All Units Print
 TBD - Design needed for printing multiple units in one document
 
-## Testing Checklist
+## Completed Implementation
+
+### API Endpoints ✓
+- [x] POST /api/equipment-instances/bulk - Create 5 instances
+- [x] GET /api/equipment-instances/item/:id - List returns 5 instances
+- [x] POST /api/equipment-instances/:id/logs - Add log to instance
+- [x] GET /api/equipment-instances/:id/logs - Retrieve logs for instance
+- [x] DELETE /api/equipment-instances/:id - Remove instance
+- [x] PUT /api/equipment-instances/:id - Update instance
+- [x] GET /api/equipment-instances/migration-status - Check orphaned logs
+- [x] POST /api/equipment-instances/:instanceId/adopt-logs/:itemId - Auto-migrate logs
+
+### Frontend Components ✓
+- [x] EquipmentMonitoringRecord.jsx - Updated to show instance selector
+- [x] EquipmentInstancesManager.jsx - Bulk create and manage instances with status
+- [x] EquipmentLogsMigrationHelper.jsx - Migrate existing logs to instances
+- [x] Stock Card integration - EquipmentInstancesManager visible for Equipment items
+
+### Workflows ✓
+- [x] Receive 5 equipment units → Create 5 instances in Stock Card
+- [x] Record maintenance → Log appears for correct unit only in EMR
+- [x] Delete unit → Logs preserved
+- [x] Update unit status → Reflected in EMR page and instances list
+- [x] Migrate existing logs → Auto-link to instances via migration helper
+- [x] Click status badge → Edit status inline
+
+## Testing Checklist (in progress)
 
 ### API Endpoints
 - [ ] POST /api/equipment-instances/bulk - Create 5 instances
@@ -278,20 +304,52 @@ TBD - Design needed for printing multiple units in one document
 - [ ] GET /api/equipment-instances/:id/logs - Retrieve logs for instance
 - [ ] DELETE /api/equipment-instances/:id - Remove instance
 - [ ] PUT /api/equipment-instances/:id - Update instance
+- [ ] POST /api/equipment-instances/:instanceId/adopt-logs/:itemId - Migrate logs
 
 ### Frontend Pages
+- [ ] Stock Card page displays EquipmentInstancesManager for Equipment items
 - [ ] EMR page loads without errors
 - [ ] Dropdown shows all instances for an item
 - [ ] Selecting instance loads correct logs
 - [ ] Adding log creates entry for selected instance
-- [ ] Printing works correctly
+- [ ] Status badges are clickable and editable
+- [ ] Migration helper appears when logs exist
+- [ ] Printing works correctly for EMR
 - [ ] EquipmentInstancesManager creates multiple units
 
 ### Workflows
-- [ ] Receive 5 equipment units → Create 5 instances
+- [ ] Receive 5 equipment units → Create 5 instances in Stock Card
 - [ ] Record maintenance → Log appears for correct unit only
-- [ ] Delete unit → Logs preserved (cascade delete)
-- [ ] Update unit status → Reflected in EMR page
+- [ ] Delete unit → Unit removed, logs preserved
+- [ ] Update unit status → Reflected in EMR page immediately
+- [ ] Migrate existing logs → Helper successfully links logs to instance
+
+## Remaining Integrations
+
+### Work Request System (F-LAB-004) - TODO
+When work request system is ready to integrate:
+
+```javascript
+// Work request table needs:
+// - equipment_instance_id (FK → equipment_instances)
+// - Keep equipment_item_id for reference to item type
+
+// WorkRequest form changes:
+// 1. When equipment_item_id selected, load instances via GET /equipment-instances/item/:id
+// 2. Show instance dropdown: "SN: 123 • Location: Lab A • Status: Active"
+// 3. Store equipment_instance_id in request
+// 4. Prevent duplicate requests to same instance (check existing requests)
+// 5. Display instance details in request view
+
+// WorkRequestDetail.jsx updates:
+// - Show "Requesting maintenance for: [Item Name] - Serial #[SN]"
+// - When work is completed, optionally auto-create equipment_log entry
+```
+
+### Maintenance Schedule Integration (F-LAB-002/003) - TODO
+- Link scheduled maintenance entries to specific equipment instances
+- When completing scheduled maintenance, show instance selector
+- Auto-create equipment_log for the selected instance
 
 ## Future Enhancements
 
@@ -307,17 +365,17 @@ TBD - Design needed for printing multiple units in one document
    - Workflow to decommission units
    - Document why/when unit was removed
 
-4. **Integration with Work Requests**
-   - Auto-link work request to equipment instance
-   - Prevent duplicate requests for same unit
-
-5. **QR Code Labels**
+4. **QR Code Labels**
    - Generate QR codes for each instance's detail page
    - Print labels for physical equipment
 
-6. **Asset Tracking**
+5. **Asset Tracking**
    - Geolocation history
    - Cross-lab equipment sharing
+
+6. **Multi-Unit Printing**
+   - Design for printing all units in one document
+   - Batch EMR export
 
 ## Support
 
