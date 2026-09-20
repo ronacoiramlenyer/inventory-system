@@ -35,7 +35,7 @@ export default function EquipmentMonitoringRecord() {
   }
 
   useEffect(() => {
-    api.get(`/equipment/${id}`).then((res) => setItem(res.data));
+    api.get(`/items/${id}`).then((res) => setItem(res.data));
     loadLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -65,7 +65,7 @@ export default function EquipmentMonitoringRecord() {
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
         <Link
-          to={`/laboratories/${item.laboratory_id}/equipment`}
+          to={`/laboratories/${item.laboratory_id}/stock-cards`}
           className="text-sm text-slate-500 hover:text-slate-800"
         >
           ← Back to {item.laboratory_name}
@@ -204,7 +204,7 @@ export default function EquipmentMonitoringRecord() {
                   Equipment Name &amp; Description:
                 </td>
                 <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
-                  {item.name_description}
+                  {item.item_name}
                 </td>
               </tr>
               <tr>
