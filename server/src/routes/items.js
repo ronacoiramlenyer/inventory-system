@@ -60,7 +60,7 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes } =
+  const { laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, serial_number, location } =
     req.body || {};
   if (!laboratory_id || !item_name || !unit_of_measure) {
     return res
@@ -76,8 +76,8 @@ router.post('/', (req, res) => {
   try {
     const result = db
       .prepare(
-        `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes, serial_number, location)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         laboratory_id,
@@ -86,7 +86,9 @@ router.post('/', (req, res) => {
         unit_of_measure.trim(),
         Number(initial_balance) || 0,
         Number(reorder_level) || 0,
-        notes?.trim() || null
+        notes?.trim() || null,
+        serial_number?.trim() || null,
+        location?.trim() || null
       );
     res.status(201).json(db.prepare(ITEM_SELECT + ' WHERE i.id = ?').get(result.lastInsertRowid));
   } catch (err) {
@@ -104,7 +106,7 @@ router.put('/:id', (req, res) => {
     return res.status(403).json({ error: 'You do not have access to this item' });
   }
 
-  const { item_name, category, unit_of_measure, reorder_level, notes, laboratory_id } = req.body || {};
+  const { item_name, category, unit_of_measure, reorder_level, notes, laboratory_id, serial_number, location } = req.body || {};
   let targetLabId = existing.laboratory_id;
   if (laboratory_id && Number(laboratory_id) !== existing.laboratory_id) {
     const targetLab = db.prepare('SELECT * FROM laboratories WHERE id = ?').get(laboratory_id);
@@ -115,7 +117,7 @@ router.put('/:id', (req, res) => {
   }
 
   db.prepare(
-    `UPDATE items SET item_name = ?, category = ?, unit_of_measure = ?, reorder_level = ?, notes = ?, laboratory_id = ?
+    `UPDATE items SET item_name = ?, category = ?, unit_of_measure = ?, reorder_level = ?, notes = ?, laboratory_id = ?, serial_number = ?, location = ?
      WHERE id = ?`
   ).run(
     item_name?.trim() || existing.item_name,
@@ -124,6 +126,8 @@ router.put('/:id', (req, res) => {
     reorder_level !== undefined ? Number(reorder_level) : existing.reorder_level,
     notes?.trim() ?? existing.notes,
     targetLabId,
+    serial_number?.trim() ?? existing.serial_number,
+    location?.trim() ?? existing.location,
     req.params.id
   );
   res.json(db.prepare(ITEM_SELECT + ' WHERE i.id = ?').get(req.params.id));
