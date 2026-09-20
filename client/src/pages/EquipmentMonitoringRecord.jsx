@@ -92,12 +92,17 @@ export default function EquipmentMonitoringRecord() {
         >
           ← Back to {item.laboratory_name}
         </Link>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
           <p className="text-sm text-amber-900">
-            No equipment instances found for {item.item_name}.
-            <br />
-            Please add equipment units with serial numbers first.
+            No units recorded yet for {item.item_name}. Inventory counts this item in bulk, so each physical
+            unit has to be listed with its serial number before it can have its own service record.
           </p>
+          <Link
+            to={`/items/${item.id}`}
+            className="inline-block bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+          >
+            Add units on the Stock Card →
+          </Link>
         </div>
       </div>
     );
