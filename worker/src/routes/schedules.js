@@ -48,7 +48,10 @@ export function createScheduleRoutes(table, serviceType, scheduleLabel) {
 
     let sql = SELECT;
     if (clauses.length) sql += ' WHERE ' + clauses.join(' AND ');
-    sql += ' ORDER BY s.item_no';
+    // Latest date of service first -- SQLite treats NULL as lowest, so
+    // undated rows naturally sort to the end here rather than needing a
+    // separate NULLS LAST clause.
+    sql += ' ORDER BY s.scheduled_date DESC, s.id DESC';
 
     return c.json(await dbAll(c.env.DB, sql, ...params));
   });
