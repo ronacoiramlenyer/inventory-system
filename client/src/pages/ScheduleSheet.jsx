@@ -8,6 +8,29 @@ import { padRows } from '../utils/padRows';
 
 const MIN_ROWS = 10;
 
+// How many dated entries a fresh schedule generates for a full year at
+// each frequency -- picking "Monthly" for a new row creates 12 entries
+// spaced a month apart starting from the date entered, not just one.
+const FREQUENCY_COUNTS = {
+  Weekly: 52,
+  Monthly: 12,
+  Quarterly: 4,
+  'Semi-Annual': 2,
+  Annual: 1,
+};
+const FREQUENCY_OPTIONS = Object.keys(FREQUENCY_COUNTS);
+
+function occurrenceDate(baseDateStr, frequency, index) {
+  const d = new Date(`${baseDateStr}T00:00:00`);
+  if (frequency === 'Weekly') {
+    d.setDate(d.getDate() + index * 7);
+  } else {
+    const count = FREQUENCY_COUNTS[frequency] || 1;
+    d.setMonth(d.getMonth() + Math.round((index * 12) / count));
+  }
+  return d.toISOString().slice(0, 10);
+}
+
 const emptyForm = {
   equipment_item_id: '',
   equipment_name_description: '',
@@ -85,7 +108,22 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
       if (editingId) {
         await api.put(`/${apiBase}/${editingId}`, form);
       } else {
-        await api.post(`/${apiBase}`, { ...form, laboratory_id: id });
+        const count = FREQUENCY_COUNTS[form.frequency] || 1;
+        if (count > 1 && !form.scheduled_date) {
+          setError('Pick a starting date so the schedule can be generated.');
+          return;
+        }
+        await Promise.all(
+          Array.from({ length: count }, (_, i) =>
+            api.post(`/${apiBase}`, {
+              ...form,
+              laboratory_id: id,
+              scheduled_date: form.scheduled_date
+                ? occurrenceDate(form.scheduled_date, form.frequency, i)
+                : form.scheduled_date,
+            })
+          )
+        );
       }
       setShowForm(false);
       loadRows();
@@ -166,12 +204,21 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">Frequency</label>
-            <input
+            <select
+              required
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
               value={form.frequency}
               onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-              placeholder="e.g. Annual, Quarterly"
-            />
+            >
+              <option value="" disabled>
+                Select frequency…
+              </option>
+              {FREQUENCY_OPTIONS.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">Department</label>
@@ -197,13 +244,21 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">Scheduled Date of {dateNoun}</label>
+            <label className="block text-sm text-slate-600 mb-1">
+              {editingId ? `Scheduled Date of ${dateNoun}` : `First Scheduled Date of ${dateNoun}`}
+            </label>
             <input
               type="date"
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
               value={form.scheduled_date}
               onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })}
             />
+            {!editingId && form.frequency && FREQUENCY_COUNTS[form.frequency] > 1 && (
+              <p className="text-xs text-slate-400 mt-1">
+                Creates {FREQUENCY_COUNTS[form.frequency]} entries for the year, spaced by frequency starting from
+                this date.
+              </p>
+            )}
           </div>
           {editingId && (
             <div>
