@@ -4,7 +4,7 @@ import EquipmentLogsMigrationHelper from './EquipmentLogsMigrationHelper';
 
 const STATUS_OPTIONS = ['Active', 'In Storage', 'Under Repair', 'Retired', 'Loaned', 'Decommissioned'];
 
-export default function EquipmentInstancesManager({ itemId, itemName, quantity, onInstancesCreated }) {
+export default function EquipmentInstancesManager({ itemId, itemName, quantity, onInstancesChanged }) {
   const [instances, setInstances] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [instanceData, setInstanceData] = useState([]);
@@ -23,9 +23,12 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
       .catch(() => setInstances([]));
   }
 
+  // Prefill a row per unit the stock balance says is unaccounted for, but
+  // always offer at least one: the recorded quantity can lag what's
+  // physically on the shelf, and that shouldn't block listing a real unit.
   function initializeForm() {
     setInstanceData(
-      Array(Math.max(quantity - instances.length, 0))
+      Array(Math.max(quantity - instances.length, 1))
         .fill()
         .map(() => ({ serial_number: '', location: '', status: 'Active' }))
     );
@@ -63,7 +66,7 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
       setInstances((prev) => [...prev, ...res.data]);
       setShowForm(false);
       setInstanceData([]);
-      if (onInstancesCreated) onInstancesCreated(res.data);
+      onInstancesChanged?.();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create instances');
     } finally {
@@ -76,6 +79,7 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
     try {
       await api.delete(`/equipment-instances/${id}`);
       setInstances((prev) => prev.filter((inst) => inst.id !== id));
+      onInstancesChanged?.();
     } catch (err) {
       setError('Failed to delete instance');
     }
@@ -87,6 +91,7 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
       setInstances((prev) => prev.map((inst) => (inst.id === id ? updated.data : inst)));
       setEditingId(null);
       setEditStatus('');
+      onInstancesChanged?.();
     } catch (err) {
       setError('Failed to update status');
     }
@@ -101,8 +106,7 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
         </div>
         <button
           onClick={handleOpenForm}
-          disabled={instances.length >= quantity}
-          className="disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-2"
         >
           + Add Units
         </button>
@@ -192,7 +196,6 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
                   value={inst.serial_number}
                   onChange={(e) => handleInstanceChange(index, 'serial_number', e.target.value)}
                   className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  required
                 />
                 <input
                   type="text"

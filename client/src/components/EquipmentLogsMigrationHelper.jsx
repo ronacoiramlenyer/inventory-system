@@ -57,7 +57,9 @@ export default function EquipmentLogsMigrationHelper({ itemId, instances }) {
       <div>
         <h4 className="font-semibold text-amber-900">Migrate Existing Logs</h4>
         <p className="text-sm text-amber-700">
-          Found {orphanedLogs.length} log{orphanedLogs.length !== 1 ? 's' : ''} that need to be linked to an equipment instance.
+          {orphanedLogs.length === 1
+            ? 'One earlier entry was recorded against this item as a whole. Pick the unit it belongs to.'
+            : `${orphanedLogs.length} earlier entries were recorded against this item as a whole. Pick the unit they belong to.`}
         </p>
       </div>
 

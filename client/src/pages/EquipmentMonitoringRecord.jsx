@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
+import EquipmentInstancesManager from '../components/EquipmentInstancesManager';
 import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
 
@@ -28,6 +29,8 @@ export default function EquipmentMonitoringRecord() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(0);
+  const [showUnits, setShowUnits] = useState(false);
 
   const selectedInstance = instances.find((i) => i.id === selectedInstanceId);
 
@@ -35,15 +38,28 @@ export default function EquipmentMonitoringRecord() {
     Promise.all([
       api.get(`/items/${id}`),
       api.get(`/equipment-instances/item/${id}`),
-    ]).then(([itemRes, instancesRes]) => {
+      api.get(`/items/${id}/stock-card`),
+    ]).then(([itemRes, instancesRes, cardRes]) => {
       setItem(itemRes.data);
       setInstances(instancesRes.data);
+      setQuantity(cardRes.data.current_balance ?? 0);
       if (instancesRes.data.length > 0) {
         setSelectedInstanceId(instancesRes.data[0].id);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [id]);
+
+  // The units list drives the picker below, so re-read it whenever the
+  // manager adds or removes one.
+  function reloadInstances() {
+    api.get(`/equipment-instances/item/${id}`).then((res) => {
+      setInstances(res.data);
+      setSelectedInstanceId((current) =>
+        res.data.some((i) => i.id === current) ? current : (res.data[0]?.id ?? null)
+      );
+    });
+  }
 
   useEffect(() => {
     if (!selectedInstanceId) return;
@@ -92,17 +108,23 @@ export default function EquipmentMonitoringRecord() {
         >
           ← Back to {item.laboratory_name}
         </Link>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
+        <LabFormTabs laboratoryId={item.laboratory_id} active="equipment-monitoring-record" />
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <p className="text-sm text-amber-900">
-            No units recorded yet for {item.item_name}. Inventory counts this item in bulk, so each physical
-            unit has to be listed with its serial number before it can have its own service record.
+            No units recorded yet for {item.item_name}. Inventory counts this item in bulk
+            {quantity ? ` (${quantity} on hand)` : ''}, so list each physical unit with its serial number
+            below — every unit then keeps its own service record.
           </p>
-          <Link
-            to={`/items/${item.id}`}
-            className="inline-block bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg px-4 py-2"
-          >
-            Add units on the Stock Card →
-          </Link>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <EquipmentInstancesManager
+            itemId={id}
+            itemName={item.item_name}
+            quantity={quantity}
+            onInstancesChanged={reloadInstances}
+          />
         </div>
       </div>
     );
@@ -138,9 +160,18 @@ export default function EquipmentMonitoringRecord() {
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
-      {/* Equipment Units Selector */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 no-print">
-        <label className="block text-sm font-medium text-slate-700 mb-2">Select Equipment Unit</label>
+      <div className="bg-white border border-slate-200 rounded-xl p-4 no-print space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <label className="block text-sm font-medium text-slate-700">
+            Select Equipment Unit ({instances.length} of {quantity || instances.length} recorded)
+          </label>
+          <button
+            onClick={() => setShowUnits((s) => !s)}
+            className="shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+          >
+            {showUnits ? 'Done' : 'Manage units'}
+          </button>
+        </div>
         <select
           value={selectedInstanceId || ''}
           onChange={(e) => setSelectedInstanceId(Number(e.target.value))}
@@ -152,6 +183,17 @@ export default function EquipmentMonitoringRecord() {
             </option>
           ))}
         </select>
+
+        {showUnits && (
+          <div className="border-t border-slate-200 pt-4">
+            <EquipmentInstancesManager
+              itemId={id}
+              itemName={item.item_name}
+              quantity={quantity}
+              onInstancesChanged={reloadInstances}
+            />
+          </div>
+        )}
       </div>
 
       {showForm && selectedInstance && (
