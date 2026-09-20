@@ -94,8 +94,6 @@ export default function InventoryCountDetail() {
         item_no: rs.length + 1,
         description: '',
         category: '',
-        serial_number: '',
-        location: '',
         unit: defaultUnit,
         quantity_recorded: 0,
         quantity_actual: '',
@@ -146,8 +144,6 @@ export default function InventoryCountDetail() {
           quantity_actual: r.quantity_actual,
           remarks: r.remarks,
           category: r.category,
-          serial_number: r.serial_number,
-          location: r.location,
         })),
       });
       if (data.errors?.length) {
@@ -431,22 +427,6 @@ export default function InventoryCountDetail() {
                               </option>
                             ))}
                           </select>
-                          {row.category === 'Equipment' && (
-                            <div className="grid grid-cols-2 gap-1">
-                              <input
-                                className="border border-slate-300 rounded px-2 py-1 text-xs"
-                                placeholder="Serial No."
-                                value={row.serial_number}
-                                onChange={(e) => updateRow(key, 'serial_number', e.target.value)}
-                              />
-                              <input
-                                className="border border-slate-300 rounded px-2 py-1 text-xs"
-                                placeholder="Location"
-                                value={row.location}
-                                onChange={(e) => updateRow(key, 'location', e.target.value)}
-                              />
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <Link to={`/items/${row.item_id}`} className="text-emerald-700 hover:underline no-print">
