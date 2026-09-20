@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { dbAll, dbGet, dbRun } from '../db/helpers.js';
+import { dbAll, dbGet, dbRun, clearEquipmentLinks } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
 
 // F-LAB-001 Equipment Monitoring Record: equipment is just an `items` row
@@ -89,6 +89,7 @@ equipment.delete('/:id', async (c) => {
   if (!userCanAccessEquipment(user, existing)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
+  await clearEquipmentLinks(c.env.DB, id);
   await dbRun(c.env.DB, 'DELETE FROM items WHERE id = ?', id);
   return c.body(null, 204);
 });

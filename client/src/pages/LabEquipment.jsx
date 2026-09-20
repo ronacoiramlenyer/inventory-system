@@ -23,8 +23,13 @@ export default function LabEquipment() {
 
   async function handleDelete(equipmentId) {
     if (!(await confirmDialog('Delete this equipment and its monitoring record?'))) return;
-    await api.delete(`/equipment/${equipmentId}`);
-    loadEquipment();
+    setError('');
+    try {
+      await api.delete(`/equipment/${equipmentId}`);
+      loadEquipment();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete equipment');
+    }
   }
 
   if (!lab) return <p className="text-slate-500">Loading…</p>;

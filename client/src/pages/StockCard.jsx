@@ -147,8 +147,13 @@ export default function StockCard() {
       !(await confirmDialog(`Delete "${card.item.item_name}" and its entire stock card history? This cannot be undone.`))
     )
       return;
-    await api.delete(`/items/${id}`);
-    navigate(`/laboratories/${card.item.laboratory_id}/stock-cards`);
+    setError('');
+    try {
+      await api.delete(`/items/${id}`);
+      navigate(`/laboratories/${card.item.laboratory_id}/stock-cards`);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete item');
+    }
   }
 
   if (!card) return <p className="text-slate-500">Loading…</p>;

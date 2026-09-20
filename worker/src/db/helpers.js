@@ -11,3 +11,16 @@ export async function dbRun(db, sql, ...params) {
   const res = await db.prepare(sql).bind(...params).run();
   return { lastInsertRowid: res.meta.last_row_id, changes: res.meta.changes };
 }
+
+// maintenance_schedule_items/calibration_schedule_items/work_requests all
+// reference items(id) via equipment_item_id with no ON DELETE action, so
+// deleting an item those rows point to hits a foreign-key constraint and
+// fails outright -- the item just sits there looking "stuck" with no
+// error surfaced. Unlinking first (the schedule/request rows themselves
+// are history and should stay) lets the delete go through, matching how
+// equipment_logs already cascades on delete.
+export async function clearEquipmentLinks(db, itemId) {
+  await dbRun(db, 'UPDATE maintenance_schedule_items SET equipment_item_id = NULL WHERE equipment_item_id = ?', itemId);
+  await dbRun(db, 'UPDATE calibration_schedule_items SET equipment_item_id = NULL WHERE equipment_item_id = ?', itemId);
+  await dbRun(db, 'UPDATE work_requests SET equipment_item_id = NULL WHERE equipment_item_id = ?', itemId);
+}

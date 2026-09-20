@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { dbAll, dbGet, dbRun } from '../db/helpers.js';
+import { dbAll, dbGet, dbRun, clearEquipmentLinks } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const items = new Hono();
@@ -118,6 +118,7 @@ items.delete('/:id', async (c) => {
   }
   const existing = await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', id);
   if (!existing) return c.json({ error: 'Item not found' }, 404);
+  await clearEquipmentLinks(c.env.DB, id);
   await dbRun(c.env.DB, 'DELETE FROM items WHERE id = ?', id);
   return c.body(null, 204);
 });
