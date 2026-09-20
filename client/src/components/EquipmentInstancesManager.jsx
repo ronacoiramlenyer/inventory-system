@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 
+const STATUS_OPTIONS = ['Active', 'In Storage', 'Under Repair', 'Retired', 'Loaned', 'Decommissioned'];
+
 export default function EquipmentInstancesManager({ itemId, itemName, quantity, onInstancesCreated }) {
   const [instances, setInstances] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [instanceData, setInstanceData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editStatus, setEditStatus] = useState('');
 
   useEffect(() => {
     loadInstances();
@@ -22,7 +26,7 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
     setInstanceData(
       Array(Math.max(quantity - instances.length, 0))
         .fill()
-        .map(() => ({ serial_number: '', location: '' }))
+        .map(() => ({ serial_number: '', location: '', status: 'Active' }))
     );
   }
 
@@ -76,6 +80,17 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
     }
   }
 
+  async function handleUpdateStatus(id, newStatus) {
+    try {
+      const updated = await api.put(`/equipment-instances/${id}`, { status: newStatus });
+      setInstances((prev) => prev.map((inst) => (inst.id === id ? updated.data : inst)));
+      setEditingId(null);
+      setEditStatus('');
+    } catch (err) {
+      setError('Failed to update status');
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -115,9 +130,37 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
                   <td className="px-4 py-2">{inst.serial_number}</td>
                   <td className="px-4 py-2 text-slate-600">{inst.location || '—'}</td>
                   <td className="px-4 py-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {inst.status || 'Active'}
-                    </span>
+                    {editingId === inst.id ? (
+                      <select
+                        value={editStatus}
+                        onChange={(e) => setEditStatus(e.target.value)}
+                        className="text-xs border border-slate-300 rounded px-2 py-1"
+                        onBlur={() => {
+                          if (editStatus && editStatus !== (inst.status || 'Active')) {
+                            handleUpdateStatus(inst.id, editStatus);
+                          } else {
+                            setEditingId(null);
+                            setEditStatus('');
+                          }
+                        }}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        onClick={() => {
+                          setEditingId(inst.id);
+                          setEditStatus(inst.status || 'Active');
+                        }}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 cursor-pointer hover:bg-green-200"
+                      >
+                        {inst.status || 'Active'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-right">
                     <button
@@ -155,6 +198,17 @@ export default function EquipmentInstancesManager({ itemId, itemName, quantity, 
                   onChange={(e) => handleInstanceChange(index, 'location', e.target.value)}
                   className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
                 />
+                <select
+                  value={inst.status || 'Active'}
+                  onChange={(e) => handleInstanceChange(index, 'status', e.target.value)}
+                  className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
               </div>
             ))}
           </div>
