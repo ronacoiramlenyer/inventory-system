@@ -199,8 +199,6 @@ export default function InventoryCountDetail() {
             item_no: next.length + 1,
             description: found.description,
             category: '',
-            serial_number: '',
-            location: '',
             unit: found.unit ? String(found.unit).trim() : defaultUnit,
             quantity_recorded: 0,
             quantity_actual: found.actual ?? '',
