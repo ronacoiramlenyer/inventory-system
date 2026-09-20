@@ -36,8 +36,6 @@ function emptyEditForm(item) {
     unit_of_measure: item.unit_of_measure,
     reorder_level: item.reorder_level,
     notes: item.notes || '',
-    serial_number: item.serial_number || '',
-    location: item.location || '',
   };
 }
 
@@ -276,26 +274,6 @@ export default function StockCard() {
               onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
             />
           </div>
-          {editForm.category === 'Equipment' && (
-            <>
-              <div>
-                <label className="block text-sm text-slate-600 mb-1">Serial Number</label>
-                <input
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  value={editForm.serial_number}
-                  onChange={(e) => setEditForm({ ...editForm, serial_number: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-600 mb-1">Location</label>
-                <input
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  value={editForm.location}
-                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                />
-              </div>
-            </>
-          )}
           <div className="col-span-full flex gap-2">
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
               Save Changes
