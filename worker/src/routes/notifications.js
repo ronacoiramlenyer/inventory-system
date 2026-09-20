@@ -63,7 +63,11 @@ notifications.get('/summary', async (c) => {
   const canCompleteWork = user.role === 'staff';
 
   if (!canApprove && !canManageFiled && !canCompleteWork) {
-    return c.json({ other_requests: 0, filed_requests: 0 });
+    return c.json({
+      other_requests: 0,
+      filed_requests: 0,
+      other_requests_by_type: { bookstore: 0, supplies: 0, bgu: 0 },
+    });
   }
 
   const [workRequests, bookstore, supplies, bgu] = await Promise.all([
@@ -81,7 +85,18 @@ notifications.get('/summary', async (c) => {
     (canManageFiled ? workRequests.filed : 0) +
     (canCompleteWork ? workRequests.inProgress : 0);
 
-  return c.json({ other_requests: otherRequests, filed_requests: filedRequests });
+  // Per-type breakdown so the "Other Requests" tabs (Bookstore/Supplies/BGU)
+  // can each show their own badge instead of one combined number on the
+  // parent nav item, which didn't say which request type actually needs
+  // attention.
+  const countFor = (t) => (canApprove ? t.pending : 0) + (canManageFiled ? t.filed : 0);
+  const other_requests_by_type = {
+    bookstore: countFor(bookstore),
+    supplies: countFor(supplies),
+    bgu: countFor(bgu),
+  };
+
+  return c.json({ other_requests: otherRequests, filed_requests: filedRequests, other_requests_by_type });
 });
 
 export default notifications;

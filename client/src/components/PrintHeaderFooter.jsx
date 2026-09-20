@@ -46,11 +46,20 @@ export function PrintHeader({ pageLabel = 'Page 1 of 1' }) {
 export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
   return (
     <tr className="hidden print:table-row">
-      <th colSpan={colSpan} className="p-0 border-0 font-normal pb-3">
+      {/* h-8 + pb-1, down from h-14 + pb-3 -- on a multi-page table printed
+          Landscape, the page is only 8.5in tall instead of 11in, so this
+          repeating block ate close to a third of the physical page. Past
+          some threshold Chrome just stops repeating a <thead> that tall on
+          pages after the first, instead of shrinking it -- so the header
+          silently vanished from page 2 on Landscape printouts specifically
+          (Portrait had enough headroom to mask the same issue). Shrinking
+          the whole header/title/column-row block keeps it well clear of
+          that threshold regardless of orientation. */}
+      <th colSpan={colSpan} className="p-0 border-0 font-normal pb-1">
         <div className="print:grid grid-cols-3 items-center w-full">
           <span />
-          <img src="/lsgh-logo.png" alt="La Salle Green Hills" className="h-14 w-auto justify-self-center" />
-          <span className="italic text-sm text-slate-700 justify-self-end">{pageLabel}</span>
+          <img src="/lsgh-logo.png" alt="La Salle Green Hills" className="h-8 w-auto justify-self-center" />
+          <span className="italic text-xs text-slate-700 justify-self-end">{pageLabel}</span>
         </div>
       </th>
     </tr>
@@ -67,9 +76,9 @@ export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
 export function PrintTitleRow({ title, subtitle, colSpan, center = false }) {
   return (
     <tr className="hidden print:table-row">
-      <th colSpan={colSpan} className={`p-0 border-0 font-normal pb-4 ${center ? 'text-center' : 'text-left'}`}>
-        <div className="text-lg font-bold text-slate-800">{title}</div>
-        {subtitle && <div className="text-sm font-normal text-slate-800 mt-1">{subtitle}</div>}
+      <th colSpan={colSpan} className={`p-0 border-0 font-normal pb-1 ${center ? 'text-center' : 'text-left'}`}>
+        <div className="text-base font-bold text-slate-800">{title}</div>
+        {subtitle && <div className="text-xs font-normal text-slate-800">{subtitle}</div>}
       </th>
     </tr>
   );
