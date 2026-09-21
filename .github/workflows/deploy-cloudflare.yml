@@ -36,7 +36,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler d1 execute inventory-system-db --remote --file=./migrations/0000_reset_database.sql || true
+          npx wrangler d1 execute inventory-system-db --remote --command "PRAGMA foreign_keys = OFF; DELETE FROM secretary_departments; DELETE FROM work_requests; DELETE FROM bookstore_requisitions; DELETE FROM supplies_requisitions; DELETE FROM bgu_job_requests; DELETE FROM borrowing_requests; DELETE FROM equipment_logs; DELETE FROM inventory_count_items; DELETE FROM inventory_counts; DELETE FROM transactions; DELETE FROM items; DELETE FROM users; DELETE FROM laboratories; DELETE FROM departments; DELETE FROM sqlite_sequence; PRAGMA foreign_keys = ON;" || true
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE maintenance_schedule_items ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE calibration_schedule_items ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE work_requests ADD COLUMN equipment_item_id INTEGER REFERENCES items(id);" || true
