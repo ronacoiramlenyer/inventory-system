@@ -104,13 +104,28 @@ CREATE TABLE IF NOT EXISTS inventory_count_items (
 CREATE INDEX IF NOT EXISTS idx_inv_counts_lab ON inventory_counts(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(inventory_count_id);
 
+-- F-LAB-001 Equipment Registry: disaggregated equipment instances by serial number.
+-- One inventory item (e.g., "Microscope") can have multiple equipment_records rows
+-- (one per physical unit, each with its own serial number). This is the authoritative
+-- source for what equipment exists and what serial numbers they have.
+CREATE TABLE IF NOT EXISTS equipment_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE, -- the inventory item
+  serial_number TEXT NOT NULL,      -- specific serial number for this physical unit
+  location TEXT,                    -- where this equipment is located
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(laboratory_id, item_id, serial_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_equipment_records_lab ON equipment_records(laboratory_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_records_item ON equipment_records(item_id);
+
 -- F-LAB-001 Equipment Monitoring Record: a service/maintenance log against
--- an `items` row whose category = "Equipment" -- equipment is just an item
--- category, not a separate registry, so it shows up in the regular
--- Inventory list too.
+-- an equipment_records row (a specific physical unit with a serial number).
 CREATE TABLE IF NOT EXISTS equipment_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  equipment_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  equipment_record_id INTEGER NOT NULL REFERENCES equipment_records(id) ON DELETE CASCADE,
   entry_date TEXT NOT NULL,         -- YYYY-MM-DD
   service_performed TEXT NOT NULL,  -- e.g. "Preventive", "Repair", "Calibration"
   request_id TEXT,                  -- reference to an F-LAB-004 Equipment Work Request (free text for now)
@@ -120,7 +135,7 @@ CREATE TABLE IF NOT EXISTS equipment_logs (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_logs_record ON equipment_logs(equipment_record_id);
 
 -- F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
 -- Calibration Schedule are identically shaped per-lab schedules, kept as
@@ -129,17 +144,9 @@ CREATE TABLE IF NOT EXISTS maintenance_schedule_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   item_no INTEGER NOT NULL,
-  equipment_name_description TEXT NOT NULL,
-  -- The equipment picked from the dropdown, if any -- lets completing this
-  -- row (actual_date filled in) auto-log an entry on that equipment's own
-  -- F-LAB-001 Equipment Monitoring Record. NULL for rows saved before this
-  -- column existed, or if the free-text description doesn't match an
-  -- Inventory item.
-  equipment_item_id INTEGER REFERENCES items(id),
-  serial_number TEXT,
+  equipment_record_id INTEGER REFERENCES equipment_records(id), -- specific equipment unit with serial number
   frequency TEXT,
   department TEXT,
-  location TEXT,
   scheduled_date TEXT,
   actual_date TEXT,
   remarks TEXT,
@@ -150,13 +157,9 @@ CREATE TABLE IF NOT EXISTS calibration_schedule_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   item_no INTEGER NOT NULL,
-  equipment_name_description TEXT NOT NULL,
-  -- Same idea as maintenance_schedule_items.equipment_item_id.
-  equipment_item_id INTEGER REFERENCES items(id),
-  serial_number TEXT,
+  equipment_record_id INTEGER REFERENCES equipment_records(id), -- specific equipment unit with serial number
   frequency TEXT,
   department TEXT,
-  location TEXT,
   scheduled_date TEXT,
   actual_date TEXT,
   remarks TEXT,
@@ -173,12 +176,9 @@ CREATE TABLE IF NOT EXISTS work_requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   request_no TEXT NOT NULL UNIQUE,  -- EWR-YYYY-###, auto-generated
-  equipment_name_description TEXT NOT NULL,
-  -- The equipment picked from the dropdown, if any -- lets completing this
-  -- request auto-log an entry on that equipment's own F-LAB-001 Equipment
-  -- Monitoring Record. NULL for rows saved before this column existed.
-  equipment_item_id INTEGER REFERENCES items(id),
-  serial_number TEXT,
+  -- Specific equipment unit (with serial number already defined).
+  -- Links to an equipment_records row, which brings equipment name/SN via items.
+  equipment_record_id INTEGER REFERENCES equipment_records(id),
   date_requested TEXT NOT NULL,     -- YYYY-MM-DD
   date_needed TEXT,
   nature_of_request TEXT,           -- "Preventive" | "Repair" | "Calibration"
