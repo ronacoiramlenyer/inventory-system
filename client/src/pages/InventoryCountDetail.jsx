@@ -5,7 +5,7 @@ import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import ProgressBar, { useProgress } from '../components/ProgressBar';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
 import { paginatePrintRows } from '../utils/padRows';
 
 const normalize = (s) => String(s ?? '').trim().toLowerCase();
@@ -606,6 +606,7 @@ export default function InventoryCountDetail() {
             number -- see paginatePrintRows for why the browser cannot give
             us one from a single long table. */}
         <div className="hidden print:block p-6">
+          <PrintOrientation landscape />
           {paginatePrintRows(rows, PRINT_ROWS_PER_PAGE).map((pageRows, pageIndex, allPages) => (
             <table
               key={pageIndex}

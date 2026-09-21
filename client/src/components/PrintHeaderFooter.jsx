@@ -83,3 +83,15 @@ export function PrintFooter({ code, date, rev = 'Rev. 0' }) {
     </p>
   );
 }
+
+// Declares the paper orientation this form is meant to print on, so the
+// print dialog opens already set correctly instead of relying on whoever
+// hits Print to know that the wide log sheets are landscape. Only the
+// orientation is set, never a paper name -- the sheet in the tray (Letter
+// here, A4 elsewhere) stays the person's choice.
+//
+// @page is document-level, which is fine because exactly one form page is
+// mounted at a time; React drops the rule again on unmount.
+export function PrintOrientation({ landscape = false }) {
+  return <style>{`@page { size: ${landscape ? 'landscape' : 'portrait'}; }`}</style>;
+}

@@ -4,7 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
 import { padRows, paginatePrintRows } from '../utils/padRows';
 
 const MIN_ROWS = 10;
@@ -401,6 +401,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
             forced onto its own page, is the only way to give each page its
             own correct label. */}
         <div className="hidden print:block p-6">
+          <PrintOrientation landscape />
           {paginatePrintRows(rows, MIN_ROWS).map((pageRows, pageIndex, allPages) => (
             <table
               key={pageIndex}

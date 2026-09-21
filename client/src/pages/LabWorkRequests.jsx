@@ -4,7 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
 import { padRows, paginatePrintRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
@@ -175,6 +175,7 @@ export default function LabWorkRequests() {
             number -- see paginatePrintRows for why the browser cannot give
             us one from a single long table. */}
         <div className="hidden print:block p-6">
+          <PrintOrientation landscape />
           {paginatePrintRows(requests, MIN_ROWS).map((pageRows, pageIndex, allPages) => (
             <table
               key={pageIndex}
