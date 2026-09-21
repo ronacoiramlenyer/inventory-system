@@ -33,8 +33,24 @@ export default function NewWorkRequest() {
 
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
-    api.get('/items', { params: { laboratory_id: id, category: 'Equipment' } }).then((res) => setEquipmentItems(res.data));
-  }, [id]);
+    api.get('/items', { params: { laboratory_id: id, category: 'Equipment' } }).then((res) => {
+      setEquipmentItems(res.data);
+      // Auto-match equipment by name if equipment_item_id is empty but
+      // equipment_name_description is pre-filled from pending schedule sidebar
+      const prefilledName = searchParams.get('equipment_name_description');
+      const prefilledItemId = searchParams.get('equipment_item_id');
+      if (prefilledName && !prefilledItemId) {
+        const matched = res.data.find((it) => it.item_name === prefilledName);
+        if (matched) {
+          setForm((f) => ({
+            ...f,
+            equipment_item_id: String(matched.id),
+            serial_number: matched.serial_number || f.serial_number,
+          }));
+        }
+      }
+    });
+  }, [id, searchParams]);
 
   function selectEquipment(itemId) {
     const picked = equipmentItems.find((it) => String(it.id) === itemId);
