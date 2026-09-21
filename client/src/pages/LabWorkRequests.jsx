@@ -79,48 +79,9 @@ export default function LabWorkRequests() {
 
       <LabFormTabs laboratoryId={id} active="equipment-monitoring-sheet" />
 
-      {/* Maintenance/calibration due from PMS or ECS doesn't become an
-          actual, sendable request on its own -- it shows up here (as soon
-          as it's declared, however far off the date) until someone files
-          it as a real EWR below. Ad-hoc Repair requests skip this list
-          entirely and go straight through "+ New Request". */}
-      {(user.role === 'staff' || user.role === 'admin') && pendingSchedule.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 no-print">
-          <h3 className="text-sm font-semibold text-amber-800 mb-2">
-            Due from Schedule (PMS/ECS) — not yet filed as an EWR
-          </h3>
-          <div className="space-y-2">
-            {pendingSchedule.map((s) => (
-              <div
-                key={`${s.source_type}-${s.id}`}
-                className="flex items-center justify-between gap-3 bg-white rounded-lg border border-amber-100 px-3 py-2 text-sm"
-              >
-                <div>
-                  <span className="font-medium text-slate-800">{s.equipment_name_description}</span>{' '}
-                  <span className="text-slate-500">
-                    — {s.source_type === 'PMS' ? 'Preventive Maintenance' : 'Calibration'}
-                    {s.scheduled_date ? ` due ${s.scheduled_date}` : ' (no date set)'}
-                  </span>
-                </div>
-                <Link
-                  to={`/laboratories/${id}/work-requests/new?${new URLSearchParams({
-                    source_type: s.source_type,
-                    source_schedule_id: s.id,
-                    equipment_item_id: s.equipment_item_id || '',
-                    equipment_name_description: s.equipment_name_description || '',
-                    serial_number: s.serial_number || '',
-                    nature_of_request: s.source_type === 'PMS' ? 'Preventive' : 'Calibration',
-                    date_needed: s.scheduled_date || '',
-                  }).toString()}`}
-                  className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg px-3 py-1.5"
-                >
-                  File EWR
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="flex gap-4">
+        {/* Main content area */}
+        <div className="flex-1">
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
@@ -223,6 +184,48 @@ export default function LabWorkRequests() {
 
           <PrintFooter code="F-LAB-005" date="04-01-25" />
         </div>
+      </div>
+        </div>
+        {/* Sidebar: Pending schedule items */}
+        {(user.role === 'staff' || user.role === 'admin') && pendingSchedule.length > 0 && (
+          <div className="w-80 shrink-0 no-print">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 sticky top-4">
+              <h3 className="text-sm font-semibold text-amber-800 mb-3">
+                Due from Schedule
+                <br />
+                <span className="text-xs font-normal text-amber-700">(PMS/ECS not yet filed)</span>
+              </h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {pendingSchedule.map((s) => (
+                  <div
+                    key={`${s.source_type}-${s.id}`}
+                    className="bg-white rounded-lg border border-amber-100 p-2 text-xs space-y-1"
+                  >
+                    <div className="font-medium text-slate-800 line-clamp-2">{s.equipment_name_description}</div>
+                    <div className="text-slate-500 text-xs">
+                      {s.source_type === 'PMS' ? 'Preventive' : 'Calibration'}
+                      {s.scheduled_date && <> • {s.scheduled_date}</>}
+                    </div>
+                    <Link
+                      to={`/laboratories/${id}/work-requests/new?${new URLSearchParams({
+                        source_type: s.source_type,
+                        source_schedule_id: s.id,
+                        equipment_item_id: s.equipment_item_id || '',
+                        equipment_name_description: s.equipment_name_description || '',
+                        serial_number: s.serial_number || '',
+                        nature_of_request: s.source_type === 'PMS' ? 'Preventive' : 'Calibration',
+                        date_needed: s.scheduled_date || '',
+                      }).toString()}`}
+                      className="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded px-2 py-1.5"
+                    >
+                      File EWR
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
