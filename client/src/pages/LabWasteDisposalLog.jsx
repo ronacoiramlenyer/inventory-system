@@ -245,7 +245,7 @@ export default function LabWasteDisposalLog() {
           {paginatePrintRows(rows, MIN_ROWS).map((pageRows, pageIndex, allPages) => (
             <table
               key={pageIndex}
-              className="w-full text-xs border-collapse table-fixed"
+              className="print-page w-full text-xs border-collapse table-fixed"
               style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
             >
               <colgroup>

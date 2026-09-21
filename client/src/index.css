@@ -30,6 +30,23 @@ table th {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  /* Each of these is one printed page's worth of rows, rendered as its own
+     table with its own page number. If one is even slightly too tall for the
+     paper, the browser splits it and repeats its <thead> -- which prints the
+     same "Page 1 of N" twice. break-inside: avoid stops that: an overflowing
+     block moves to the next sheet whole rather than being cut in half.
+     The tighter row padding is what buys the headroom to not overflow in the
+     first place -- at py-2 a ten-row landscape page measured 668px against
+     roughly 683px usable on A4, which is no margin at all. */
+  .print-page {
+    break-inside: avoid;
+  }
+  .print-page td,
+  .print-page th {
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+  }
+
   /* The repeating PrintFooter is position:fixed so it shows on every page,
      but fixed elements don't reserve flow space -- without this, a table
      that fills close to a page's bottom edge prints right under (or

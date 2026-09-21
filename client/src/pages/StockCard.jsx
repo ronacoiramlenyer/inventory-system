@@ -624,7 +624,7 @@ export default function StockCard() {
           {paginatePrintRows(entries, MIN_ROWS).map((pageEntries, pageIndex, allPages) => (
             <table
               key={pageIndex}
-              className="w-full text-xs border-collapse"
+              className="print-page w-full text-xs border-collapse"
               style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
             >
               <thead>

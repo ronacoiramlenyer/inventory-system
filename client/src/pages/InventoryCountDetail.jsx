@@ -609,7 +609,7 @@ export default function InventoryCountDetail() {
           {paginatePrintRows(rows, PRINT_ROWS_PER_PAGE).map((pageRows, pageIndex, allPages) => (
             <table
               key={pageIndex}
-              className="w-full text-xs border-collapse table-fixed"
+              className="print-page w-full text-xs border-collapse table-fixed"
               style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
             >
               <colgroup>
