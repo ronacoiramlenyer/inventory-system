@@ -24,10 +24,12 @@ departments.post('/', requireAdmin, async (c) => {
     const dept = await dbGet(c.env.DB, 'SELECT * FROM departments WHERE id = ?', result.lastInsertRowid);
     return c.json(dept, 201);
   } catch (err) {
-    if (String(err.message).includes('UNIQUE')) {
+    console.error('Department creation error:', err);
+    const errStr = String(err.message || err);
+    if (errStr.includes('UNIQUE') || errStr.includes('already exists')) {
       return c.json({ error: 'A department with that name already exists' }, 409);
     }
-    return c.json({ error: 'Failed to create department' }, 500);
+    return c.json({ error: `Failed to create department: ${errStr}` }, 500);
   }
 });
 
