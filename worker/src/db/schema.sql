@@ -168,8 +168,12 @@ CREATE TABLE IF NOT EXISTS maintenance_schedule_items (
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   item_no INTEGER NOT NULL,
   equipment_item_id INTEGER REFERENCES items(id) ON DELETE SET NULL, -- reference to inventory item (optional)
+  -- Which individual unit this is scheduled for. The serial below is
+  -- snapshotted from that unit's F-LAB-001 record when it's picked, so a
+  -- printed schedule keeps showing the serial it was filed against.
+  equipment_record_id INTEGER REFERENCES equipment_records(id) ON DELETE SET NULL,
   equipment_name_description TEXT,   -- free-text equipment name/description
-  serial_number TEXT,                -- free-text serial number
+  serial_number TEXT,                -- serial as at the time it was scheduled
   frequency TEXT,
   department TEXT,
   location TEXT,
@@ -184,8 +188,12 @@ CREATE TABLE IF NOT EXISTS calibration_schedule_items (
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   item_no INTEGER NOT NULL,
   equipment_item_id INTEGER REFERENCES items(id) ON DELETE SET NULL, -- reference to inventory item (optional)
+  -- Which individual unit this is scheduled for. The serial below is
+  -- snapshotted from that unit's F-LAB-001 record when it's picked, so a
+  -- printed schedule keeps showing the serial it was filed against.
+  equipment_record_id INTEGER REFERENCES equipment_records(id) ON DELETE SET NULL,
   equipment_name_description TEXT,   -- free-text equipment name/description
-  serial_number TEXT,                -- free-text serial number
+  serial_number TEXT,                -- serial as at the time it was scheduled
   frequency TEXT,
   department TEXT,
   location TEXT,

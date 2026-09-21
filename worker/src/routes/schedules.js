@@ -11,10 +11,12 @@ export function createScheduleRoutes(table) {
   router.use('*', requireAuth);
 
   const SELECT = `
-    SELECT s.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
+    SELECT s.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
+      'EQ-' || er.item_id || '-' || printf('%03d', er.unit_no) AS equipment_code
     FROM ${table} s
     JOIN laboratories l ON l.id = s.laboratory_id
     JOIN departments d ON d.id = l.department_id
+    LEFT JOIN equipment_records er ON er.id = s.equipment_record_id
   `;
 
   function labAccessibleToUser(user, lab) {
@@ -65,6 +67,7 @@ export function createScheduleRoutes(table) {
     const {
       laboratory_id,
       equipment_item_id,
+      equipment_record_id,
       equipment_name_description,
       serial_number,
       frequency,
@@ -89,11 +92,12 @@ export function createScheduleRoutes(table) {
 
     const result = await dbRun(
       c.env.DB,
-      `INSERT INTO ${table} (laboratory_id, item_no, equipment_item_id, equipment_name_description, serial_number, frequency, department, location, scheduled_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO ${table} (laboratory_id, item_no, equipment_item_id, equipment_record_id, equipment_name_description, serial_number, frequency, department, location, scheduled_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       laboratory_id,
       maxItemNo.n + 1,
       equipment_item_id || null,
+      equipment_record_id || null,
       equipment_name_description.trim(),
       serial_number?.trim() || null,
       frequency?.trim() || null,
@@ -115,6 +119,7 @@ export function createScheduleRoutes(table) {
 
     const {
       equipment_item_id,
+      equipment_record_id,
       equipment_name_description,
       serial_number,
       frequency,
@@ -126,13 +131,15 @@ export function createScheduleRoutes(table) {
     } = await c.req.json().catch(() => ({}));
 
     const newEquipmentItemId = equipment_item_id ?? existing.equipment_item_id;
+    const newEquipmentRecordId = equipment_record_id ?? existing.equipment_record_id;
     const newActualDate = actual_date ?? existing.actual_date;
 
     await dbRun(
       c.env.DB,
-      `UPDATE ${table} SET equipment_item_id = ?, equipment_name_description = ?, serial_number = ?, frequency = ?, department = ?, location = ?,
+      `UPDATE ${table} SET equipment_item_id = ?, equipment_record_id = ?, equipment_name_description = ?, serial_number = ?, frequency = ?, department = ?, location = ?,
          scheduled_date = ?, actual_date = ?, remarks = ? WHERE id = ?`,
       newEquipmentItemId || null,
+      newEquipmentRecordId || null,
       equipment_name_description?.trim() || existing.equipment_name_description,
       serial_number?.trim() ?? existing.serial_number,
       frequency?.trim() ?? existing.frequency,
