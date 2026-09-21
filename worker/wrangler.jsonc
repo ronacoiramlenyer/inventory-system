@@ -6,8 +6,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "inventory-system-db",
-      "database_id": "16584618-af06-4d7a-ad57-960e4b4994d9"
+      "database_name": "lab-management-system-db-v1",
+      "database_id": "673eb6a4-5bf0-44e1-a00b-d74af8491ac8"
     }
   ]
   // JWT_SECRET is intentionally not set here. For local dev, copy
