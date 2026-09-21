@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Serial numbers and equipment IDs are long unbroken tokens, and every
+   printable form lays its table out with table-fixed + an explicit
+   colgroup, so a value wider than its column has nowhere to break and
+   spills over the border into the next cell instead. break-word only
+   splits a token that cannot fit on a line by itself, so ordinary prose
+   in Description/Remarks is unaffected. Set here rather than per cell:
+   there are ~54 data cells across the eight form tables, and a new column
+   added later would otherwise silently reintroduce the overlap. */
+table td,
+table th {
+  overflow-wrap: break-word;
+}
+
 @media print {
   .no-print {
     display: none !important;
