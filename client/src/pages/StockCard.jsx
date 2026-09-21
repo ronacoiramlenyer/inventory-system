@@ -150,7 +150,7 @@ export default function StockCard() {
     setError('');
     try {
       await api.delete(`/items/${id}`);
-      navigate(`/laboratories/${card.item.laboratory_id}/stock-cards`);
+      window.location.href = `/laboratories/${card.item.laboratory_id}/stock-cards`;
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete item');
     }
