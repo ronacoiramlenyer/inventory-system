@@ -108,6 +108,25 @@ CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(in
 -- This is populated directly from items with category = "Equipment"
 -- Serial numbers and locations are free-text fields on the items table
 
+-- The service history shown on an equipment's F-LAB-001 record: one row per
+-- Preventive/Repair/Calibration job, appended either by hand on that page or
+-- automatically when an EWR is marked Completed (see lib/autoLogEquipment.js).
+-- equipment_id points at the items row (category = 'Equipment'), matching how
+-- the schedules and work_requests tables reference equipment.
+CREATE TABLE IF NOT EXISTS equipment_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  equipment_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  entry_date TEXT NOT NULL,         -- YYYY-MM-DD
+  service_performed TEXT NOT NULL,  -- "Preventive" | "Repair" | "Calibration" / free text
+  request_id TEXT,                  -- the originating EWR's request_no, when it came from one
+  status TEXT,
+  logged_by TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);
+
 -- F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
 -- Calibration Schedule are identically shaped per-lab schedules, kept as
 -- separate tables since they're separate official forms.
