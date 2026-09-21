@@ -68,6 +68,7 @@ export default function InventoryCountDetail() {
   const [error, setError] = useState('');
   const [importSummary, setImportSummary] = useState('');
   const [bulkCategory, setBulkCategory] = useState(CATEGORY_OPTIONS[0]);
+  const [selectedRows, setSelectedRows] = useState(new Set());
   const fileInputRef = useRef(null);
 
   function load() {
@@ -110,10 +111,23 @@ export default function InventoryCountDetail() {
     setRows((rs) => rs.filter((r) => (r.id ?? r._key) !== key));
   }
 
+  function toggleRowSelection(key) {
+    setSelectedRows((s) => {
+      const next = new Set(s);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   function applyBulkCategory() {
     setRows((rs) =>
-      rs.map((r) => (!r.category ? { ...r, category: bulkCategory } : r))
+      rs.map((r) => {
+        const key = r.id ?? r._key;
+        return selectedRows.has(key) ? { ...r, category: bulkCategory } : r;
+      })
     );
+    setSelectedRows(new Set());
   }
 
   async function removeSavedRow(rowId) {
@@ -335,35 +349,34 @@ export default function InventoryCountDetail() {
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
       {importSummary && <p className="text-sm text-slate-600 no-print">{importSummary}</p>}
 
-      {(() => {
-        const uncategorized = rows.filter((r) => !r.category);
-        return (
-          uncategorized.length > 0 && (
-            <div className="no-print bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm flex items-center gap-3">
-              <span className="text-amber-900">
-                <strong>{uncategorized.length}</strong> item{uncategorized.length !== 1 ? 's' : ''} need{uncategorized.length === 1 ? 's' : ''} a category
-              </span>
-              <select
-                className="border border-amber-300 bg-white rounded px-2 py-1 text-sm"
-                value={bulkCategory}
-                onChange={(e) => setBulkCategory(e.target.value)}
-              >
-                {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={applyBulkCategory}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg px-3 py-1 text-sm whitespace-nowrap"
-              >
-                Apply to All
-              </button>
-            </div>
-          )
-        );
-      })()}
+      {selectedRows.size > 0 && (
+        <div className="sticky top-0 z-10 no-print bg-slate-800 text-white rounded-lg px-4 py-3 flex items-center gap-3 text-sm">
+          <span className="font-medium">{selectedRows.size} selected</span>
+          <select
+            className="border border-slate-600 bg-slate-700 rounded px-2 py-1 text-sm"
+            value={bulkCategory}
+            onChange={(e) => setBulkCategory(e.target.value)}
+          >
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={applyBulkCategory}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg px-4 py-1"
+          >
+            Assign {bulkCategory}
+          </button>
+          <button
+            onClick={() => setSelectedRows(new Set())}
+            className="text-slate-300 hover:text-white underline"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {readOnly && (
         <div className="no-print bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-4 py-2 text-sm">
@@ -424,6 +437,9 @@ export default function InventoryCountDetail() {
                 </td>
               </tr>
               <tr className="bg-slate-100">
+                {!readOnly && rows.some((r) => !r.category) && (
+                  <th className="border border-slate-300 px-3 py-2 no-print w-10"></th>
+                )}
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Item No.</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Description</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Unit</th>
@@ -444,6 +460,18 @@ export default function InventoryCountDetail() {
                 const canRemove = !readOnly && (isNew || !!row.created_new_item);
                 return (
                   <tr key={key} className={isNew ? 'bg-amber-50/50' : ''}>
+                    {!readOnly && !row.category && (
+                      <td className="border border-slate-300 px-3 py-2 no-print">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(key)}
+                          onChange={() => toggleRowSelection(key)}
+                        />
+                      </td>
+                    )}
+                    {!readOnly && row.category && (
+                      <td className="border border-slate-300 px-3 py-2 no-print w-10"></td>
+                    )}
                     <td className="border border-slate-300 px-3 py-2">{row.item_no}</td>
                     <td className="border border-slate-300 px-3 py-2">
                       {isNew ? (
