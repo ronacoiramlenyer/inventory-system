@@ -128,9 +128,15 @@ inventoryCounts.get('/:id', async (c) => {
   if (!count) return c.json({ error: 'Inventory count not found' }, 404);
   if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
 
+  // category lives on items, not on the count row -- join it in so the sheet
+  // shows what each row is actually classified as. Without this every saved
+  // row came back with category undefined, which read as "uncategorised".
   const items = await dbAll(
     c.env.DB,
-    'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
+    `SELECT ici.*, i.category
+     FROM inventory_count_items ici
+     LEFT JOIN items i ON i.id = ici.item_id
+     WHERE ici.inventory_count_id = ? ORDER BY ici.item_no`,
     count.id
   );
   return c.json({ ...count, items });
@@ -176,6 +182,15 @@ inventoryCounts.put('/:id', async (c) => {
         row.remarks?.trim() || null,
         existingRow.id
       );
+
+      // Classifying an existing row retags the item itself -- the sheet is
+      // the entry point for categorising stock that predates the category
+      // list, so this has to land somewhere permanent rather than only in
+      // the page's own state.
+      const newCategory = row.category?.trim();
+      if (newCategory && existingRow.item_id) {
+        await dbRun(c.env.DB, 'UPDATE items SET category = ? WHERE id = ?', newCategory, existingRow.item_id);
+      }
     } else {
       // A row added directly on the sheet: create the item (or reuse one that
       // already matches by name in this lab) and link a new count-item row to it.

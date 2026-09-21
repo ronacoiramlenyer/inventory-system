@@ -83,11 +83,12 @@ export default function InventoryCountDetail() {
 
   const readOnly = count?.status === 'applied';
 
-  // Only rows that don't exist on the server yet can be categorised: the
-  // save route reads `category` when it creates the item, and ignores it for
-  // rows that already have one (those only get quantity/variance/remarks).
-  // Offering a checkbox on a saved row would look like it did something.
-  const selectableKeys = rows.filter((r) => !r.id).map((r) => r._key);
+  // Anything that resolves to an item can be classified: a new row (the save
+  // route reads `category` when it creates the item) or a saved row still
+  // linked to one (the route retags that item). A saved row whose item was
+  // deleted has nothing to tag, so it's left out.
+  const canCategorise = (r) => !r.id || !!r.item_id;
+  const selectableKeys = rows.filter(canCategorise).map((r) => r.id ?? r._key);
   const selectedCount = selectableKeys.filter((k) => selectedRows.has(k)).length;
   const allSelected = selectableKeys.length > 0 && selectedCount === selectableKeys.length;
 
@@ -453,7 +454,7 @@ export default function InventoryCountDetail() {
                   <th className="border border-slate-300 px-3 py-2 no-print w-10">
                     <input
                       type="checkbox"
-                      title="Select all new rows"
+                      title="Select all rows"
                       checked={allSelected}
                       ref={(el) => {
                         if (el) el.indeterminate = selectedCount > 0 && !allSelected;
@@ -484,7 +485,7 @@ export default function InventoryCountDetail() {
                   <tr key={key} className={isNew ? 'bg-amber-50/50' : ''}>
                     {!readOnly && selectableKeys.length > 0 && (
                       <td className="border border-slate-300 px-3 py-2 no-print w-10">
-                        {isNew && (
+                        {canCategorise(row) && (
                           <input
                             type="checkbox"
                             checked={selectedRows.has(key)}
@@ -530,9 +531,21 @@ export default function InventoryCountDetail() {
                           )}
                         </div>
                       ) : (
-                        <Link to={`/items/${row.item_id}`} className="text-emerald-700 hover:underline no-print">
-                          {row.description}
-                        </Link>
+                        <div className="no-print space-y-1">
+                          <Link to={`/items/${row.item_id}`} className="text-emerald-700 hover:underline block">
+                            {row.description}
+                          </Link>
+                          {row.item_id &&
+                            (row.category ? (
+                              <span className="inline-block rounded bg-slate-100 text-slate-700 text-xs px-2 py-0.5">
+                                {row.category}
+                              </span>
+                            ) : (
+                              <span className="inline-block rounded bg-amber-100 text-amber-800 text-xs px-2 py-0.5">
+                                No category — tick this row and use Assign
+                              </span>
+                            ))}
+                        </div>
                       )}
                       {!isNew && <span className="hidden print:inline">{row.description}</span>}
                     </td>
