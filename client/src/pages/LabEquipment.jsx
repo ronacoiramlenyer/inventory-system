@@ -53,8 +53,7 @@ export default function LabEquipment() {
           <thead className="bg-slate-50 text-slate-500">
             <tr>
               <th className="px-4 py-2 text-left font-medium">Equipment Name & Description</th>
-              <th className="px-4 py-2 text-left font-medium">Serial Number</th>
-              <th className="px-4 py-2 text-left font-medium">Location</th>
+              <th className="px-4 py-2 text-left font-medium">Units Recorded</th>
               <th className="px-4 py-2 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -66,8 +65,13 @@ export default function LabEquipment() {
                     {eq.name_description}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{eq.serial_number}</td>
-                <td className="px-4 py-3 text-slate-600">{eq.location}</td>
+                <td className="px-4 py-3 text-slate-600">
+                  {eq.unit_count > 0 ? (
+                    `${eq.unit_count} unit${eq.unit_count === 1 ? '' : 's'}`
+                  ) : (
+                    <span className="text-amber-700">No units listed yet</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => handleDelete(eq.id)} className="text-red-600 hover:text-red-800">
                     Delete
@@ -77,7 +81,7 @@ export default function LabEquipment() {
             ))}
             {equipment.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
                   No equipment yet. Add one from the{' '}
                   <Link to={`/laboratories/${id}`} className="text-emerald-700 hover:underline">
                     Inventory Sheet

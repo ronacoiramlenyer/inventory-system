@@ -7,3 +7,7 @@ server/data/
 worker/.wrangler/
 .dev.vars
 .DS_Store
+
+# Playwright run artifacts
+test-results/
+playwright-report/

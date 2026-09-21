@@ -67,6 +67,8 @@ export default function InventoryCountDetail() {
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
   const [importSummary, setImportSummary] = useState('');
+  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [bulkCategory, setBulkCategory] = useState('');
   const fileInputRef = useRef(null);
 
   function load() {
@@ -85,6 +87,39 @@ export default function InventoryCountDetail() {
     setRows((rs) => rs.map((r) => ((r.id ?? r._key) === key ? { ...r, [field]: value } : r)));
   }
 
+  function toggleRowSelection(key) {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function toggleAllRows() {
+    const newRowKeys = rows.filter((r) => !r.id).map((r) => r._key);
+    if (selectedRows.size === newRowKeys.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(newRowKeys));
+    }
+  }
+
+  function applyBulkCategory() {
+    if (!bulkCategory || selectedRows.size === 0) return;
+    setRows((rs) =>
+      rs.map((r) => {
+        const key = r._key ?? r.id;
+        return selectedRows.has(key) ? { ...r, category: bulkCategory } : r;
+      })
+    );
+    setSelectedRows(new Set());
+    setBulkCategory('');
+  }
+
   function addRow() {
     setRows((rs) => [
       ...rs,
@@ -94,8 +129,6 @@ export default function InventoryCountDetail() {
         item_no: rs.length + 1,
         description: '',
         category: '',
-        serial_number: '',
-        location: '',
         unit: defaultUnit,
         quantity_recorded: 0,
         quantity_actual: '',
@@ -146,8 +179,6 @@ export default function InventoryCountDetail() {
           quantity_actual: r.quantity_actual,
           remarks: r.remarks,
           category: r.category,
-          serial_number: r.serial_number,
-          location: r.location,
         })),
       });
       if (data.errors?.length) {
@@ -203,8 +234,6 @@ export default function InventoryCountDetail() {
             item_no: next.length + 1,
             description: found.description,
             category: '',
-            serial_number: '',
-            location: '',
             unit: found.unit ? String(found.unit).trim() : defaultUnit,
             quantity_recorded: 0,
             quantity_actual: found.actual ?? '',
@@ -341,6 +370,37 @@ export default function InventoryCountDetail() {
         </div>
       )}
 
+      {!readOnly && selectedRows.size > 0 && (
+        <div className="no-print bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+          <span className="text-sm font-medium text-blue-900">{selectedRows.size} row(s) selected</span>
+          <select
+            value={bulkCategory}
+            onChange={(e) => setBulkCategory(e.target.value)}
+            className="border border-blue-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="">Assign category…</option>
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={applyBulkCategory}
+            disabled={!bulkCategory}
+            className="disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-1.5"
+          >
+            Apply to Selected
+          </button>
+          <button
+            onClick={() => setSelectedRows(new Set())}
+            className="text-sm text-blue-600 hover:text-blue-800 underline"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
         <div className="p-6">
           <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Inventory Sheet</h2>
@@ -387,6 +447,16 @@ export default function InventoryCountDetail() {
                 </td>
               </tr>
               <tr className="bg-slate-100">
+                {!readOnly && (
+                  <th className="border border-slate-300 px-3 py-2 no-print w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.size > 0 && selectedRows.size === rows.filter((r) => !r.id).length}
+                      onChange={toggleAllRows}
+                      title="Select all new items"
+                    />
+                  </th>
+                )}
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Item No.</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Description</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Unit</th>
@@ -407,6 +477,17 @@ export default function InventoryCountDetail() {
                 const canRemove = !readOnly && (isNew || !!row.created_new_item);
                 return (
                   <tr key={key} className={isNew ? 'bg-amber-50/50' : ''}>
+                    {!readOnly && isNew && (
+                      <td className="border border-slate-300 px-3 py-2 no-print text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(key)}
+                          onChange={() => toggleRowSelection(key)}
+                        />
+                      </td>
+                    )}
+                    {!readOnly && !isNew && <td className="border border-slate-300 px-3 py-2 no-print"></td>}
+                    {readOnly && <td className="border border-slate-300 px-3 py-2"></td>}
                     <td className="border border-slate-300 px-3 py-2">{row.item_no}</td>
                     <td className="border border-slate-300 px-3 py-2">
                       {isNew ? (
@@ -431,22 +512,6 @@ export default function InventoryCountDetail() {
                               </option>
                             ))}
                           </select>
-                          {row.category === 'Equipment' && (
-                            <div className="grid grid-cols-2 gap-1">
-                              <input
-                                className="border border-slate-300 rounded px-2 py-1 text-xs"
-                                placeholder="Serial No."
-                                value={row.serial_number}
-                                onChange={(e) => updateRow(key, 'serial_number', e.target.value)}
-                              />
-                              <input
-                                className="border border-slate-300 rounded px-2 py-1 text-xs"
-                                placeholder="Location"
-                                value={row.location}
-                                onChange={(e) => updateRow(key, 'location', e.target.value)}
-                              />
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <Link to={`/items/${row.item_id}`} className="text-emerald-700 hover:underline no-print">
@@ -514,7 +579,7 @@ export default function InventoryCountDetail() {
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={readOnly ? 7 : 8} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
+                  <td colSpan={readOnly ? 7 : 9} className="border border-slate-300 px-3 py-6 text-center text-slate-400">
                     No items yet.
                   </td>
                 </tr>

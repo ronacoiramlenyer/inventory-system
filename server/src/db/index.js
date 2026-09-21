@@ -16,6 +16,35 @@ db.exec('PRAGMA foreign_keys = ON');
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 db.exec(schema);
 
+function runMigrations() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  const migrationsDir = path.join(__dirname, 'migrations');
+  if (!fs.existsSync(migrationsDir)) return;
+
+  const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+  for (const file of files) {
+    const existing = db.prepare('SELECT name FROM schema_migrations WHERE name = ?').get(file);
+    if (existing) continue;
+
+    const migration = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+    try {
+      db.exec(migration);
+    } catch (err) {
+      if (!err.message.includes('duplicate column')) throw err;
+      console.log(`Migration ${file} already applied or not needed, skipping`);
+    }
+    db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(file);
+  }
+}
+
+runMigrations();
+
 function seed() {
   const userCount = db.prepare('SELECT COUNT(*) AS c FROM users').get().c;
   if (userCount > 0) return;

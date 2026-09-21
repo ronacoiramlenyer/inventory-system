@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
 import departmentsRoutes from './routes/departments.js';
 import usersRoutes from './routes/users.js';
 import laboratoriesRoutes from './routes/laboratories.js';
@@ -10,6 +11,7 @@ import transactionsRoutes from './routes/transactions.js';
 import dashboardRoutes from './routes/dashboard.js';
 import inventoryCountsRoutes from './routes/inventory-counts.js';
 import equipmentRoutes from './routes/equipment.js';
+import equipmentInstancesRoutes from './routes/equipment-instances.js';
 import { maintenanceScheduleRoutes, calibrationScheduleRoutes } from './routes/schedules.js';
 import workRequestsRoutes from './routes/work-requests.js';
 import borrowingRequestsRoutes from './routes/borrowing-requests.js';
@@ -26,6 +28,7 @@ app.use('/api/*', cors());
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
 app.route('/api/auth', authRoutes);
+app.route('/api/admin', adminRoutes);
 app.route('/api/departments', departmentsRoutes);
 app.route('/api/users', usersRoutes);
 app.route('/api/laboratories', laboratoriesRoutes);
@@ -34,6 +37,7 @@ app.route('/api', transactionsRoutes); // /api/items/:itemId/stock-card, /api/it
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/inventory-counts', inventoryCountsRoutes);
 app.route('/api/equipment', equipmentRoutes);
+app.route('/api/equipment-instances', equipmentInstancesRoutes);
 app.route('/api/maintenance-schedule', maintenanceScheduleRoutes);
 app.route('/api/calibration-schedule', calibrationScheduleRoutes);
 app.route('/api/work-requests', workRequestsRoutes);

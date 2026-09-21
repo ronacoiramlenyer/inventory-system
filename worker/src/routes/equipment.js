@@ -11,6 +11,7 @@ equipment.use('*', requireAuth);
 
 const EQUIPMENT_SELECT = `
   SELECT e.id, e.laboratory_id, e.item_name AS name_description, e.serial_number, e.location, e.created_at,
+    (SELECT COUNT(*) FROM equipment_instances ei WHERE ei.item_id = e.id) AS unit_count,
     l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
   FROM items e
   JOIN laboratories l ON l.id = e.laboratory_id

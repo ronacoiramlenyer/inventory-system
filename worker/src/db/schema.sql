@@ -104,6 +104,23 @@ CREATE TABLE IF NOT EXISTS inventory_count_items (
 CREATE INDEX IF NOT EXISTS idx_inv_counts_lab ON inventory_counts(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(inventory_count_id);
 
+-- One physical unit of an equipment `items` row. Inventory records
+-- equipment in aggregate ("3D Printer", qty 2) because that's how it
+-- arrives and how it's counted; the serial number that identifies one
+-- particular machine only gets known afterwards, so it lives here rather
+-- than on the item. Two units of the same item can't share a serial.
+CREATE TABLE IF NOT EXISTS equipment_instances (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  serial_number TEXT NOT NULL,
+  location TEXT,
+  status TEXT,                      -- Active, In Storage, Under Repair, Retired, Loaned, Decommissioned
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (item_id, serial_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_equipment_instances_item ON equipment_instances(item_id);
+
 -- F-LAB-001 Equipment Monitoring Record: a service/maintenance log against
 -- an `items` row whose category = "Equipment" -- equipment is just an item
 -- category, not a separate registry, so it shows up in the regular
@@ -111,6 +128,10 @@ CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(in
 CREATE TABLE IF NOT EXISTS equipment_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   equipment_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  -- Which unit the work was done on. Null for entries recorded against the
+  -- item as a whole -- logs predating the unit split, and the auto-logged
+  -- schedule/work-request entries, which only know the item.
+  equipment_instance_id INTEGER REFERENCES equipment_instances(id),
   entry_date TEXT NOT NULL,         -- YYYY-MM-DD
   service_performed TEXT NOT NULL,  -- e.g. "Preventive", "Repair", "Calibration"
   request_id TEXT,                  -- reference to an F-LAB-004 Equipment Work Request (free text for now)
@@ -121,6 +142,7 @@ CREATE TABLE IF NOT EXISTS equipment_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_logs_instance ON equipment_logs(equipment_instance_id);
 
 -- F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
 -- Calibration Schedule are identically shaped per-lab schedules, kept as

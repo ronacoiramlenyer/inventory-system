@@ -42,6 +42,16 @@ jobs:
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE work_requests ADD COLUMN source_type TEXT;" || true
           npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE work_requests ADD COLUMN source_schedule_id INTEGER;" || true
 
+          # Equipment is counted in aggregate on the Inventory Sheet but
+          # serviced one machine at a time, so each physical unit gets a row
+          # here and F-LAB-001 logs hang off the unit rather than the item.
+          # Existing logs keep equipment_instance_id NULL until someone
+          # assigns them to a unit from the Stock Card page.
+          npx wrangler d1 execute inventory-system-db --remote --command "CREATE TABLE IF NOT EXISTS equipment_instances (id INTEGER PRIMARY KEY AUTOINCREMENT, item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE, serial_number TEXT NOT NULL, location TEXT, status TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (item_id, serial_number));" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "CREATE INDEX IF NOT EXISTS idx_equipment_instances_item ON equipment_instances(item_id);" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "ALTER TABLE equipment_logs ADD COLUMN equipment_instance_id INTEGER REFERENCES equipment_instances(id);" || true
+          npx wrangler d1 execute inventory-system-db --remote --command "CREATE INDEX IF NOT EXISTS idx_equipment_logs_instance ON equipment_logs(equipment_instance_id);" || true
+
           # One-time data cleanup after collapsing the category list down to
           # Equipment / Tools & Materials / Consumables -- renames items
           # still holding a category value from the old 6-option list to
