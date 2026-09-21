@@ -4,8 +4,8 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
-import { padRows } from '../utils/padRows';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { padRows, paginatePrintRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
 // browser's own print margins/header/footer are accounted for.
@@ -84,8 +84,8 @@ export default function LabWorkRequests() {
         <div className="flex-1">
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
-        <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Equipment Monitoring Sheet (EMS)</h2>
+        <div className="p-6 print:hidden">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Sheet (EMS)</h2>
           <p className="text-sm text-slate-500 mb-3 print:hidden">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
@@ -109,19 +109,6 @@ export default function LabWorkRequests() {
               <col className="w-[6%] no-print" />
             </colgroup>
             <thead>
-              <PrintHeaderRow
-                pageLabel={estimatePageLabel(Math.max(requests.length, MIN_ROWS), MIN_ROWS)}
-                colSpan={9}
-              />
-              <PrintTitleRow
-                title="Equipment Monitoring Sheet (EMS)"
-                subtitle={
-                  <>
-                    <span className="font-semibold">Laboratory:</span> {lab.name}
-                  </>
-                }
-                colSpan={9}
-              />
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
                   Request No.
@@ -182,6 +169,69 @@ export default function LabWorkRequests() {
             </tbody>
           </table>
 
+        </div>
+
+        {/* Each printed page is its own table so it can carry its own page
+            number -- see paginatePrintRows for why the browser cannot give
+            us one from a single long table. */}
+        <div className="hidden print:block p-6">
+          {paginatePrintRows(requests, MIN_ROWS).map((pageRows, pageIndex, allPages) => (
+            <table
+              key={pageIndex}
+              className="w-full text-xs border-collapse table-fixed"
+              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
+            >
+              <colgroup>
+                <col className="w-[14%]" />
+                <col className="w-[13%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[8%]" />
+                <col className="w-[9%]" />
+                <col className="w-[16%]" />
+              </colgroup>
+              <thead>
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={9} />
+                <PrintTitleRow
+                  title="Equipment Monitoring Sheet (EMS)"
+                  subtitle={
+                    <>
+                      <span className="font-semibold">Laboratory:</span> {lab.name}
+                    </>
+                  }
+                  colSpan={9}
+                />
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Request No.</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Equipment Name</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Equipment ID</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Nature of Request</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date Requested</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date Needed</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Status</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date Completed</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((r) => (
+                  <tr key={r.id}>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.request_no}</td>
+                    <td className="border border-slate-300 px-3 py-2">{r.equipment_name_description}</td>
+                    <td className="border border-slate-300 px-3 py-2">{r.serial_number}</td>
+                    <td className="border border-slate-300 px-3 py-2">{r.nature_of_request}</td>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.date_requested}</td>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.date_needed}</td>
+                    <td className="border border-slate-300 px-3 py-2">{r.status}</td>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{r.date_completed}</td>
+                    <td className="border border-slate-300 px-3 py-2">{r.remarks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
           <PrintFooter code="F-LAB-005" date="04-01-25" />
         </div>
       </div>

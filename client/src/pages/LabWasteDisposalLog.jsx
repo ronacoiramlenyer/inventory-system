@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
-import { padRows } from '../utils/padRows';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { padRows, paginatePrintRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
 // browser's own print margins/header/footer are accounted for.
@@ -176,9 +176,9 @@ export default function LabWasteDisposalLog() {
       )}
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
-        <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 text-center print:hidden">Waste Disposal Log</h2>
-          <p className="text-sm text-slate-500 mb-3 print:hidden">
+        <div className="p-6 print:hidden">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">Waste Disposal Log</h2>
+          <p className="text-sm text-slate-500 mb-3">
             <span className="font-semibold">Laboratory:</span> {lab.name}
           </p>
 
@@ -196,20 +196,6 @@ export default function LabWasteDisposalLog() {
               <col className="w-[6%] no-print" />
             </colgroup>
             <thead>
-              <PrintHeaderRow
-                pageLabel={estimatePageLabel(Math.max(rows.length, MIN_ROWS), MIN_ROWS)}
-                colSpan={8}
-              />
-              <PrintTitleRow
-                title="Waste Disposal Log"
-                subtitle={
-                  <>
-                    <span className="font-semibold">Laboratory:</span> {lab.name}
-                  </>
-                }
-                colSpan={8}
-                center
-              />
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date of Turnover</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Description of Waste</th>
@@ -250,6 +236,67 @@ export default function LabWasteDisposalLog() {
             </tbody>
           </table>
 
+        </div>
+
+        {/* Each printed page is its own table so it can carry its own page
+            number -- see paginatePrintRows for why the browser cannot give
+            us one from a single long table. */}
+        <div className="hidden print:block p-6">
+          {paginatePrintRows(rows, MIN_ROWS).map((pageRows, pageIndex, allPages) => (
+            <table
+              key={pageIndex}
+              className="w-full text-xs border-collapse table-fixed"
+              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
+            >
+              <colgroup>
+                <col className="w-[11%]" />
+                <col className="w-[17%]" />
+                <col className="w-[13%]" />
+                <col className="w-[11%]" />
+                <col className="w-[13%]" />
+                <col className="w-[15%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+              </colgroup>
+              <thead>
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={8} />
+                <PrintTitleRow
+                  title="Waste Disposal Log"
+                  subtitle={
+                    <>
+                      <span className="font-semibold">Laboratory:</span> {lab.name}
+                    </>
+                  }
+                  colSpan={8}
+                  center
+                />
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date of Turnover</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Description of Waste</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Classification of Waste</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Quantity / Volume</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Disposal Method</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Remarks</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Received by</th>
+                  <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Logged by</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{row.turnover_date}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.waste_description}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.waste_classification}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.quantity_volume}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.disposal_method}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.remarks}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.received_by}</td>
+                    <td className="border border-slate-300 px-3 py-2">{row.logged_by}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
           <PrintFooter code="F-LAB-008" date="04-01-25" />
         </div>
       </div>

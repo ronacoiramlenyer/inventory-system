@@ -4,8 +4,8 @@ import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
-import { padRows } from '../utils/padRows';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { padRows, paginatePrintRows } from '../utils/padRows';
 
 const SERVICE_OPTIONS = ['Preventive', 'Repair', 'Calibration'];
 // A printed page realistically fits ~10 rows of this table once the
@@ -92,6 +92,63 @@ export default function EquipmentMonitoringRecord() {
   }
 
   if (!item) return <p className="text-slate-500">Loading…</p>;
+
+  // Shared by the on-screen table and each printed page's table below.
+  const equipmentInfoRows = (
+    <>
+      <tr>
+        <td rowSpan={4} colSpan={1} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top">
+          Equipment Information
+        </td>
+        <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
+          Equipment Name &amp; Description:
+        </td>
+        <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
+          {item.name_description}
+          <span className="text-slate-500"> · unit {item.unit_no}</span>
+          {item.status === 'Retired' && <span className="text-slate-500"> · Retired</span>}
+        </td>
+      </tr>
+      <tr>
+        <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">System Equipment ID:</td>
+        <td colSpan={3} className="border border-slate-300 px-3 py-1.5">{item.equipment_code}</td>
+      </tr>
+      <tr>
+        <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">Equipment ID/Serial Number:</td>
+        <td colSpan={3} className="border border-slate-300 px-3 py-1.5">{item.serial_number}</td>
+      </tr>
+      <tr>
+        <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">Location:</td>
+        <td colSpan={3} className="border border-slate-300 px-3 py-1.5">{item.location}</td>
+      </tr>
+    </>
+  );
+
+  const logHeaderCells = (
+    <>
+      <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date</th>
+      <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
+        Service Performed (Preventive, Repair, Calibration)
+      </th>
+      <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
+        Request ID (referenced to EWR)
+      </th>
+      <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
+        Status (on repair, on loan, …)
+      </th>
+      <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Logged by</th>
+    </>
+  );
+
+  const logCells = (log) => (
+    <>
+      <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{log.entry_date}</td>
+      <td className="border border-slate-300 px-3 py-2">{log.service_performed}</td>
+      <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{log.request_id}</td>
+      <td className="border border-slate-300 px-3 py-2">{log.status}</td>
+      <td className="border border-slate-300 px-3 py-2">{log.logged_by}</td>
+    </>
+  );
 
   return (
     <div className="space-y-4">
@@ -233,8 +290,8 @@ export default function EquipmentMonitoringRecord() {
       )}
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
-        <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Equipment Monitoring Record (EMR)</h2>
+        <div className="p-6 print:hidden">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Equipment Monitoring Record (EMR)</h2>
 
           {/* The equipment info block lives in this table's own <thead>,
               alongside the seal/page-label row and the column headers, so
@@ -259,75 +316,16 @@ export default function EquipmentMonitoringRecord() {
               <col className="w-[10%] no-print" />
             </colgroup>
             <thead>
-              <PrintHeaderRow
-                pageLabel={estimatePageLabel(Math.max(logs.length, MIN_ROWS), MIN_ROWS)}
-                colSpan={6}
-              />
-              <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={6} />
-              <tr>
-                <td
-                  rowSpan={4}
-                  colSpan={1}
-                  className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top"
-                >
-                  Equipment Information
-                </td>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
-                  Equipment Name &amp; Description:
-                </td>
-                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
-                  {item.name_description}
-                  <span className="text-slate-500"> · unit {item.unit_no}</span>
-                  {item.status === 'Retired' && <span className="text-slate-500"> · Retired</span>}
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
-                  System Equipment ID:
-                </td>
-                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
-                  {item.equipment_code}
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
-                  Equipment ID/Serial Number:
-                </td>
-                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
-                  {item.serial_number}
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
-                  Location:
-                </td>
-                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
-                  {item.location}
-                </td>
-              </tr>
+              {equipmentInfoRows}
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
-                  Service Performed (Preventive, Repair, Calibration)
-                </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
-                  Request ID (referenced to EWR)
-                </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">
-                  Status (on repair, on loan, …)
-                </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Logged by</th>
+                {logHeaderCells}
                 <th className="border border-slate-300 px-3 py-2 no-print w-16">&nbsp;</th>
               </tr>
             </thead>
             <tbody>
               {padRows(logs, MIN_ROWS).map((log) => (
                 <tr key={log.id}>
-                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{log.entry_date}</td>
-                  <td className="border border-slate-300 px-3 py-2">{log.service_performed}</td>
-                  <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{log.request_id}</td>
-                  <td className="border border-slate-300 px-3 py-2">{log.status}</td>
-                  <td className="border border-slate-300 px-3 py-2">{log.logged_by}</td>
+                  {logCells(log)}
                   <td className="border border-slate-300 px-3 py-2 no-print text-center">
                     {!log.__blank && (
                       <button
@@ -343,6 +341,38 @@ export default function EquipmentMonitoringRecord() {
             </tbody>
           </table>
 
+        </div>
+
+        {/* Each printed page is its own table so it can carry its own page
+            number -- see paginatePrintRows for why the browser cannot give
+            us one from a single long table. */}
+        <div className="hidden print:block p-6">
+          {paginatePrintRows(logs, MIN_ROWS).map((pageLogs, pageIndex, allPages) => (
+            <table
+              key={pageIndex}
+              className="w-full text-xs border-collapse table-fixed"
+              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
+            >
+              <colgroup>
+                <col className="w-[13%]" />
+                <col className="w-[27%]" />
+                <col className="w-[22%]" />
+                <col className="w-[22%]" />
+                <col className="w-[16%]" />
+              </colgroup>
+              <thead>
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={6} />
+                <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={6} />
+                {equipmentInfoRows}
+                <tr className="bg-slate-100">{logHeaderCells}</tr>
+              </thead>
+              <tbody>
+                {pageLogs.map((log) => (
+                  <tr key={log.id}>{logCells(log)}</tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
           <PrintFooter code="F-LAB-001" date="04-01-25" />
         </div>
       </div>

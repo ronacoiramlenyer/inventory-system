@@ -4,8 +4,8 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
-import { padRows } from '../utils/padRows';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { padRows, paginatePrintRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
 // browser's own print margins/header/footer are accounted for.
@@ -159,6 +159,82 @@ export default function StockCard() {
   if (!card) return <p className="text-slate-500">Loading…</p>;
 
   const { item, entries } = card;
+
+  // Shared by the on-screen table and each printed page's table below.
+  const stockInfoRows = (
+    <>
+{/* A compact box confined to the first 2 real columns (plus a
+    borderless filler cell for the rest of the row), matching
+    the official template's narrow label/value box -- an
+    earlier version spanned the full row width, which
+    stretched the box across the whole table and made every
+    row much taller than the template's tight single-line
+    rows. */}
+<tr>
+  <td colSpan={2} className="border border-slate-300 p-0">
+    <div className="flex items-stretch">
+      <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
+        DEPARTMENT
+      </span>
+      <span className="px-2 py-0.5">{item.department_name}</span>
+    </div>
+  </td>
+  <td colSpan={5} className="border-0 p-0"></td>
+</tr>
+<tr>
+  <td colSpan={2} className="border border-slate-300 p-0">
+    <div className="flex items-stretch">
+      <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
+        LABORATORY
+      </span>
+      <span className="px-2 py-0.5">{item.laboratory_name}</span>
+    </div>
+  </td>
+  <td colSpan={5} className="border-0 p-0"></td>
+</tr>
+<tr>
+  <td colSpan={2} className="border border-slate-300 p-0">
+    <div className="flex items-stretch">
+      <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
+        ITEM NAME
+      </span>
+      <span className="px-2 py-0.5">{item.item_name}</span>
+    </div>
+  </td>
+  <td colSpan={5} className="border-0 p-0"></td>
+</tr>
+<tr>
+  <td colSpan={2} className="border border-slate-300 p-0">
+    <div className="flex items-stretch">
+      <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
+        UNIT OF MEASURE
+      </span>
+      <span className="px-2 py-0.5">{item.unit_of_measure}</span>
+    </div>
+  </td>
+  <td colSpan={5} className="border-0 p-0"></td>
+</tr>
+    </>
+  );
+
+  const stockHeaderRow = (
+<tr className="bg-slate-100">
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-right">
+    Beginning Balance
+  </th>
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-right">IN</th>
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-right">OUT</th>
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-right">
+    Ending Balance
+  </th>
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Remarks</th>
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Signature</th>
+  <th className="border border-slate-300 px-3 py-2 font-semibold text-left no-print w-16">
+    &nbsp;
+  </th>
+</tr>
+  );
 
   return (
     <div className="space-y-4">
@@ -441,8 +517,8 @@ export default function StockCard() {
       )}
 
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden print:border-none print:rounded-none">
-        <div className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 print:hidden">Stock Card</h2>
+        <div className="p-6 print:hidden">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Stock Card</h2>
 
           {/* The item info block lives in this table's own <thead>, alongside
               the seal/page-label row and the column headers, so all of it
@@ -453,78 +529,8 @@ export default function StockCard() {
               not at the actual top of the page. */}
           <table className="w-full text-sm border-collapse">
             <thead>
-              <PrintHeaderRow
-                pageLabel={estimatePageLabel(Math.max(entries.length, MIN_ROWS), MIN_ROWS)}
-                colSpan={7}
-              />
-              <PrintTitleRow title="Stock Card" colSpan={7} />
-              {/* A compact box confined to the first 2 real columns (plus a
-                  borderless filler cell for the rest of the row), matching
-                  the official template's narrow label/value box -- an
-                  earlier version spanned the full row width, which
-                  stretched the box across the whole table and made every
-                  row much taller than the template's tight single-line
-                  rows. */}
-              <tr>
-                <td colSpan={2} className="border border-slate-300 p-0">
-                  <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
-                      DEPARTMENT
-                    </span>
-                    <span className="px-2 py-0.5">{item.department_name}</span>
-                  </div>
-                </td>
-                <td colSpan={5} className="border-0 p-0"></td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-slate-300 p-0">
-                  <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
-                      LABORATORY
-                    </span>
-                    <span className="px-2 py-0.5">{item.laboratory_name}</span>
-                  </div>
-                </td>
-                <td colSpan={5} className="border-0 p-0"></td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-slate-300 p-0">
-                  <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
-                      ITEM NAME
-                    </span>
-                    <span className="px-2 py-0.5">{item.item_name}</span>
-                  </div>
-                </td>
-                <td colSpan={5} className="border-0 p-0"></td>
-              </tr>
-              <tr>
-                <td colSpan={2} className="border border-slate-300 p-0">
-                  <div className="flex items-stretch">
-                    <span className="font-semibold bg-slate-50 border-r border-slate-300 px-2 py-0.5 w-36 shrink-0 whitespace-nowrap">
-                      UNIT OF MEASURE
-                    </span>
-                    <span className="px-2 py-0.5">{item.unit_of_measure}</span>
-                  </div>
-                </td>
-                <td colSpan={5} className="border-0 p-0"></td>
-              </tr>
-              <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Date</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-right">
-                  Beginning Balance
-                </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-right">IN</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-right">OUT</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-right">
-                  Ending Balance
-                </th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Remarks</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Signature</th>
-                <th className="border border-slate-300 px-3 py-2 font-semibold text-left no-print w-16">
-                  &nbsp;
-                </th>
-              </tr>
+              {stockInfoRows}
+              {stockHeaderRow}
             </thead>
             <tbody>
               <tr>
@@ -607,6 +613,68 @@ export default function StockCard() {
             </tbody>
           </table>
 
+        </div>
+
+        {/* Each printed page is its own table so it can carry its own page
+            number -- see paginatePrintRows for why the browser cannot give
+            us one from a single long table. Balances are computed server
+            side per entry, so slicing the list into pages cannot desync a
+            running total. */}
+        <div className="hidden print:block p-6">
+          {paginatePrintRows(entries, MIN_ROWS).map((pageEntries, pageIndex, allPages) => (
+            <table
+              key={pageIndex}
+              className="w-full text-xs border-collapse"
+              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
+            >
+              <thead>
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={7} />
+                <PrintTitleRow title="Stock Card" colSpan={7} />
+                {stockInfoRows}
+                {stockHeaderRow}
+              </thead>
+              <tbody>
+                {pageEntries.map((entry) =>
+                  entry.__blank ? (
+                    <tr key={entry.id}>
+                      {Array.from({ length: 7 }, (_, i) => (
+                        <td key={i} className="border border-slate-300 px-3 py-2">
+                          &nbsp;
+                        </td>
+                      ))}
+                    </tr>
+                  ) : entry.is_period_marker ? (
+                    <tr key={entry.id} className="bg-slate-500 text-white">
+                      <td className="border border-slate-500 px-3 py-1 text-center" colSpan={5}>
+                        {entry.remarks || '--'} ({entry.entry_date})
+                      </td>
+                      <td className="border border-slate-500 px-3 py-1" colSpan={2}></td>
+                    </tr>
+                  ) : (
+                    <tr key={entry.id}>
+                      <td className="border border-slate-300 px-3 py-2 whitespace-nowrap">{entry.entry_date}</td>
+                      <td className="border border-slate-300 px-3 py-2 text-right">{entry.beginning_balance}</td>
+                      <td className="border border-slate-300 px-3 py-2 text-right">{entry.in_qty || ''}</td>
+                      <td className="border border-slate-300 px-3 py-2 text-right">{entry.out_qty || ''}</td>
+                      <td className="border border-slate-300 px-3 py-2 text-right font-medium">
+                        {entry.ending_balance}
+                      </td>
+                      <td className="border border-slate-300 px-3 py-2">
+                        {entry.remarks}
+                        {entry.expiry_date && (
+                          <div className="text-[10px] text-slate-500">expiry date: {entry.expiry_date}</div>
+                        )}
+                        {entry.invoice_no && (
+                          <div className="text-[10px] text-slate-500">invoice #: {entry.invoice_no}</div>
+                        )}
+                      </td>
+                      <td className="border border-slate-300 px-3 py-2">{entry.handled_by}</td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          ))}
           <PrintFooter code="F-LAB-006" date="04-01-25" />
         </div>
       </div>
