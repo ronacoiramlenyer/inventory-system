@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,7 @@ export default function EquipmentMonitoringRecord() {
   const { id } = useParams();
   const confirmDialog = useConfirm();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [item, setItem] = useState(null);
   const [logs, setLogs] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -33,7 +34,6 @@ export default function EquipmentMonitoringRecord() {
   const [error, setError] = useState('');
   const [eqForm, setEqForm] = useState({ serial_number: '', location: '' });
   const [savingEq, setSavingEq] = useState(false);
-  const [eqSaved, setEqSaved] = useState(false);
 
   // The Lab Custodian keeps the 201 file, so staff fill in the serial and
   // location for equipment that arrived here from the Inventory Sheet.
@@ -47,9 +47,7 @@ export default function EquipmentMonitoringRecord() {
     setSavingEq(true);
     try {
       await api.put(`/equipment/${id}`, eqForm);
-      setEqSaved(true);
-      setTimeout(() => setEqSaved(false), 1500);
-      loadItem();
+      navigate(`/laboratories/${item.laboratory_id}/equipment`);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save the equipment details');
     } finally {
@@ -230,7 +228,6 @@ export default function EquipmentMonitoringRecord() {
             >
               {savingEq ? 'Saving\u2026' : 'Save'}
             </button>
-            {eqSaved && <span className="text-sm text-emerald-700">Saved</span>}
           </div>
         </form>
       )}
