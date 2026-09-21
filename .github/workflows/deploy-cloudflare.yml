@@ -37,6 +37,14 @@ jobs:
         run: |
           DB=lab-management-system-db-v1
 
+          # Column additions have to land BEFORE schema.sql. CREATE TABLE IF
+          # NOT EXISTS skips a table that already exists, so it never adds a
+          # new column to one -- and schema.sql then tries to index that
+          # column and fails. No REFERENCES clause: on a fresh database the
+          # table doesn't exist yet and this is expected to fail (hence
+          # `|| true`), with schema.sql creating it complete a moment later.
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE equipment_logs ADD COLUMN equipment_record_id INTEGER;" || true
+
           # Create any table that isn't there yet. schema.sql is entirely
           # CREATE TABLE/INDEX IF NOT EXISTS, so this is safe on every deploy
           # and is what brings a brand-new D1 database up to the current
@@ -49,11 +57,6 @@ jobs:
           # INSERT OR IGNORE against a UNIQUE column, so a fresh database
           # gets seeded once and an in-use one is left completely alone.
           npx wrangler d1 execute "$DB" --remote --file=./seed.local.sql
-
-          # CREATE TABLE IF NOT EXISTS can't add a column to a table that
-          # already exists, so new columns need an explicit ALTER. This one
-          # errors once it's applied, hence `|| true`.
-          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE equipment_logs ADD COLUMN equipment_record_id INTEGER REFERENCES equipment_records(id) ON DELETE CASCADE;" || true
 
           # One-time data cleanup after collapsing the category list down to
           # Equipment / Tools & Materials / Consumables -- renames items
