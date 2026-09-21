@@ -12,9 +12,9 @@ INSERT INTO laboratories (name, department_id, location, status, requested_by, r
   ('Computer Laboratory', 2, 'Rm 305', 'approved', 1, 1, datetime('now'));
 
 INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, notes) VALUES
-  (1, 'Test Tube', 'Glassware', 'pcs', 125, 30, ''),
+  (1, 'Test Tube', 'Tools & Materials', 'pcs', 125, 30, ''),
   (1, 'Bunsen Burner', 'Equipment', 'pcs', 15, 5, ''),
-  (1, 'Sodium Chloride', 'Reagent', 'bottle', 8, 3, ''),
-  (2, 'Wireless Mouse', 'Peripheral', 'pcs', 40, 10, ''),
-  (2, 'HDMI Cable', 'Cable', 'pcs', 20, 5, ''),
-  (2, 'Ethernet Cable (5m)', 'Cable', 'pcs', 25, 5, '');
+  (1, 'Sodium Chloride', 'Consumables', 'bottle', 8, 3, ''),
+  (2, 'Wireless Mouse', 'Equipment', 'pcs', 40, 10, ''),
+  (2, 'HDMI Cable', 'Supplies', 'pcs', 20, 5, ''),
+  (2, 'Ethernet Cable (5m)', 'Supplies', 'pcs', 25, 5, '');
