@@ -108,6 +108,35 @@ CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(in
 -- This is populated directly from items with category = "Equipment"
 -- Serial numbers and locations are free-text fields on the items table
 
+-- SPEC-05 equipment individualisation: F-LAB-010 holds equipment in
+-- aggregate (one items row, "Digital Multimeter", quantity 5) but each
+-- physical unit needs its own F-LAB-001 "201 file" -- its own serial
+-- number, location and service history. One row here per physical unit.
+--
+-- Units are generated to match the item's current balance and are never
+-- removed automatically: a unit that leaves the lab is retired by the
+-- custodian (status = 'Retired'), because only they know which serial
+-- actually went, and the 201 file has to survive as history either way.
+--
+-- The System Equipment ID is derived from item_id + unit_no rather than
+-- stored, so it can't drift out of sync with the row it names.
+CREATE TABLE IF NOT EXISTS equipment_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
+  unit_no INTEGER NOT NULL,          -- 1..N within the item
+  serial_number TEXT,
+  location TEXT,
+  status TEXT NOT NULL DEFAULT 'Active', -- 'Active' | 'Retired'
+  retired_at TEXT,
+  retired_reason TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(item_id, unit_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_equipment_records_item ON equipment_records(item_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_records_lab ON equipment_records(laboratory_id);
+
 -- The service history shown on an equipment's F-LAB-001 record: one row per
 -- Preventive/Repair/Calibration job, appended either by hand on that page or
 -- automatically when an EWR is marked Completed (see lib/autoLogEquipment.js).
@@ -116,6 +145,9 @@ CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(in
 CREATE TABLE IF NOT EXISTS equipment_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   equipment_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  -- Which physical unit this service was performed on. Nullable so entries
+  -- logged before units existed still load; new ones always set it.
+  equipment_record_id INTEGER REFERENCES equipment_records(id) ON DELETE CASCADE,
   entry_date TEXT NOT NULL,         -- YYYY-MM-DD
   service_performed TEXT NOT NULL,  -- "Preventive" | "Repair" | "Calibration" / free text
   request_id TEXT,                  -- the originating EWR's request_no, when it came from one
@@ -126,6 +158,7 @@ CREATE TABLE IF NOT EXISTS equipment_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_equipment_logs_equipment ON equipment_logs(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_logs_record ON equipment_logs(equipment_record_id);
 
 -- F-LAB-002 Preventive Maintenance Schedule and F-LAB-003 Equipment
 -- Calibration Schedule are identically shaped per-lab schedules, kept as

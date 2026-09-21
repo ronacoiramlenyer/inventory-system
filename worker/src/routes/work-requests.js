@@ -335,6 +335,7 @@ workRequests.put('/:id', async (c) => {
   if (newStatus === 'Completed' && existing.status !== 'Completed') {
     await logEquipmentService(c.env.DB, {
       equipmentItemId: newEquipmentItemId,
+      serialNumber: serial_number?.trim() ?? existing.serial_number,
       entryDate: newDateCompleted || new Date().toISOString().slice(0, 10),
       servicePerformed: nature_of_request?.trim() || existing.nature_of_request,
       requestId: existing.request_no,

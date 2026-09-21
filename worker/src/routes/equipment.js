@@ -1,119 +1,179 @@
 import { Hono } from 'hono';
-import { dbAll, dbGet, dbRun, clearEquipmentLinks } from '../db/helpers.js';
+import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
 
-// F-LAB-001 Equipment Monitoring Record: equipment is just an `items` row
-// with category = 'Equipment' -- this router is a thin view over items
-// scoped to that category, so equipment shows up in the regular Inventory
-// list too instead of living in its own separate registry.
+// F-LAB-001 Equipment Monitoring Record. F-LAB-010 carries equipment in
+// aggregate -- one items row with a quantity -- but each physical unit needs
+// its own "201 file", so this router serves equipment_records (one row per
+// unit), not items. An :id here is a unit id.
 const equipment = new Hono();
 equipment.use('*', requireAuth);
 
-const EQUIPMENT_SELECT = `
-  SELECT e.id, e.laboratory_id, e.item_name AS name_description, e.serial_number, e.location, e.created_at,
+// The System Equipment ID is derived rather than stored so it can never drift
+// from the row it names.
+const UNIT_SELECT = `
+  SELECT er.id, er.item_id, er.laboratory_id, er.unit_no, er.serial_number, er.location,
+    er.status, er.retired_at, er.retired_reason, er.created_at,
+    'EQ-' || er.item_id || '-' || printf('%03d', er.unit_no) AS equipment_code,
+    i.item_name AS name_description, i.category,
     l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
-  FROM items e
-  JOIN laboratories l ON l.id = e.laboratory_id
+  FROM equipment_records er
+  JOIN items i ON i.id = er.item_id
+  JOIN laboratories l ON l.id = er.laboratory_id
   JOIN departments d ON d.id = l.department_id
-  WHERE e.category = 'Equipment'
 `;
 
-function userCanAccessEquipment(user, item) {
-  if (!item) return false;
+function userCanAccessEquipment(user, row) {
+  if (!row) return false;
   if (user.role === 'admin') return true;
-  return Number(item.department_id) === Number(user.department_id) && item.lab_status === 'approved';
+  return Number(row.department_id) === Number(user.department_id) && row.lab_status === 'approved';
+}
+
+// Bring a lab's unit records up to its equipment quantities. Units are only
+// ever added: a unit that left the lab is retired by the custodian, since
+// only they know which serial went, and its 201 file has to survive as
+// history regardless. Running this on read keeps the record in step however
+// the quantity moved -- applying a count, a stock transaction, an admin
+// correction -- without every one of those paths having to know about units.
+async function syncUnitsForLab(db, laboratoryId) {
+  const items = await dbAll(
+    db,
+    `SELECT i.id,
+       i.initial_balance
+         + COALESCE((SELECT SUM(t.in_qty) FROM transactions t WHERE t.item_id = i.id), 0)
+         - COALESCE((SELECT SUM(t.out_qty) FROM transactions t WHERE t.item_id = i.id), 0) AS balance,
+       (SELECT COUNT(*) FROM equipment_records er WHERE er.item_id = i.id AND er.status = 'Active') AS active_units,
+       (SELECT COALESCE(MAX(er.unit_no), 0) FROM equipment_records er WHERE er.item_id = i.id) AS max_unit_no
+     FROM items i
+     WHERE i.laboratory_id = ? AND i.category = 'Equipment'`,
+    laboratoryId
+  );
+
+  for (const item of items) {
+    const missing = Number(item.balance) - Number(item.active_units);
+    if (missing <= 0) continue;
+    for (let n = 1; n <= missing; n++) {
+      await dbRun(
+        db,
+        'INSERT INTO equipment_records (item_id, laboratory_id, unit_no) VALUES (?, ?, ?)',
+        item.id,
+        laboratoryId,
+        Number(item.max_unit_no) + n
+      );
+    }
+  }
 }
 
 equipment.get('/', async (c) => {
   const user = c.get('user');
   const { laboratory_id } = c.req.query();
-  const clauses = [];
-  const params = [];
+  if (!laboratory_id) return c.json({ error: 'laboratory_id is required' }, 400);
 
-  if (user.role !== 'admin') {
-    clauses.push('l.department_id = ?', "l.status = 'approved'");
-    params.push(user.department_id);
-  }
-  if (laboratory_id) {
-    clauses.push('e.laboratory_id = ?');
-    params.push(laboratory_id);
+  const lab = await dbGet(c.env.DB, 'SELECT * FROM laboratories WHERE id = ?', laboratory_id);
+  if (!lab) return c.json({ error: 'Laboratory not found' }, 404);
+  if (!userCanAccessEquipment(user, { department_id: lab.department_id, lab_status: lab.status })) {
+    return c.json({ error: 'You do not have access to this laboratory' }, 403);
   }
 
-  let sql = EQUIPMENT_SELECT;
-  if (clauses.length) sql += ' AND ' + clauses.join(' AND ');
-  sql += ' ORDER BY e.item_name';
+  await syncUnitsForLab(c.env.DB, laboratory_id);
 
-  return c.json(await dbAll(c.env.DB, sql, ...params));
+  return c.json(
+    await dbAll(
+      c.env.DB,
+      UNIT_SELECT + ' WHERE er.laboratory_id = ? ORDER BY i.item_name, er.unit_no',
+      laboratory_id
+    )
+  );
 });
 
 equipment.get('/:id', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
-  if (!item) return c.json({ error: 'Equipment not found' }, 404);
-  if (!userCanAccessEquipment(user, item)) {
+  const row = await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', c.req.param('id'));
+  if (!row) return c.json({ error: 'Equipment unit not found' }, 404);
+  if (!userCanAccessEquipment(user, row)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
-  return c.json(item);
+  return c.json(row);
 });
-
-// No POST route here -- new equipment is only created through the
-// Inventory Sheet's "add row" flow (category = Equipment), same as any
-// other item; see inventory-counts.js.
 
 equipment.put('/:id', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
-  const existing = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', id);
-  if (!existing) return c.json({ error: 'Equipment not found' }, 404);
+  const existing = await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', id);
+  if (!existing) return c.json({ error: 'Equipment unit not found' }, 404);
   if (!userCanAccessEquipment(user, existing)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
 
-  const { name_description, serial_number, location } = await c.req.json().catch(() => ({}));
+  const { serial_number, location } = await c.req.json().catch(() => ({}));
   await dbRun(
     c.env.DB,
-    `UPDATE items SET item_name = ?, serial_number = ?, location = ? WHERE id = ?`,
-    name_description?.trim() || existing.name_description,
+    'UPDATE equipment_records SET serial_number = ?, location = ? WHERE id = ?',
     serial_number?.trim() ?? existing.serial_number,
     location?.trim() ?? existing.location,
     id
   );
-  return c.json(await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', id));
+  return c.json(await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', id));
 });
 
-equipment.delete('/:id', async (c) => {
+// Retiring is how a unit leaves the lab. The row and its service history stay
+// -- a disposed unit's 201 file is still the record of what happened to it.
+//
+// It also books a stock movement of 1 against the item, because the unit
+// physically left: without that the balance still reads 5 while only 4 units
+// remain, and the sync above would read the gap as a missing unit and
+// immediately generate a replacement for the one just retired.
+equipment.post('/:id/retire', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
-  const existing = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', id);
-  if (!existing) return c.json({ error: 'Equipment not found' }, 404);
+  const existing = await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', id);
+  if (!existing) return c.json({ error: 'Equipment unit not found' }, 404);
   if (!userCanAccessEquipment(user, existing)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
-  await clearEquipmentLinks(c.env.DB, id);
-  await dbRun(c.env.DB, 'DELETE FROM items WHERE id = ?', id);
-  return c.body(null, 204);
+  if (existing.status === 'Retired') return c.json({ error: 'This unit is already retired' }, 400);
+
+  const { reason } = await c.req.json().catch(() => ({}));
+  const note = reason?.trim() || null;
+  await dbRun(
+    c.env.DB,
+    "UPDATE equipment_records SET status = 'Retired', retired_at = datetime('now'), retired_reason = ? WHERE id = ?",
+    note,
+    id
+  );
+  await dbRun(
+    c.env.DB,
+    `INSERT INTO transactions (item_id, entry_date, in_qty, out_qty, remarks, handled_by, created_by)
+     VALUES (?, date('now'), 0, 1, ?, ?, ?)`,
+    existing.item_id,
+    `Retired ${existing.equipment_code}${note ? ` -- ${note}` : ''}`,
+    user.full_name,
+    user.id
+  );
+  return c.json(await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', id));
 });
 
 equipment.get('/:id/logs', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
-  if (!item) return c.json({ error: 'Equipment not found' }, 404);
-  if (!userCanAccessEquipment(user, item)) {
+  const unit = await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', c.req.param('id'));
+  if (!unit) return c.json({ error: 'Equipment unit not found' }, 404);
+  if (!userCanAccessEquipment(user, unit)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
-  const logs = await dbAll(
-    c.env.DB,
-    'SELECT * FROM equipment_logs WHERE equipment_id = ? ORDER BY entry_date ASC, id ASC',
-    item.id
+  return c.json(
+    await dbAll(
+      c.env.DB,
+      'SELECT * FROM equipment_logs WHERE equipment_record_id = ? ORDER BY entry_date ASC, id ASC',
+      unit.id
+    )
   );
-  return c.json(logs);
 });
 
 equipment.post('/:id/logs', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
-  if (!item) return c.json({ error: 'Equipment not found' }, 404);
-  if (!userCanAccessEquipment(user, item)) {
+  const unit = await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', c.req.param('id'));
+  if (!unit) return c.json({ error: 'Equipment unit not found' }, 404);
+  if (!userCanAccessEquipment(user, unit)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
 
@@ -124,9 +184,10 @@ equipment.post('/:id/logs', async (c) => {
 
   const result = await dbRun(
     c.env.DB,
-    `INSERT INTO equipment_logs (equipment_id, entry_date, service_performed, request_id, status, logged_by, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    item.id,
+    `INSERT INTO equipment_logs (equipment_id, equipment_record_id, entry_date, service_performed, request_id, status, logged_by, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    unit.item_id,
+    unit.id,
     entry_date,
     service_performed.trim(),
     request_id?.trim() || null,
@@ -139,16 +200,16 @@ equipment.post('/:id/logs', async (c) => {
 
 equipment.delete('/:id/logs/:logId', async (c) => {
   const user = c.get('user');
-  const item = await dbGet(c.env.DB, EQUIPMENT_SELECT + ' AND e.id = ?', c.req.param('id'));
-  if (!item) return c.json({ error: 'Equipment not found' }, 404);
-  if (!userCanAccessEquipment(user, item)) {
+  const unit = await dbGet(c.env.DB, UNIT_SELECT + ' WHERE er.id = ?', c.req.param('id'));
+  if (!unit) return c.json({ error: 'Equipment unit not found' }, 404);
+  if (!userCanAccessEquipment(user, unit)) {
     return c.json({ error: 'You do not have access to this equipment' }, 403);
   }
   const log = await dbGet(
     c.env.DB,
-    'SELECT * FROM equipment_logs WHERE id = ? AND equipment_id = ?',
+    'SELECT * FROM equipment_logs WHERE id = ? AND equipment_record_id = ?',
     c.req.param('logId'),
-    item.id
+    unit.id
   );
   if (!log) return c.json({ error: 'Log entry not found' }, 404);
   await dbRun(c.env.DB, 'DELETE FROM equipment_logs WHERE id = ?', log.id);

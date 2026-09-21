@@ -50,6 +50,11 @@ jobs:
           # gets seeded once and an in-use one is left completely alone.
           npx wrangler d1 execute "$DB" --remote --file=./seed.local.sql
 
+          # CREATE TABLE IF NOT EXISTS can't add a column to a table that
+          # already exists, so new columns need an explicit ALTER. This one
+          # errors once it's applied, hence `|| true`.
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE equipment_logs ADD COLUMN equipment_record_id INTEGER REFERENCES equipment_records(id) ON DELETE CASCADE;" || true
+
           # One-time data cleanup after collapsing the category list down to
           # Equipment / Tools & Materials / Consumables -- renames items
           # still holding a category value from the old 6-option list to

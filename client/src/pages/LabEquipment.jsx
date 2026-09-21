@@ -21,18 +21,25 @@ export default function LabEquipment() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleDelete(equipmentId) {
-    if (!(await confirmDialog('Delete this equipment and its monitoring record?'))) return;
+  async function handleRetire(unitId) {
+    if (
+      !(await confirmDialog(
+        'Retire this unit? Its 201 file and service history are kept, and it stops counting against the inventory quantity.'
+      ))
+    )
+      return;
     setError('');
     try {
-      await api.delete(`/equipment/${equipmentId}`);
+      await api.post(`/equipment/${unitId}/retire`);
       loadEquipment();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete equipment');
+      setError(err.response?.data?.error || 'Failed to retire this unit');
     }
   }
 
   if (!lab) return <p className="text-slate-500">Loading…</p>;
+
+  const missingSerials = equipment.filter((eq) => eq.status === 'Active' && !eq.serial_number).length;
 
   return (
     <div className="space-y-4">
@@ -48,36 +55,51 @@ export default function LabEquipment() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
+      {missingSerials > 0 && (
+        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          {missingSerials} unit{missingSerials === 1 ? '' : 's'} still need a serial number. Open a unit to record it.
+        </p>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
-              <th className="px-4 py-2 text-left font-medium">Equipment Name & Description</th>
+              <th className="px-4 py-2 text-left font-medium">Equipment Name &amp; Description</th>
+              <th className="px-4 py-2 text-left font-medium">System Equipment ID</th>
               <th className="px-4 py-2 text-left font-medium">Serial Number</th>
               <th className="px-4 py-2 text-left font-medium">Location</th>
+              <th className="px-4 py-2 text-left font-medium">Status</th>
               <th className="px-4 py-2 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {equipment.map((eq) => (
-              <tr key={eq.id}>
+              <tr key={eq.id} className={eq.status === 'Retired' ? 'bg-slate-50 text-slate-400' : ''}>
                 <td className="px-4 py-3 font-medium">
                   <Link to={`/equipment/${eq.id}`} className="text-emerald-700 hover:underline">
                     {eq.name_description}
                   </Link>
+                  <span className="text-slate-400 font-normal"> · unit {eq.unit_no}</span>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{eq.serial_number}</td>
+                <td className="px-4 py-3 text-slate-600 font-mono text-xs">{eq.equipment_code}</td>
+                <td className="px-4 py-3 text-slate-600">
+                  {eq.serial_number || <span className="text-amber-700">Not set</span>}
+                </td>
                 <td className="px-4 py-3 text-slate-600">{eq.location}</td>
+                <td className="px-4 py-3 text-slate-600">{eq.status}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => handleDelete(eq.id)} className="text-red-600 hover:text-red-800">
-                    Delete
-                  </button>
+                  {eq.status === 'Active' && (
+                    <button onClick={() => handleRetire(eq.id)} className="text-red-600 hover:text-red-800">
+                      Retire
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
             {equipment.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
                   No equipment yet. Add one from the{' '}
                   <Link to={`/laboratories/${id}`} className="text-emerald-700 hover:underline">
                     Inventory Sheet

@@ -62,7 +62,7 @@ export default function EquipmentMonitoringRecord() {
   }
 
   function loadItem() {
-    api.get(`/items/${id}`).then((res) => {
+    api.get(`/equipment/${id}`).then((res) => {
       setItem(res.data);
       setEqForm({ serial_number: res.data.serial_number || '', location: res.data.location || '' });
     });
@@ -199,7 +199,8 @@ export default function EquipmentMonitoringRecord() {
           <div>
             <h3 className="font-semibold text-slate-700 text-sm">Equipment Details</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              This record is the source for the serial number shown on the PMS, ECS and EWR forms.
+              Serial number and location for this individual unit. This record is the source for the
+              serial shown on the PMS, ECS and EWR forms.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -268,7 +269,7 @@ export default function EquipmentMonitoringRecord() {
               <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={6} />
               <tr>
                 <td
-                  rowSpan={3}
+                  rowSpan={4}
                   colSpan={1}
                   className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top"
                 >
@@ -278,7 +279,17 @@ export default function EquipmentMonitoringRecord() {
                   Equipment Name &amp; Description:
                 </td>
                 <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
-                  {item.item_name}
+                  {item.name_description}
+                  <span className="text-slate-500"> · unit {item.unit_no}</span>
+                  {item.status === 'Retired' && <span className="text-slate-500"> · Retired</span>}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
+                  System Equipment ID:
+                </td>
+                <td colSpan={3} className="border border-slate-300 px-3 py-1.5">
+                  {item.equipment_code}
                 </td>
               </tr>
               <tr>
