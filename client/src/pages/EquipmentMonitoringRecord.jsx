@@ -121,6 +121,16 @@ export default function EquipmentMonitoringRecord() {
     </>
   );
 
+  // The F-LAB-001 template leaves a blank row between the Equipment
+  // Information block and the service log under it, so the two read as
+  // separate sections instead of one continuous grid. Borderless and
+  // empty -- it is spacing, not a field anyone fills in.
+  const infoLogGapRow = (
+    <tr aria-hidden="true">
+      <td colSpan={6} className="border-0 p-0 h-5" />
+    </tr>
+  );
+
   const logHeaderCells = (
     <>
       <th className="border border-slate-300 px-3 py-2 font-semibold text-left break-words">Date</th>
@@ -314,6 +324,7 @@ export default function EquipmentMonitoringRecord() {
             </colgroup>
             <thead>
               {equipmentInfoRows}
+              {infoLogGapRow}
               <tr className="bg-slate-100">
                 {logHeaderCells}
                 <th className="border border-slate-300 px-3 py-2 no-print w-16">&nbsp;</th>
@@ -357,6 +368,7 @@ export default function EquipmentMonitoringRecord() {
                 <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${pageCount}`} colSpan={6} />
                 <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={6} />
                 {equipmentInfoRows}
+                {infoLogGapRow}
                 <tr className="bg-slate-100">{logHeaderCells}</tr>
               </thead>
               <tbody>
