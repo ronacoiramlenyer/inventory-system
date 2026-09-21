@@ -164,7 +164,7 @@ export default function Laboratories() {
                 required
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
                 value={form.department_id}
-                onChange={(e) => setForm({ ...form, department_id: e.target.value })}
+                onChange={(e) => setForm({ ...form, department_id: Number(e.target.value) })}
               >
                 <option value="" disabled>
                   Select department
