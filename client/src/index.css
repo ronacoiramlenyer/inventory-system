@@ -29,6 +29,18 @@ table th {
   display: table-row;
 }
 
+/* Blank rows are what a printed form is padded out with, and an empty cell
+   has no line box to give it height -- so they collapsed to little more
+   than their padding, and a page came out ruled with dozens of hairlines
+   nobody could write on. A height on a table row is a minimum rather than a
+   fixed size, so this floors every row at about 7mm -- roughly a ruled
+   line on the paper forms these replace -- while a row whose text wraps
+   still grows past it. Floored on every row, not just the blank ones, so a
+   filled-in line and an empty one below it are the same height. */
+.print-page tbody tr {
+  height: 1.75rem;
+}
+
 /* Row padding for the printed form tables. Deliberately not inside
    @media print: PrintPages measures a copy of the same table on screen to
    decide where the page breaks go, and a measurement taken at a different
