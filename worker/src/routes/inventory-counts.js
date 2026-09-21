@@ -221,14 +221,15 @@ inventoryCounts.put('/:id', async (c) => {
         try {
           const result = await dbRun(
             c.env.DB,
-            `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level, serial_number, location)
-             VALUES (?, ?, ?, ?, 0, 0, ?, ?)`,
+            // No serial/location here: this sheet counts equipment in
+            // aggregate, and a row with quantity 5 has five serials, not one.
+            // They belong to the individual units on F-LAB-001.
+            `INSERT INTO items (laboratory_id, item_name, category, unit_of_measure, initial_balance, reorder_level)
+             VALUES (?, ?, ?, ?, 0, 0)`,
             count.laboratory_id,
             description,
             category,
-            unit,
-            row.serial_number?.trim() || null,
-            row.location?.trim() || null
+            unit
           );
           item = await dbGet(c.env.DB, 'SELECT * FROM items WHERE id = ?', result.lastInsertRowid);
           createdNewItem = 1;
