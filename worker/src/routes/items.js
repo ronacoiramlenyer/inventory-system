@@ -119,6 +119,16 @@ items.delete('/:id', async (c) => {
   const existing = await dbGet(c.env.DB, ITEM_SELECT + ' WHERE i.id = ?', id);
   if (!existing) return c.json({ error: 'Item not found' }, 404);
   await clearEquipmentLinks(c.env.DB, id);
+  // Remove from draft inventory counts in this lab so deleted items don't linger in inventory sheets
+  await dbRun(
+    c.env.DB,
+    `DELETE FROM inventory_count_items
+     WHERE item_id = ? AND inventory_count_id IN (
+       SELECT id FROM inventory_counts WHERE laboratory_id = ? AND status = 'draft'
+     )`,
+    id,
+    existing.laboratory_id
+  );
   await dbRun(c.env.DB, 'DELETE FROM items WHERE id = ?', id);
   return c.body(null, 204);
 });
