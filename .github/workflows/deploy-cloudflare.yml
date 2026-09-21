@@ -2,7 +2,7 @@ name: Deploy to Cloudflare
 
 on:
   push:
-    branches: [claude/clever-tesla-dagr89]
+    branches: [main, claude/clever-tesla-dagr89]
     paths:
       - "worker/**"
       - "client/**"
