@@ -4,7 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
+import { PrintHeader, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
 
 const MANAGE_STATUS_OPTIONS = ['Approved', 'Returned'];
 
@@ -175,6 +175,7 @@ export default function BorrowingRequestDetail() {
         {isSignedImage && signedCopyUrl && (
           <img src={signedCopyUrl} alt="Signed borrowing request" className="hidden print:block w-full h-auto" />
         )}
+        <PrintOrientation />
         <div className={isSignedImage ? 'print:hidden' : ''}>
           <PrintHeader />
         <div className="flex items-start justify-between mb-1">

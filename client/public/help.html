@@ -336,6 +336,8 @@
 
     <h2>Technical Reference</h2>
     <a href="#overview">Roles Overview</a>
+    <a href="#equipment-units">Equipment Units &amp; 201 Files</a>
+    <a href="#badges">Notification Badges</a>
     <a href="#printing-detail">How Printing Works</a>
     <a href="#work-requests">Request Approval Chain</a>
     <a href="#admin-edit">Admin: Edit / Correct Balance</a>
@@ -383,27 +385,33 @@
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Inventory Sheet</strong> tab.</li>
         <li>For each item, type in the quantity you actually counted.</li>
+        <li>Every item needs a category. Tick the rows that still say <em>"No category"</em>, pick one from the dropdown at the top, and click <strong>Assign</strong>. The tick box in the header row selects every row at once. The three categories are <strong>Equipment</strong>, <strong>Tools &amp; Materials</strong> and <strong>Consumables</strong>, and you can re-tag an item later the same way.</li>
         <li>Click <strong>Save</strong> if you just want to keep your count as a draft for now.</li>
         <li>Click <strong>Apply Adjustments to Stock</strong> when you're sure the count is final — this updates the official stock balance so it matches what you counted.</li>
       </ol>
       <div class="callout"><strong>New item you don't see on the list?</strong> You can add it directly on this page, then count it the same way.</div>
+      <div class="callout"><strong>This sheet counts quantities, not serial numbers.</strong> A row here says "3D Printer &mdash; 5", not which five machines. The moment you tag a row as <strong>Equipment</strong> and save, the system opens one 201 file per unit on F-LAB-001, and that is where each machine's own serial number goes. See <a href="#qg-equipment">Recording Equipment</a> next.</div>
     </div>
 
     <div class="guide-card" id="qg-equipment">
       <h2>4. Recording Equipment</h2>
-      <p class="subtitle">This is the Equipment Monitoring Record — the logbook for machines and tools in your lab.</p>
-      <p><strong>To add a new piece of equipment:</strong></p>
+      <p class="subtitle">This is the Equipment Monitoring Record — the 201 file for each machine in your lab. Every physical unit gets its own, so five identical 3D printers are five records, not one.</p>
+      <p><strong>Equipment is not added here — it comes from the Inventory Sheet.</strong> Tag an item as <strong>Equipment</strong> there and save; the system immediately opens one 201 file per unit in that item's balance. Count five, get five. Raise the count to seven later and two more appear on their own.</p>
+      <p><strong>To record a unit's serial number and location:</strong></p>
       <ol class="steps">
-        <li>Open your laboratory, then click the <strong>Equipment Record</strong> tab. You'll see a list of your lab's equipment.</li>
-        <li>Click <strong>+ Add Equipment</strong> and fill in its name, serial number, and location.</li>
-        <li>Click <strong>Save</strong>.</li>
+        <li>Open your laboratory, then click the <strong>Equipment Record</strong> tab. You'll see every unit listed separately — "3D Printer &middot; unit 1", "&middot; unit 2", and so on. A banner at the top tells you how many still need a serial number, and each of those shows <span class="pill">Not set</span>.</li>
+        <li>Click the unit's name to open its own 201 file.</li>
+        <li>Fill in <strong>Equipment ID / Serial Number</strong> and <strong>Location</strong>, then Save. You're taken back to the equipment list, so you can work straight down it.</li>
       </ol>
-      <p><strong>To log a service entry for equipment that's already listed:</strong></p>
+      <div class="callout"><strong>Why it matters:</strong> the Maintenance Schedule, Calibration Schedule and Work Requests all pick a unit from this list and copy its serial number and location across. Filling these in once here means you never re-type them, and they can't disagree between forms.</div>
+      <p><strong>To log a service entry by hand:</strong></p>
       <ol class="steps">
-        <li>Click that equipment's name in the list to open its own record.</li>
-        <li>Click <strong>+ Add Entry</strong> and fill in the date, what service was performed (Preventive, Repair, or Calibration), the related Work Request ID (if any), and the status.</li>
+        <li>Open the unit's record and click <strong>+ Add Entry</strong>.</li>
+        <li>Fill in the date, what service was performed (Preventive, Repair, or Calibration), the related Work Request ID (if any), and the status.</li>
         <li>Click <strong>Save Entry</strong>.</li>
       </ol>
+      <div class="callout"><strong>Most entries write themselves.</strong> When a Maintenance, Calibration or Work Request is marked Completed, the system logs it into that unit's 201 file for you. Add entries by hand only for work that never went through a request.</div>
+      <p><strong>When a machine leaves the lab</strong> — sold, condemned, transferred — click <strong>Retire</strong> on its row. Its 201 file and full service history are kept for audit, the quantity on the Inventory Sheet drops by one, and no replacement unit is generated.</p>
     </div>
 
     <div class="guide-card" id="qg-schedules">
@@ -411,7 +419,8 @@
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Schedules</strong> tab (Preventive Maintenance or Equipment Calibration).</li>
         <li>Click <strong>+ Add Row</strong>.</li>
-        <li>Choose the equipment from the dropdown — its details fill in automatically.</li>
+        <li>Choose the <em>unit</em> from the dropdown — it lists each machine separately with its serial number, and picking one fills in the serial number and location from that unit's 201 file. Those two boxes are read-only here on purpose: F-LAB-001 is where they're corrected.</li>
+        <li>Pick a frequency. Anything other than Annual generates a full year of dated rows in one go — Monthly makes twelve, spaced a month apart from the date you enter.</li>
         <li>Fill in the scheduled date, then Save. Once the work is actually done, come back and fill in the actual date.</li>
       </ol>
     </div>
@@ -420,9 +429,10 @@
       <h2>6. Requesting an Equipment Repair</h2>
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Work Requests</strong> tab.</li>
-        <li>Click <strong>+ New Request</strong> and describe the problem.</li>
+        <li>Click <strong>+ New Request</strong>, pick the <em>unit</em> that needs work — same per-machine list as the Equipment Record, with the serial number and location filled in for you — and describe the problem.</li>
         <li>Submit it. Your Subject Coordinator will review and approve it, then it goes to the office to get worked on.</li>
         <li>You can check back on this same page to see its status (Pending, Filed, In Progress, Completed).</li>
+        <li>When it's marked Completed, the repair is written into that unit's 201 file automatically — you don't have to log it again on F-LAB-001.</li>
       </ol>
     </div>
 
@@ -462,15 +472,17 @@
       <ol class="steps">
         <li>Open the form you want to print.</li>
         <li>Click the <strong>Print</strong> button near the top of the page.</li>
-        <li>Your browser's print window will open — check that it looks correct, then print.</li>
+        <li>Your browser's print window will open. Portrait or landscape is already set for you — each form knows which way it's meant to print. Check that it looks correct, then print.</li>
       </ol>
       <div class="callout"><strong>Tip:</strong> If you see an extra line of text (like a web address or date) at the top or bottom of the printed page that doesn't belong there, open <em>"More settings"</em> in the print window and turn <strong>off</strong> "Headers and footers". That extra line comes from the browser, not from the form.</div>
+      <div class="callout"><strong>Leave Margins on "Default" and Scale on 100%.</strong> The form works out where each page breaks based on those settings, so overriding them is what makes a page number come out wrong or a table run off the bottom. A4 and Letter both work without changing anything.</div>
     </div>
 
     <div class="guide-card" id="qg-help">
       <h2>11. If You Get Stuck</h2>
       <ul>
-        <li><strong>Can't find something in a dropdown?</strong> It probably needs to be added to your laboratory's inventory first.</li>
+        <li><strong>Can't find a machine in a Schedule or Work Request dropdown?</strong> Those lists only show equipment units. Open the Inventory Sheet, make sure the item is tagged <strong>Equipment</strong> and saved, and its units will appear. A retired unit is deliberately left out.</li>
+        <li><strong>Only one unit showing where you expect several?</strong> The number of 201 files follows the quantity on the Inventory Sheet. If the count says 1, correct the count and the missing units appear.</li>
         <li><strong>A request isn't moving?</strong> It's likely waiting for your Subject Coordinator or the office to act on it — that's normal, just check back later.</li>
         <li><strong>Still stuck?</strong> Ask your Subject Coordinator or your system admin for help.</li>
       </ul>
@@ -499,15 +511,54 @@
         </table>
       </section>
 
+      <section class="block" id="equipment-units">
+        <h2>Equipment Units &amp; 201 Files</h2>
+        <p>The Inventory Sheet <span class="code">F-LAB-010</span> is an aggregate count — one row, one quantity — while the Equipment Monitoring Record <span class="code">F-LAB-001</span> is a 201 file for one physical machine. Those two can't be the same record, so an item tagged <strong>Equipment</strong> is expanded into one <em>unit</em> per item in its balance.</p>
+        <ul>
+          <li>Each unit carries its own serial number, location, service history and status, and a derived <strong>System Equipment ID</strong> of the form <span class="mono">EQ-&lt;item&gt;-&lt;unit&gt;</span> for internal reference. It isn't printed on the form — the serial number is what identifies the machine on paper.</li>
+          <li><strong>Units are added automatically.</strong> Whenever the lab's equipment is loaded, the system tops the unit list up to match the stock balance. Tag an item Equipment with a balance of 5 and five 201 files exist from that moment; raise the balance to 7 and two more appear, already numbered unit 6 and unit 7.</li>
+          <li><strong>Units are retired by hand.</strong> Retire posts a normal stock out-transaction of 1 alongside marking the unit Retired, so the balance drops with it and the auto-top-up doesn't immediately generate a replacement. Nothing is deleted: the 201 file and its history stay readable.</li>
+          <li><strong>Serial numbers live only here.</strong> The Inventory Sheet no longer collects them — it can't, since one row stands for several machines.</li>
+        </ul>
+        <h3>How other forms use a unit</h3>
+        <p>The Maintenance Schedule <span class="code">F-LAB-002</span>, Calibration Schedule <span class="code">F-LAB-003</span> and Work Request <span class="code">F-LAB-004</span> all pick a unit rather than an item, and copy its serial number and location into the row <em>at the moment it's picked</em>. That copy is deliberate: a schedule that has already been printed and signed keeps showing what it was filed against even if the 201 file is corrected afterwards. Correct a live row by re-picking the unit.</p>
+        <p>Completing a Maintenance, Calibration or Work Request writes a <span class="pill">Completed</span> entry into that unit's 201 file automatically, carrying the request number across, so F-LAB-001 is a complete service history without anyone re-keying it.</p>
+      </section>
+
+      <section class="block" id="badges">
+        <h2>Notification Badges</h2>
+        <p>The number on a left-menu item counts what <em>you</em> can act on right now, not everything outstanding — so the same request never nags two people at once:</p>
+        <table>
+          <tr><th>Menu item</th><th>Counts</th><th>For</th></tr>
+          <tr><td>Equipment Work Requests</td><td>Pending</td><td>Subject Coordinator, Admin</td></tr>
+          <tr><td>Equipment Work Requests</td><td>Filed / In Progress</td><td>Secretary, Admin (In Progress also Staff)</td></tr>
+          <tr><td>Other Requests (Bookstore / Supplies / BGU)</td><td>Same split, badged per tab</td><td>as above</td></tr>
+          <tr><td>Borrowing Requests</td><td>Pending</td><td>Subject Coordinator, Admin</td></tr>
+          <tr><td>Borrowing Requests</td><td>Approved (still out on loan)</td><td>Staff — the custodian chasing it back</td></tr>
+        </table>
+        <p>An admin sees every column, so an admin badge is the sum of all of them. A badge disappearing means the item reached a status that is somebody else's move, or its final one.</p>
+      </section>
+
       <section class="block" id="printing-detail">
         <h2>How Printing Works</h2>
         <p>Clicking Print hides the sidebar and on-screen controls and opens the browser's print dialog for that form only.</p>
         <ul>
-          <li>The F-LAB header (school seal + "page X of Y" label) repeats on every physical page a form spans.</li>
-          <li>The form code and revision line (e.g. <span class="pill">F-LAB-006 Rev. 0</span>) prints in the footer of every page.</li>
-          <li>Log-style forms (Stock Cards, Equipment Record, Schedules, Waste Log, Work Requests) pad in blank rows even when there are only a few real entries, so the printout fills a page the same way the paper original does.</li>
-          <li>The "page X of Y" label is an estimate based on row count, since browsers don't expose an exact page-count API — it's close but not guaranteed exact for entries with unusually long notes that wrap onto extra lines.</li>
+          <li>The F-LAB header (school seal + "Page X of Y" label) repeats at the top of every physical page a form spans, and the form code and revision line (e.g. <span class="pill">F-LAB-006 Rev. 0</span>) prints in the footer of every page.</li>
+          <li>Each form declares its own orientation, so the print dialog opens already set correctly — nobody has to know that the wide log sheets are landscape.</li>
+          <li>Log-style forms pad in blank rows even when there are only a few real entries, so the printout fills a page the way the paper original does. Every printed row is floored at about 7&nbsp;mm so a blank line is one somebody can actually write on.</li>
+          <li><strong>"Page X of Y" is exact, not estimated.</strong> Browsers expose no page number to CSS or JavaScript, so a long form is split into one table per page ahead of time, each with its own header, and a page break is forced between them. How many rows go on a page is measured, not assumed: the table is laid out off-screen at the real printed width, every row's height is read, and pages are packed to what is genuinely left on the paper. A row whose equipment name wraps to four lines takes the space of four lines.</li>
+          <li>The split is measured against <strong>both A4 and US Letter</strong> and each row is charged the larger of its two shares of a page, so one printout is correct on either. The trade is a little unused space at the bottom of the sheet when the roomier paper is loaded.</li>
+          <li>Page margins are declared by the form. Leave the dialog's <strong>Margins</strong> on <em>Default</em> and <strong>Scale</strong> on <em>100%</em> — the row measurement is done against those, and overriding them is what makes a table overflow and a page number repeat.</li>
         </ul>
+        <h3>Orientation by form</h3>
+        <table>
+          <tr><th>Portrait</th><th>Landscape</th></tr>
+          <tr><td>Equipment Monitoring Record <span class="mono">F-LAB-001</span></td><td>Preventive Maintenance Schedule <span class="mono">F-LAB-002</span></td></tr>
+          <tr><td>Equipment Work Request <span class="mono">F-LAB-004</span></td><td>Equipment Calibration Schedule <span class="mono">F-LAB-003</span></td></tr>
+          <tr><td>Stock Card <span class="mono">F-LAB-006</span></td><td>Equipment Monitoring Sheet <span class="mono">F-LAB-005</span></td></tr>
+          <tr><td>Borrowing Request <span class="mono">F-LAB-007</span></td><td>Waste Disposal Log <span class="mono">F-LAB-008</span></td></tr>
+          <tr><td>Incident Report <span class="mono">F-LAB-009</span></td><td>Inventory Sheet <span class="mono">F-LAB-010</span></td></tr>
+        </table>
         <h3>Pages with a Print button</h3>
         <table>
           <tr><th>Page</th><th>Form</th></tr>
@@ -545,6 +596,7 @@
           <li><strong>Correct Balance</strong> — type the actual counted quantity from a physical/manual count; the system posts the signed difference as a normal transaction (same mechanism the Inventory Sheet's Apply uses), so the correction stays visible and auditable in the ledger rather than silently overwriting history.</li>
         </ul>
         <div class="callout"><strong>Note:</strong> Equipment is intentionally excluded from Stock Cards, since that form is specifically the consumable quantity ledger. Equipment has its own record — F-LAB-001.</div>
+        <p>The category list is three values: <strong>Equipment</strong>, <strong>Tools &amp; Materials</strong> and <strong>Consumables</strong>. Items still holding a value from the older six-option list are migrated on deploy (Materials and Glassware become Tools &amp; Materials, Chemicals becomes Consumables); anything left as Other or blank shows as <em>Uncategorized</em> and needs re-tagging by hand, since neither maps to one new bucket confidently.</p>
       </section>
 
       <section class="block" id="admin-tools">
@@ -591,7 +643,15 @@
         <h3>My printout has the browser's own header/footer overlapping the form's.</h3>
         <p>Turn off "Headers and footers" in your browser's print dialog (under "More settings").</p>
         <h3>The equipment I need isn't in the schedule dropdown.</h3>
-        <p>Add it first from that laboratory's Inventory (Equipment category) — the Maintenance/Calibration dropdowns pull directly from there.</p>
+        <p>Those dropdowns list equipment <em>units</em> from F-LAB-001, not inventory items. Open the Inventory Sheet, tag the item as <strong>Equipment</strong> and save — its units appear at once. Retired units are excluded on purpose.</p>
+        <h3>There are five of this machine but only one 201 file.</h3>
+        <p>The number of units follows the item's stock balance, so a balance of 1 makes one unit. Correct the quantity on the Inventory Sheet (or the Stock Card's Correct Balance) and the missing units are created the next time the lab's equipment list loads.</p>
+        <h3>Where do I type a serial number? The Inventory Sheet won't let me.</h3>
+        <p>On F-LAB-001, per unit. One inventory row stands for several machines, so it has nowhere to put five different serial numbers. Open the Equipment Record tab and fill each unit in.</p>
+        <h3>A machine was condemned. Do I delete it?</h3>
+        <p>No — click <strong>Retire</strong> on its row. Deleting would take its service history with it, which is the part an audit asks for. Retiring keeps the 201 file, drops the inventory quantity by one, and stops a replacement unit being generated.</p>
+        <h3>The same page number printed on two sheets.</h3>
+        <p>Check the print dialog: <strong>Margins</strong> should be <em>Default</em> and <strong>Scale</strong> <em>100%</em>. The form measures where its pages break against those settings, so a custom margin or a scale above 100% can push a table past the bottom edge, and the browser then splits it and repeats its header.</p>
         <h3>I don't see the Equipment Work Requests inbox.</h3>
         <p>It only shows for Secretary and Admin accounts, since it's the cross-department fulfillment queue.</p>
         <h3>A request I filed is stuck on "Filed."</h3>

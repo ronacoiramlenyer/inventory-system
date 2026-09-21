@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
+import { PrintHeader, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
 
 const INCIDENT_TYPES = ['Injury', 'Chemical Spill', 'Fire', 'Equipment Damage', 'Biological Hazard', 'Electrical Issue'];
 
@@ -128,6 +128,7 @@ export default function IncidentReportDetail() {
         {isSignedImage && signedCopyUrl && (
           <img src={signedCopyUrl} alt="Signed incident report" className="hidden print:block w-full h-auto" />
         )}
+        <PrintOrientation />
         <div className={isSignedImage ? 'print:hidden' : ''}>
           <PrintHeader />
         <h2 className="text-lg font-bold text-slate-800 mb-1">Laboratory Incident Report (LIR)</h2>

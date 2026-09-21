@@ -4,7 +4,7 @@ import api from '../api/client';
 import { refreshNotifications } from '../api/notifications';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeader, PrintFooter } from '../components/PrintHeaderFooter';
+import { PrintHeader, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
 
 const STATUS_OPTIONS = ['Filed', 'In Progress', 'Completed', 'Rejected'];
 const NATURE_TYPES = ['Preventive', 'Repair', 'Calibration'];
@@ -135,6 +135,7 @@ export default function WorkRequestDetail() {
       )}
 
       <div className="bg-white border border-slate-300 rounded-xl p-6 max-w-2xl print:border-none print:rounded-none">
+        <PrintOrientation />
         <PrintHeader />
         <div className="flex items-start justify-between mb-1">
           <h2 className="text-lg font-bold text-slate-800">Equipment Work Request (EWR)</h2>
