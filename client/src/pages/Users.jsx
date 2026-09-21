@@ -12,6 +12,17 @@ const emptyForm = {
   department_ids: [],
 };
 
+function getEditingState(user) {
+  return {
+    full_name: user.full_name,
+    username: user.username,
+    password: '',
+    role: user.role,
+    department_id: user.department_id || '',
+    department_ids: user.departments?.map((d) => d.id) || [],
+  };
+}
+
 const ROLE_LABELS = {
   admin: 'Admin',
   staff: 'Staff',
@@ -26,6 +37,7 @@ export default function Users() {
   const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
 
   function load() {
@@ -44,16 +56,33 @@ export default function Users() {
     }));
   }
 
+  function startEdit(user) {
+    setEditingId(user.id);
+    setForm(getEditingState(user));
+    setShowForm(true);
+  }
+
+  function startNew() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/users', form);
+      if (editingId) {
+        await api.put(`/users/${editingId}`, form);
+      } else {
+        await api.post('/users', form);
+      }
       setForm(emptyForm);
       setShowForm(false);
+      setEditingId(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create user');
+      setError(err.response?.data?.error || (editingId ? 'Failed to update user' : 'Failed to create user'));
     }
   }
 
@@ -72,7 +101,7 @@ export default function Users() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">Staff Accounts</h1>
         <button
-          onClick={() => setShowForm((s) => !s)}
+          onClick={startNew}
           className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2"
         >
           + Add Account
@@ -81,6 +110,11 @@ export default function Users() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-4 grid grid-cols-2 gap-3 max-w-lg">
+          <div className="col-span-2">
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">
+              {editingId ? 'Edit Account' : 'Create New Account'}
+            </h2>
+          </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">Full Name</label>
             <input
@@ -94,16 +128,19 @@ export default function Users() {
             <label className="block text-sm text-slate-600 mb-1">Username</label>
             <input
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              disabled={editingId}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">Password</label>
+            <label className="block text-sm text-slate-600 mb-1">
+              Password {editingId && <span className="text-slate-500">(leave blank to keep current)</span>}
+            </label>
             <input
               type="password"
-              required
+              required={!editingId}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -162,11 +199,14 @@ export default function Users() {
           {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
           <div className="col-span-2 flex gap-2">
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2">
-              Create Account
+              {editingId ? 'Save Changes' : 'Create Account'}
             </button>
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+              }}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
             >
               Cancel
@@ -197,9 +237,12 @@ export default function Users() {
                     ? u.departments?.map((d) => d.name).join(', ') || '—'
                     : u.department_name || '—'}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right space-x-2">
+                  <button onClick={() => startEdit(u)} className="text-slate-600 hover:text-slate-800 text-xs underline">
+                    Edit
+                  </button>
                   {u.id !== currentUser.id && (
-                    <button onClick={() => handleDelete(u.id)} className="text-red-600 hover:text-red-800">
+                    <button onClick={() => handleDelete(u.id)} className="text-red-600 hover:text-red-800 text-xs underline">
                       Delete
                     </button>
                   )}
