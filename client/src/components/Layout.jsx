@@ -16,7 +16,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [pendingCount, setPendingCount] = useState(0);
-  const [notifCounts, setNotifCounts] = useState({ other_requests: 0, filed_requests: 0 });
+  const [notifCounts, setNotifCounts] = useState({ other_requests: 0, filed_requests: 0, borrowing_requests: 0 });
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
@@ -51,7 +51,7 @@ export default function Layout() {
   const navItems = [{ to: '/', label: 'Dashboard', end: true }];
   if (user?.role !== 'secretary') {
     navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
-    navItems.push({ to: '/borrowing-requests', label: 'Borrowing Requests' });
+    navItems.push({ to: '/borrowing-requests', label: 'Borrowing Requests', badge: notifCounts.borrowing_requests });
   }
   navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
   // Subject Coordinators approve Pending EWRs, and Staff mark an In

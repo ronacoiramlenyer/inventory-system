@@ -13,6 +13,10 @@ const NON_TERMINAL_FILED = {
   bookstore_requisitions: ['Filed', 'In Progress'],
   supplies_requisitions: ['Filed', 'In Progress'],
   bgu_job_requests: ['Filed', 'In Progress'],
+  // F-LAB-007 runs Pending -> Approved -> Returned rather than the Filed
+  // workflow above, so "not finished yet" here means Approved: the borrower
+  // has it and the custodian is still waiting on it coming back.
+  borrowing_requests: ['Approved'],
 };
 
 const notifications = new Hono();
@@ -67,15 +71,17 @@ notifications.get('/summary', async (c) => {
     return c.json({
       other_requests: 0,
       filed_requests: 0,
+      borrowing_requests: 0,
       other_requests_by_type: { bookstore: 0, supplies: 0, bgu: 0 },
     });
   }
 
-  const [workRequests, bookstore, supplies, bgu] = await Promise.all([
+  const [workRequests, bookstore, supplies, bgu, borrowing] = await Promise.all([
     tableCounts(c.env.DB, 'work_requests', user),
     tableCounts(c.env.DB, 'bookstore_requisitions', user),
     tableCounts(c.env.DB, 'supplies_requisitions', user),
     tableCounts(c.env.DB, 'bgu_job_requests', user),
+    tableCounts(c.env.DB, 'borrowing_requests', user),
   ]);
 
   const otherRequests =
@@ -98,7 +104,17 @@ notifications.get('/summary', async (c) => {
     bgu: countFor(bgu),
   };
 
-  return c.json({ other_requests: otherRequests, filed_requests: filedRequests, other_requests_by_type });
+  // F-LAB-007: an approver acts on Pending, and the custodian is the one
+  // chasing an Approved one back, so each sees only their own half.
+  const borrowingRequests =
+    (canApprove ? borrowing.pending : 0) + (canCompleteWork ? borrowing.filed : 0);
+
+  return c.json({
+    other_requests: otherRequests,
+    filed_requests: filedRequests,
+    borrowing_requests: borrowingRequests,
+    other_requests_by_type,
+  });
 });
 
 export default notifications;
