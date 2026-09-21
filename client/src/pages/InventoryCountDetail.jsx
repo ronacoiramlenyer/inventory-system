@@ -83,6 +83,14 @@ export default function InventoryCountDetail() {
 
   const readOnly = count?.status === 'applied';
 
+  // Only rows that don't exist on the server yet can be categorised: the
+  // save route reads `category` when it creates the item, and ignores it for
+  // rows that already have one (those only get quantity/variance/remarks).
+  // Offering a checkbox on a saved row would look like it did something.
+  const selectableKeys = rows.filter((r) => !r.id).map((r) => r._key);
+  const selectedCount = selectableKeys.filter((k) => selectedRows.has(k)).length;
+  const allSelected = selectableKeys.length > 0 && selectedCount === selectableKeys.length;
+
   function updateRow(key, field, value) {
     setRows((rs) => rs.map((r) => ((r.id ?? r._key) === key ? { ...r, [field]: value } : r)));
   }
@@ -120,6 +128,10 @@ export default function InventoryCountDetail() {
     });
   }
 
+  function toggleSelectAll() {
+    setSelectedRows(allSelected ? new Set() : new Set(selectableKeys));
+  }
+
   function applyBulkCategory() {
     setRows((rs) =>
       rs.map((r) => {
@@ -152,7 +164,7 @@ export default function InventoryCountDetail() {
     setError('');
     const missingCategory = rows.some((r) => !r.id && r.description?.trim() && !r.category);
     if (missingCategory) {
-      setError('Pick a category for each new row before saving.');
+      setError('Tick the new rows that still show "No category" and use Assign to set one before saving.');
       return false;
     }
     setSaving(true);
@@ -349,9 +361,9 @@ export default function InventoryCountDetail() {
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
       {importSummary && <p className="text-sm text-slate-600 no-print">{importSummary}</p>}
 
-      {selectedRows.size > 0 && (
+      {selectedCount > 0 && (
         <div className="sticky top-0 z-10 no-print bg-slate-800 text-white rounded-lg px-4 py-3 flex items-center gap-3 text-sm">
-          <span className="font-medium">{selectedRows.size} selected</span>
+          <span className="font-medium">{selectedCount} selected</span>
           <select
             className="border border-slate-600 bg-slate-700 rounded px-2 py-1 text-sm"
             value={bulkCategory}
@@ -437,8 +449,18 @@ export default function InventoryCountDetail() {
                 </td>
               </tr>
               <tr className="bg-slate-100">
-                {!readOnly && rows.some((r) => !r.category) && (
-                  <th className="border border-slate-300 px-3 py-2 no-print w-10"></th>
+                {!readOnly && selectableKeys.length > 0 && (
+                  <th className="border border-slate-300 px-3 py-2 no-print w-10">
+                    <input
+                      type="checkbox"
+                      title="Select all new rows"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selectedCount > 0 && !allSelected;
+                      }}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                 )}
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Item No.</th>
                 <th className="border border-slate-300 px-3 py-2 font-semibold text-left">Description</th>
@@ -460,17 +482,16 @@ export default function InventoryCountDetail() {
                 const canRemove = !readOnly && (isNew || !!row.created_new_item);
                 return (
                   <tr key={key} className={isNew ? 'bg-amber-50/50' : ''}>
-                    {!readOnly && !row.category && (
-                      <td className="border border-slate-300 px-3 py-2 no-print">
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.has(key)}
-                          onChange={() => toggleRowSelection(key)}
-                        />
+                    {!readOnly && selectableKeys.length > 0 && (
+                      <td className="border border-slate-300 px-3 py-2 no-print w-10">
+                        {isNew && (
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.has(key)}
+                            onChange={() => toggleRowSelection(key)}
+                          />
+                        )}
                       </td>
-                    )}
-                    {!readOnly && row.category && (
-                      <td className="border border-slate-300 px-3 py-2 no-print w-10"></td>
                     )}
                     <td className="border border-slate-300 px-3 py-2">{row.item_no}</td>
                     <td className="border border-slate-300 px-3 py-2">
@@ -482,20 +503,15 @@ export default function InventoryCountDetail() {
                             value={row.description}
                             onChange={(e) => updateRow(key, 'description', e.target.value)}
                           />
-                          <select
-                            className="w-full border border-slate-300 rounded px-2 py-1 text-xs"
-                            value={row.category}
-                            onChange={(e) => updateRow(key, 'category', e.target.value)}
-                          >
-                            <option value="" disabled>
-                              Category…
-                            </option>
-                            {CATEGORY_OPTIONS.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
-                              </option>
-                            ))}
-                          </select>
+                          {row.category ? (
+                            <span className="inline-block rounded bg-slate-100 text-slate-700 text-xs px-2 py-0.5">
+                              {row.category}
+                            </span>
+                          ) : (
+                            <span className="inline-block rounded bg-amber-100 text-amber-800 text-xs px-2 py-0.5">
+                              No category — tick this row and use Assign
+                            </span>
+                          )}
                           {row.category === 'Equipment' && (
                             <div className="grid grid-cols-2 gap-1">
                               <input
