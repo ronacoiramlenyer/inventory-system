@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
+import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintTitleRow, PrintFooter, estimatePageLabel } from '../components/PrintHeaderFooter';
 import { padRows } from '../utils/padRows';
@@ -24,18 +25,51 @@ const emptyForm = {
 export default function EquipmentMonitoringRecord() {
   const { id } = useParams();
   const confirmDialog = useConfirm();
+  const { user } = useAuth();
   const [item, setItem] = useState(null);
   const [logs, setLogs] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
+  const [eqForm, setEqForm] = useState({ serial_number: '', location: '' });
+  const [savingEq, setSavingEq] = useState(false);
+  const [eqSaved, setEqSaved] = useState(false);
+
+  // The Lab Custodian keeps the 201 file, so staff fill in the serial and
+  // location for equipment that arrived here from the Inventory Sheet.
+  // PUT /equipment/:id enforces the real check (admin, or same department
+  // with the lab approved).
+  const canEditEquipment = user.role === 'staff' || user.role === 'admin';
+
+  async function handleSaveEquipment(e) {
+    e.preventDefault();
+    setError('');
+    setSavingEq(true);
+    try {
+      await api.put(`/equipment/${id}`, eqForm);
+      setEqSaved(true);
+      setTimeout(() => setEqSaved(false), 1500);
+      loadItem();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save the equipment details');
+    } finally {
+      setSavingEq(false);
+    }
+  }
 
   function loadLogs() {
     api.get(`/equipment/${id}/logs`).then((res) => setLogs(res.data));
   }
 
+  function loadItem() {
+    api.get(`/items/${id}`).then((res) => {
+      setItem(res.data);
+      setEqForm({ serial_number: res.data.serial_number || '', location: res.data.location || '' });
+    });
+  }
+
   useEffect(() => {
-    api.get(`/items/${id}`).then((res) => setItem(res.data));
+    loadItem();
     loadLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -156,6 +190,46 @@ export default function EquipmentMonitoringRecord() {
             >
               Cancel
             </button>
+          </div>
+        </form>
+      )}
+
+      {canEditEquipment && (
+        <form onSubmit={handleSaveEquipment} className="no-print bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+          <div>
+            <h3 className="font-semibold text-slate-700 text-sm">Equipment Details</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              This record is the source for the serial number shown on the PMS, ECS and EWR forms.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">Equipment ID / Serial Number</label>
+              <input
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="e.g. SN-11482"
+                value={eqForm.serial_number}
+                onChange={(e) => setEqForm({ ...eqForm, serial_number: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-slate-600 mb-1">Location</label>
+              <input
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                placeholder="e.g. Rm 201, Cabinet B"
+                value={eqForm.location}
+                onChange={(e) => setEqForm({ ...eqForm, location: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={savingEq}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+            >
+              {savingEq ? 'Saving\u2026' : 'Save'}
+            </button>
+            {eqSaved && <span className="text-sm text-emerald-700">Saved</span>}
           </div>
         </form>
       )}
