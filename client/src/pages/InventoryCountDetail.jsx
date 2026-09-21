@@ -112,7 +112,7 @@ export default function InventoryCountDetail() {
 
   function applyBulkCategory() {
     setRows((rs) =>
-      rs.map((r) => (!r.id && !r.category ? { ...r, category: bulkCategory } : r))
+      rs.map((r) => (!r.category ? { ...r, category: bulkCategory } : r))
     );
   }
 
@@ -336,12 +336,12 @@ export default function InventoryCountDetail() {
       {importSummary && <p className="text-sm text-slate-600 no-print">{importSummary}</p>}
 
       {(() => {
-        const uncategorizedNew = rows.filter((r) => !r.id && !r.category);
+        const uncategorized = rows.filter((r) => !r.category);
         return (
-          uncategorizedNew.length > 0 && (
+          uncategorized.length > 0 && (
             <div className="no-print bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm flex items-center gap-3">
               <span className="text-amber-900">
-                <strong>{uncategorizedNew.length}</strong> new item{uncategorizedNew.length !== 1 ? 's' : ''} need{uncategorizedNew.length === 1 ? 's' : ''} a category
+                <strong>{uncategorized.length}</strong> item{uncategorized.length !== 1 ? 's' : ''} need{uncategorized.length === 1 ? 's' : ''} a category
               </span>
               <select
                 className="border border-amber-300 bg-white rounded px-2 py-1 text-sm"
