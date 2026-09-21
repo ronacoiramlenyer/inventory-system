@@ -25,20 +25,30 @@ jobs:
         working-directory: worker
         run: npm ci
 
-      # Applies schema changes to the live D1 database that aren't yet
-      # there. Each statement is idempotent via `|| true` (ALTER TABLE ADD
-      # COLUMN errors if the column already exists), so this is safe to run
-      # on every deploy -- append new statements here as schema.sql changes,
-      # rather than only applying them by hand.
+      # Brings the live D1 database up to the shape schema.sql describes,
+      # then seeds it if it's empty. Both files are written to be safe to
+      # re-run on every deploy, so a brand-new database is provisioned from
+      # scratch here and an in-use one keeps its data untouched.
       - name: Apply pending D1 migrations
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler d1 execute inventory-system-db --remote --command "PRAGMA foreign_keys = OFF; DELETE FROM secretary_departments; DELETE FROM work_requests; DELETE FROM maintenance_schedule_items; DELETE FROM calibration_schedule_items; DELETE FROM bookstore_requisitions; DELETE FROM supplies_requisitions; DELETE FROM bgu_job_requests; DELETE FROM borrowing_requests; DELETE FROM borrowing_request_items; DELETE FROM inventory_count_items; DELETE FROM inventory_counts; DELETE FROM transactions; DELETE FROM items; DELETE FROM users; DELETE FROM laboratories; DELETE FROM departments; DELETE FROM sqlite_sequence; PRAGMA foreign_keys = ON;" || true
-          npx wrangler d1 execute inventory-system-db --remote --file=./seed.local.sql || true
-          # equipment_records table created by schema.sql; no additional ALTER needed
+          DB=lab-management-system-db-v1
+
+          # Create any table that isn't there yet. schema.sql is entirely
+          # CREATE TABLE/INDEX IF NOT EXISTS, so this is safe on every deploy
+          # and is what brings a brand-new D1 database up to the current
+          # shape. No `|| true` here on purpose: if the schema can't be
+          # applied, the deploy must fail loudly rather than ship a Worker
+          # pointed at an empty database.
+          npx wrangler d1 execute "$DB" --remote --file=./src/db/schema.sql
+
+          # Seed the starter admin/departments/labs. Every statement is
+          # INSERT OR IGNORE against a UNIQUE column, so a fresh database
+          # gets seeded once and an in-use one is left completely alone.
+          npx wrangler d1 execute "$DB" --remote --file=./seed.local.sql
 
           # One-time data cleanup after collapsing the category list down to
           # Equipment / Tools & Materials / Consumables -- renames items
@@ -48,12 +58,9 @@ jobs:
           # Other/NULL ("Uncategorized") aren't touched here since neither
           # maps confidently to one new bucket -- reassign those by hand
           # with the bulk "move to category" tool on the Inventory list.
-          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Materials';" || true
-          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Glassware';" || true
-          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Consumables' WHERE category = 'Supplies';" || true
-          npx wrangler d1 execute inventory-system-db --remote --command "UPDATE items SET category = 'Consumables' WHERE category = 'Chemicals';" || true
-          # Clean up orphaned inventory_count_items rows from items that were deleted before the fix
-          npx wrangler d1 execute inventory-system-db --remote --command "DELETE FROM inventory_count_items WHERE item_id NOT IN (SELECT id FROM items) AND inventory_count_id IN (SELECT id FROM inventory_counts WHERE status = 'draft');" || true
+          npx wrangler d1 execute "$DB" --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Materials';" || true
+          npx wrangler d1 execute "$DB" --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Glassware';" || true
+          npx wrangler d1 execute "$DB" --remote --command "UPDATE items SET category = 'Consumables' WHERE category = 'Chemicals';" || true
 
       # One-time cleanup after renaming the project -- deletes the old
       # inventory-system-api Worker and lsgh-lab-inventory Pages project
