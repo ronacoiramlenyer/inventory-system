@@ -4,8 +4,9 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
-import { padRows, paginatePrintRows } from '../utils/padRows';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import PrintPages from '../components/PrintPages';
+import { padRows } from '../utils/padRows';
 
 const MIN_ROWS = 10;
 
@@ -400,14 +401,9 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
             chunks ourselves and rendering each chunk as its own <table>,
             forced onto its own page, is the only way to give each page its
             own correct label. */}
-        <div className="hidden print:block p-6">
-          <PrintOrientation landscape />
-          {paginatePrintRows(rows, MIN_ROWS).map((pageRows, pageIndex, allPages) => (
-            <table
-              key={pageIndex}
-              className="print-page w-full text-xs border-collapse table-fixed"
-              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
-            >
+        <PrintPages rows={rows} landscape minRows={MIN_ROWS} footer={<PrintFooter code={code} date="04-01-25" />}>
+          {(pageRows, pageIndex, pageCount, startIndex) => (
+            <table className="print-page w-full text-xs border-collapse table-fixed">
               <colgroup>
                 <col className="w-[7%]" />
                 <col className="w-[13%]" />
@@ -420,7 +416,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                 <col className="w-[17%]" />
               </colgroup>
               <thead>
-                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={9} />
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${pageCount}`} colSpan={9} />
                 <PrintTitleRow
                   title={formTitle}
                   subtitle={
@@ -453,7 +449,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
               <tbody>
                 {pageRows.map((row, i) => (
                   <tr key={row.id}>
-                    <td className="border border-slate-300 px-3 py-2">{pageIndex * MIN_ROWS + i + 1}</td>
+                    <td className="border border-slate-300 px-3 py-2">{startIndex + i}</td>
                     <td className="border border-slate-300 px-3 py-2">{row.equipment_name_description}</td>
                     <td className="border border-slate-300 px-3 py-2">{row.serial_number}</td>
                     <td className="border border-slate-300 px-3 py-2">{row.frequency}</td>
@@ -466,9 +462,8 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
                 ))}
               </tbody>
             </table>
-          ))}
-          <PrintFooter code={code} date="04-01-25" />
-        </div>
+          )}
+        </PrintPages>
       </div>
     </div>
   );

@@ -5,7 +5,8 @@ import { useConfirm } from '../context/ConfirmContext';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
-import { padRows, paginatePrintRows } from '../utils/padRows';
+import PrintPages from '../components/PrintPages';
+import { padRows } from '../utils/padRows';
 
 const SERVICE_OPTIONS = ['Preventive', 'Repair', 'Calibration'];
 // A printed page realistically fits ~10 rows of this table once the
@@ -97,7 +98,7 @@ export default function EquipmentMonitoringRecord() {
   const equipmentInfoRows = (
     <>
       <tr>
-        <td rowSpan={4} colSpan={1} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top">
+        <td rowSpan={3} colSpan={1} className="border border-slate-300 px-3 py-1.5 font-semibold bg-slate-50 align-top">
           Equipment Information
         </td>
         <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">
@@ -108,10 +109,6 @@ export default function EquipmentMonitoringRecord() {
           <span className="text-slate-500"> · unit {item.unit_no}</span>
           {item.status === 'Retired' && <span className="text-slate-500"> · Retired</span>}
         </td>
-      </tr>
-      <tr>
-        <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">System Equipment ID:</td>
-        <td colSpan={3} className="border border-slate-300 px-3 py-1.5">{item.equipment_code}</td>
       </tr>
       <tr>
         <td colSpan={2} className="border border-slate-300 px-3 py-1.5 font-medium">Equipment ID/Serial Number:</td>
@@ -343,16 +340,12 @@ export default function EquipmentMonitoringRecord() {
 
         </div>
 
-        {/* Each printed page is its own table so it can carry its own page
-            number -- see paginatePrintRows for why the browser cannot give
-            us one from a single long table. */}
-        <div className="hidden print:block p-6">
-          {paginatePrintRows(logs, MIN_ROWS).map((pageLogs, pageIndex, allPages) => (
-            <table
-              key={pageIndex}
-              className="print-page w-full text-xs border-collapse table-fixed"
-              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
-            >
+        {/* One <table> per physical page so each can carry its own page
+            number; PrintPages measures the rows to decide where those
+            pages end. */}
+        <PrintPages rows={logs} minRows={MIN_ROWS} footer={<PrintFooter code="F-LAB-001" date="04-01-25" />}>
+          {(pageLogs, pageIndex, pageCount) => (
+            <table className="print-page w-full text-xs border-collapse table-fixed">
               <colgroup>
                 <col className="w-[13%]" />
                 <col className="w-[27%]" />
@@ -361,7 +354,7 @@ export default function EquipmentMonitoringRecord() {
                 <col className="w-[16%]" />
               </colgroup>
               <thead>
-                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={6} />
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${pageCount}`} colSpan={6} />
                 <PrintTitleRow title="Equipment Monitoring Record (EMR)" colSpan={6} />
                 {equipmentInfoRows}
                 <tr className="bg-slate-100">{logHeaderCells}</tr>
@@ -372,9 +365,8 @@ export default function EquipmentMonitoringRecord() {
                 ))}
               </tbody>
             </table>
-          ))}
-          <PrintFooter code="F-LAB-001" date="04-01-25" />
-        </div>
+          )}
+        </PrintPages>
       </div>
     </div>
   );

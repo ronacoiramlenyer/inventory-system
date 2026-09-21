@@ -27,13 +27,20 @@ export function PrintHeader({ pageLabel = 'Page 1 of 1' }) {
 // colSpan must match the number of print-visible <th> columns in that
 // table (i.e. excluding any no-print action column).
 //
+// The `print-row` class rather than Tailwind's `hidden print:table-row`:
+// PrintPages measures a copy of this table on screen to decide where the
+// pages break, and a row that only exists in print media measures as zero
+// there -- which is how a header taking a fifth of a landscape page came
+// to be left out of the budget entirely. print-row is visible in print and
+// inside that measuring copy, and hidden everywhere else (see index.css).
+//
 // Uses the same 3-column grid as PrintHeader (empty / logo centered / page
 // label at the far right) instead of centering logo+label together as one
 // block -- that made the label look glued to the logo's right edge rather
 // than sitting at the true top-right corner of the table.
 export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
   return (
-    <tr className="hidden print:table-row">
+    <tr className="print-row">
       {/* h-8 + pb-1, down from h-14 + pb-3 -- on a multi-page table printed
           Landscape, the page is only 8.5in tall instead of 11in, so this
           repeating block ate close to a third of the physical page. Past
@@ -44,7 +51,7 @@ export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
           the whole header/title/column-row block keeps it well clear of
           that threshold regardless of orientation. */}
       <th colSpan={colSpan} className="p-0 border-0 font-normal pb-1">
-        <div className="print:grid grid-cols-3 items-center w-full">
+        <div className="grid grid-cols-3 items-center w-full">
           <span />
           <img src="/lsgh-logo.png" alt="La Salle Green Hills" className="h-8 w-auto justify-self-center" />
           <span className="italic text-xs text-slate-700 justify-self-end">{pageLabel}</span>
@@ -63,7 +70,7 @@ export function PrintHeaderRow({ pageLabel = 'Page 1 of 1', colSpan }) {
 // they don't print twice once this takes over for print.
 export function PrintTitleRow({ title, subtitle, colSpan, center = false }) {
   return (
-    <tr className="hidden print:table-row">
+    <tr className="print-row">
       <th colSpan={colSpan} className={`p-0 border-0 font-normal pb-1 ${center ? 'text-center' : 'text-left'}`}>
         <div className="text-base font-bold text-slate-800">{title}</div>
         {subtitle && <div className="text-xs font-normal text-slate-800">{subtitle}</div>}

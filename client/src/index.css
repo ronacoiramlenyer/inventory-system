@@ -13,6 +13,33 @@ table th {
   overflow-wrap: break-word;
 }
 
+/* A table row that belongs to a printout only. Not Tailwind's
+   `hidden print:table-row`: PrintPages measures a copy of the printed table
+   on screen, and a row that exists only in print media measures as zero
+   there, so the page-break budget silently loses the whole form header. */
+.print-row {
+  display: none;
+}
+@media print {
+  .print-row {
+    display: table-row;
+  }
+}
+.print-measure .print-row {
+  display: table-row;
+}
+
+/* Row padding for the printed form tables. Deliberately not inside
+   @media print: PrintPages measures a copy of the same table on screen to
+   decide where the page breaks go, and a measurement taken at a different
+   row padding than the printer uses is worse than no measurement at all.
+   .print-page is only ever put on those print tables. */
+.print-page td,
+.print-page th {
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+}
+
 @media print {
   .no-print {
     display: none !important;
@@ -30,29 +57,27 @@ table th {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  /* Each of these is one printed page's worth of rows, rendered as its own
-     table with its own page number. If one is even slightly too tall for the
-     paper, the browser splits it and repeats its <thead> -- which prints the
-     same "Page 1 of N" twice. break-inside: avoid stops that: an overflowing
-     block moves to the next sheet whole rather than being cut in half.
-     The tighter row padding is what buys the headroom to not overflow in the
-     first place -- at py-2 a ten-row landscape page measured 668px against
-     roughly 683px usable on A4, which is no margin at all. */
-  .print-page {
-    break-inside: avoid;
+  /* The printed sheets have to start at the very top of the paper.
+     PrintPages budgets each sheet for the whole content box, so anything
+     the app's own chrome leaves above the first table -- the main column's
+     padding, the gap between the page's stacked sections -- pushes that
+     first table past the bottom edge. The browser then splits it and
+     repeats its <thead>, which is what printed "Page 1 of 2" twice. */
+  main {
+    padding: 0 !important;
   }
-  .print-page td,
-  .print-page th {
-    padding-top: 0.15rem;
-    padding-bottom: 0.15rem;
+  .print-sheets {
+    margin-top: 0 !important;
   }
 
-  /* The repeating PrintFooter is position:fixed so it shows on every page,
-     but fixed elements don't reserve flow space -- without this, a table
-     that fills close to a page's bottom edge prints right under (or
-     through) the footer instead of stopping above it. Reserving page
-     margin here keeps content out of the same zone the footer sits in. */
+  /* Set in full rather than leaving three sides to the print dialog's
+     default: PrintPages works out how many rows fit a page by subtracting
+     these margins from the paper, so they have to be a known quantity, not
+     whatever the dialog happens to be set to. The deep bottom margin is
+     for the repeating PrintFooter -- it is position:fixed so it appears on
+     every page, and fixed elements reserve no flow space, so without this
+     a table filling the page prints straight through it. */
   @page {
-    margin-bottom: 0.75in;
+    margin: 0.4in 0.4in 0.75in;
   }
 }

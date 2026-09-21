@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
-import { padRows, paginatePrintRows } from '../utils/padRows';
+import PrintPages from '../components/PrintPages';
+import { padRows } from '../utils/padRows';
 
 // A printed page realistically fits ~10 rows of this table once the
 // browser's own print margins/header/footer are accounted for.
@@ -615,20 +616,14 @@ export default function StockCard() {
 
         </div>
 
-        {/* Each printed page is its own table so it can carry its own page
-            number -- see paginatePrintRows for why the browser cannot give
-            us one from a single long table. Balances are computed server
-            side per entry, so slicing the list into pages cannot desync a
-            running total. */}
-        <div className="hidden print:block p-6">
-          {paginatePrintRows(entries, MIN_ROWS).map((pageEntries, pageIndex, allPages) => (
-            <table
-              key={pageIndex}
-              className="print-page w-full text-xs border-collapse"
-              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
-            >
+        {/* One <table> per physical page so each can carry its own page
+            number; PrintPages measures the rows to decide where those
+            pages end. */}
+        <PrintPages rows={entries} minRows={MIN_ROWS} footer={<PrintFooter code="F-LAB-006" date="04-01-25" />}>
+          {(pageEntries, pageIndex, pageCount) => (
+            <table className="print-page w-full text-xs border-collapse">
               <thead>
-                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={7} />
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${pageCount}`} colSpan={7} />
                 <PrintTitleRow title="Stock Card" colSpan={7} />
                 {stockInfoRows}
                 {stockHeaderRow}
@@ -674,9 +669,8 @@ export default function StockCard() {
                 )}
               </tbody>
             </table>
-          ))}
-          <PrintFooter code="F-LAB-006" date="04-01-25" />
-        </div>
+          )}
+        </PrintPages>
       </div>
     </div>
   );

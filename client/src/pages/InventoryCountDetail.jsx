@@ -5,8 +5,8 @@ import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import ProgressBar, { useProgress } from '../components/ProgressBar';
 import LabFormTabs from '../components/LabFormTabs';
-import { PrintHeaderRow, PrintTitleRow, PrintFooter, PrintOrientation } from '../components/PrintHeaderFooter';
-import { paginatePrintRows } from '../utils/padRows';
+import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import PrintPages from '../components/PrintPages';
 
 const normalize = (s) => String(s ?? '').trim().toLowerCase();
 let tempKeySeq = 0;
@@ -602,17 +602,17 @@ export default function InventoryCountDetail() {
 
         </div>
 
-        {/* Each printed page is its own table so it can carry its own page
-            number -- see paginatePrintRows for why the browser cannot give
-            us one from a single long table. */}
-        <div className="hidden print:block p-6">
-          <PrintOrientation landscape />
-          {paginatePrintRows(rows, PRINT_ROWS_PER_PAGE).map((pageRows, pageIndex, allPages) => (
-            <table
-              key={pageIndex}
-              className="print-page w-full text-xs border-collapse table-fixed"
-              style={pageIndex < allPages.length - 1 ? { breakAfter: 'page' } : undefined}
-            >
+        {/* One <table> per physical page so each can carry its own page
+            number; PrintPages measures the rows to decide where those
+            pages end. */}
+        <PrintPages
+          rows={rows}
+          landscape
+          minRows={PRINT_ROWS_PER_PAGE}
+          footer={<PrintFooter code="F-LAB-010" date="04-01-25" />}
+        >
+          {(pageRows, pageIndex, pageCount, startIndex) => (
+            <table className="print-page w-full text-xs border-collapse table-fixed">
               <colgroup>
                 <col className="w-[8%]" />
                 <col className="w-[32%]" />
@@ -623,7 +623,7 @@ export default function InventoryCountDetail() {
                 <col className="w-[16%]" />
               </colgroup>
               <thead>
-                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${allPages.length}`} colSpan={7} />
+                <PrintHeaderRow pageLabel={`Page ${pageIndex + 1} of ${pageCount}`} colSpan={7} />
                 <PrintTitleRow title="Inventory Sheet" colSpan={7} />
                 <tr>
                   <td colSpan={7} className="px-1 py-1.5">
@@ -661,7 +661,7 @@ export default function InventoryCountDetail() {
                   return (
                     <tr key={row.id ?? row._key}>
                       <td className="border border-slate-300 px-3 py-2">
-                        {row.__blank ? '' : pageIndex * PRINT_ROWS_PER_PAGE + i + 1}
+                        {row.__blank ? '' : startIndex + i}
                       </td>
                       <td className="border border-slate-300 px-3 py-2">{row.description}</td>
                       <td className="border border-slate-300 px-3 py-2">{row.unit}</td>
@@ -676,9 +676,8 @@ export default function InventoryCountDetail() {
                 })}
               </tbody>
             </table>
-          ))}
-          <PrintFooter code="F-LAB-010" date="04-01-25" />
-        </div>
+          )}
+        </PrintPages>
       </div>
     </div>
   );
