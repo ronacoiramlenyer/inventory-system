@@ -18,11 +18,12 @@ export default function NewWorkRequest() {
   const sourceType = searchParams.get('source_type');
   const sourceScheduleId = searchParams.get('source_schedule_id');
   const [lab, setLab] = useState(null);
-  const [equipmentItems, setEquipmentItems] = useState([]);
+  const [equipmentUnits, setEquipmentUnits] = useState([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     equipment_item_id: searchParams.get('equipment_item_id') || '',
+    equipment_record_id: searchParams.get('equipment_record_id') || '',
     equipment_name_description: searchParams.get('equipment_name_description') || '',
     serial_number: searchParams.get('serial_number') || '',
     date_needed: searchParams.get('date_needed') || '',
@@ -33,34 +34,40 @@ export default function NewWorkRequest() {
 
   useEffect(() => {
     api.get(`/laboratories/${id}`).then((res) => setLab(res.data));
-    api.get('/items', { params: { laboratory_id: id, category: 'Equipment' } }).then((res) => {
-      setEquipmentItems(res.data);
-      // Auto-match equipment by name if equipment_item_id is empty but
-      // equipment_name_description is pre-filled from pending schedule sidebar
-      const prefilledName = searchParams.get('equipment_name_description');
-      const prefilledItemId = searchParams.get('equipment_item_id');
-      if (prefilledName && !prefilledItemId) {
-        const matched = res.data.find((it) => it.item_name === prefilledName);
-        if (matched) {
+    api.get('/equipment', { params: { laboratory_id: id } }).then((res) => {
+      setEquipmentUnits(res.data);
+      // A due PMS/ECS entry hands over the unit it was filed against, so the
+      // prefilled request names that same unit.
+      const prefilledUnitId = searchParams.get('equipment_record_id');
+      if (prefilledUnitId) {
+        const unit = res.data.find((u) => String(u.id) === prefilledUnitId);
+        if (unit) {
           setForm((f) => ({
             ...f,
-            equipment_item_id: String(matched.id),
-            serial_number: matched.serial_number || f.serial_number,
+            equipment_record_id: String(unit.id),
+            equipment_item_id: String(unit.item_id),
+            equipment_name_description: unit.name_description,
+            serial_number: unit.serial_number || f.serial_number,
           }));
         }
       }
     });
   }, [id, searchParams]);
 
-  function selectEquipment(itemId) {
-    const picked = equipmentItems.find((it) => String(it.id) === itemId);
+  // The serial is copied from the unit's F-LAB-001 record when it's picked, so
+  // a request already printed keeps the serial it was raised against.
+  function selectEquipment(unitId) {
+    const picked = equipmentUnits.find((u) => String(u.id) === unitId);
     setForm((f) => ({
       ...f,
-      equipment_item_id: itemId,
-      equipment_name_description: picked ? picked.item_name : '',
-      serial_number: picked?.serial_number || f.serial_number,
+      equipment_record_id: unitId,
+      equipment_item_id: picked ? String(picked.item_id) : '',
+      equipment_name_description: picked ? picked.name_description : '',
+      serial_number: picked?.serial_number || '',
     }));
   }
+
+  const selectedUnit = equipmentUnits.find((u) => String(u.id) === String(form.equipment_record_id));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -124,21 +131,24 @@ export default function NewWorkRequest() {
           <select
             required
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-            value={form.equipment_item_id}
+            value={form.equipment_record_id}
             onChange={(e) => selectEquipment(e.target.value)}
           >
             <option value="" disabled>
-              Select equipment from Inventory…
+              Select a unit from F-LAB-001…
             </option>
-            {equipmentItems.map((it) => (
-              <option key={it.id} value={it.id}>
-                {it.item_name}
-              </option>
-            ))}
+            {equipmentUnits
+              .filter((u) => u.status === 'Active')
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name_description} · {u.equipment_code}
+                  {u.serial_number ? ` · ${u.serial_number}` : ' · no serial yet'}
+                </option>
+              ))}
           </select>
-          {equipmentItems.length === 0 && (
+          {equipmentUnits.length === 0 && (
             <p className="text-xs text-slate-400 mt-1">
-              No equipment in this lab's Inventory yet — add one from the Inventory list first.
+              No equipment units in this lab yet — add equipment on the Inventory Sheet first.
             </p>
           )}
         </div>
@@ -146,10 +156,14 @@ export default function NewWorkRequest() {
           <div>
             <label className="block text-sm text-slate-600 mb-1">Equipment ID/Serial Number</label>
             <input
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              readOnly
+              className="w-full border border-slate-300 bg-slate-50 text-slate-600 rounded-lg px-3 py-2 text-sm"
               value={form.serial_number}
-              onChange={(e) => setForm({ ...form, serial_number: e.target.value })}
+              placeholder="From the selected unit"
             />
+            {selectedUnit?.location && (
+              <p className="text-xs text-slate-500 mt-1">Location: {selectedUnit.location}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">Date Needed</label>

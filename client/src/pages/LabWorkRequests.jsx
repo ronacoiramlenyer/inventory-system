@@ -211,6 +211,7 @@ export default function LabWorkRequests() {
                         source_type: s.source_type,
                         source_schedule_id: s.id,
                         equipment_item_id: s.equipment_item_id || '',
+                        equipment_record_id: s.equipment_record_id || '',
                         equipment_name_description: s.equipment_name_description || '',
                         serial_number: s.serial_number || '',
                         nature_of_request: s.source_type === 'PMS' ? 'Preventive' : 'Calibration',

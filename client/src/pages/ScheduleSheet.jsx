@@ -72,9 +72,10 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // The serial is copied from the unit's F-LAB-001 record at the moment it's
-  // picked, so a schedule that's already been printed and signed keeps showing
-  // the serial it was filed against even if the 201 file is later corrected.
+  // Serial and location are copied from the unit's F-LAB-001 record at the
+  // moment it's picked, so a schedule that's already been printed and signed
+  // keeps showing what it was filed against even if the 201 file is later
+  // corrected.
   function selectEquipment(unitId) {
     const picked = equipmentUnits.find((u) => String(u.id) === unitId);
     setForm((f) => ({
@@ -83,6 +84,7 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
       equipment_item_id: picked ? String(picked.item_id) : '',
       equipment_name_description: picked ? picked.name_description : '',
       serial_number: picked?.serial_number || '',
+      location: picked?.location || '',
     }));
   }
 
@@ -253,10 +255,12 @@ export default function ScheduleSheet({ apiBase, tabKey, formTitle, dateNoun, co
           <div>
             <label className="block text-sm text-slate-600 mb-1">Location</label>
             <input
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              readOnly
+              className="w-full border border-slate-300 bg-slate-50 text-slate-600 rounded-lg px-3 py-2 text-sm"
               value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              placeholder="From the selected unit"
             />
+            <p className="text-xs text-slate-400 mt-1">Comes from the unit's F-LAB-001 record.</p>
           </div>
           <div>
             <label className="block text-sm text-slate-600 mb-1">

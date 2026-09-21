@@ -46,6 +46,7 @@ jobs:
           npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE equipment_logs ADD COLUMN equipment_record_id INTEGER;" || true
           npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE maintenance_schedule_items ADD COLUMN equipment_record_id INTEGER;" || true
           npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE calibration_schedule_items ADD COLUMN equipment_record_id INTEGER;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE work_requests ADD COLUMN equipment_record_id INTEGER;" || true
 
           # Create any table that isn't there yet. schema.sql is entirely
           # CREATE TABLE/INDEX IF NOT EXISTS, so this is safe on every deploy

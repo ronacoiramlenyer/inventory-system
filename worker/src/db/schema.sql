@@ -214,8 +214,12 @@ CREATE TABLE IF NOT EXISTS work_requests (
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   request_no TEXT NOT NULL UNIQUE,  -- EWR-YYYY-###, auto-generated
   equipment_item_id INTEGER REFERENCES items(id) ON DELETE SET NULL, -- reference to equipment item
+  -- Which individual unit the work is for. The serial below is snapshotted
+  -- from that unit's F-LAB-001 record when it's picked, so a printed request
+  -- keeps showing the serial it was raised against.
+  equipment_record_id INTEGER REFERENCES equipment_records(id) ON DELETE SET NULL,
   equipment_name_description TEXT,   -- free-text equipment name
-  serial_number TEXT,                -- free-text serial number
+  serial_number TEXT,                -- serial as at the time it was raised
   date_requested TEXT NOT NULL,     -- YYYY-MM-DD
   date_needed TEXT,
   nature_of_request TEXT,           -- "Preventive" | "Repair" | "Calibration"

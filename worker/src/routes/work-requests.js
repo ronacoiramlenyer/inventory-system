@@ -10,10 +10,12 @@ const workRequests = new Hono();
 workRequests.use('*', requireAuth);
 
 const SELECT = `
-  SELECT w.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name
+  SELECT w.*, l.name AS laboratory_name, l.department_id, l.status AS lab_status, d.name AS department_name,
+    'EQ-' || er.item_id || '-' || printf('%03d', er.unit_no) AS equipment_code
   FROM work_requests w
   JOIN laboratories l ON l.id = w.laboratory_id
   JOIN departments d ON d.id = l.department_id
+  LEFT JOIN equipment_records er ON er.id = w.equipment_record_id
 `;
 
 // Staff/Subject Coordinator are tied to exactly one department
@@ -106,7 +108,7 @@ workRequests.get('/pending-schedule', async (c) => {
 
   async function pending(table, sourceType) {
     let sql = `
-      SELECT s.id, s.laboratory_id, s.equipment_item_id, s.equipment_name_description, s.serial_number,
+      SELECT s.id, s.laboratory_id, s.equipment_item_id, s.equipment_record_id, s.equipment_name_description, s.serial_number,
         s.frequency, s.department, s.location, s.scheduled_date, '${sourceType}' AS source_type
       FROM ${table} s
       JOIN laboratories l ON l.id = s.laboratory_id
@@ -180,6 +182,7 @@ workRequests.post('/', async (c) => {
   const {
     laboratory_id,
     equipment_item_id,
+    equipment_record_id,
     equipment_name_description,
     serial_number,
     date_needed,
@@ -222,12 +225,13 @@ workRequests.post('/', async (c) => {
   const result = await dbRun(
     c.env.DB,
     `INSERT INTO work_requests
-      (laboratory_id, request_no, equipment_item_id, equipment_name_description, serial_number, date_requested, date_needed,
+      (laboratory_id, request_no, equipment_item_id, equipment_record_id, equipment_name_description, serial_number, date_requested, date_needed,
        nature_of_request, detailed_description, requested_by, status, created_by, source_type, source_schedule_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     laboratory_id,
     requestNo,
     equipment_item_id || null,
+    equipment_record_id || null,
     equipment_name_description.trim(),
     serial_number?.trim() || null,
     today,
@@ -279,6 +283,7 @@ workRequests.put('/:id', async (c) => {
 
   const {
     equipment_item_id,
+    equipment_record_id,
     equipment_name_description,
     serial_number,
     date_needed,
@@ -299,6 +304,7 @@ workRequests.put('/:id', async (c) => {
   const canManage = userCanManageFiled(user, existing);
   const canCompleteWork = userCanCompleteWork(user, existing);
   const newEquipmentItemId = equipment_item_id ?? existing.equipment_item_id;
+  const newEquipmentRecordId = equipment_record_id ?? existing.equipment_record_id;
 
   const desiredStatus = status?.trim();
   let newStatus = existing.status;
@@ -312,10 +318,11 @@ workRequests.put('/:id', async (c) => {
 
   await dbRun(
     c.env.DB,
-    `UPDATE work_requests SET equipment_item_id = ?, equipment_name_description = ?, serial_number = ?, date_needed = ?,
+    `UPDATE work_requests SET equipment_item_id = ?, equipment_record_id = ?, equipment_name_description = ?, serial_number = ?, date_needed = ?,
        nature_of_request = ?, detailed_description = ?, requested_by = ?, approved_by = ?, status = ?,
        date_completed = ?, remarks = ? WHERE id = ?`,
     newEquipmentItemId || null,
+    newEquipmentRecordId || null,
     equipment_name_description?.trim() || existing.equipment_name_description,
     serial_number?.trim() ?? existing.serial_number,
     date_needed ?? existing.date_needed,
@@ -335,7 +342,7 @@ workRequests.put('/:id', async (c) => {
   if (newStatus === 'Completed' && existing.status !== 'Completed') {
     await logEquipmentService(c.env.DB, {
       equipmentItemId: newEquipmentItemId,
-      serialNumber: serial_number?.trim() ?? existing.serial_number,
+      equipmentRecordId: newEquipmentRecordId,
       entryDate: newDateCompleted || new Date().toISOString().slice(0, 10),
       servicePerformed: nature_of_request?.trim() || existing.nature_of_request,
       requestId: existing.request_no,
