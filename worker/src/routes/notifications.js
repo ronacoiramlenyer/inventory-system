@@ -41,7 +41,7 @@ async function tableCounts(db, table, user) {
        COALESCE(SUM(CASE WHEN t.status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending,
        COALESCE(SUM(CASE WHEN t.status IN (${filedPlaceholders}) THEN 1 ELSE 0 END), 0) AS filed,
        COALESCE(SUM(CASE WHEN t.status = 'In Progress' THEN 1 ELSE 0 END), 0) AS in_progress
-     FROM ${table} t
+     FROM \`${table}\` t
      JOIN laboratories l ON l.id = t.laboratory_id
      WHERE ${clauses.join(' AND ')}`,
     ...nonTerminal,
