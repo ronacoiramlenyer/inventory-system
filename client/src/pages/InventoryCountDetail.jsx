@@ -67,6 +67,7 @@ export default function InventoryCountDetail() {
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
   const [importSummary, setImportSummary] = useState('');
+  const [bulkCategory, setBulkCategory] = useState(CATEGORY_OPTIONS[0]);
   const fileInputRef = useRef(null);
 
   function load() {
@@ -107,6 +108,12 @@ export default function InventoryCountDetail() {
 
   function removeUnsavedRow(key) {
     setRows((rs) => rs.filter((r) => (r.id ?? r._key) !== key));
+  }
+
+  function applyBulkCategory() {
+    setRows((rs) =>
+      rs.map((r) => (!r.id && !r.category ? { ...r, category: bulkCategory } : r))
+    );
   }
 
   async function removeSavedRow(rowId) {
@@ -327,6 +334,36 @@ export default function InventoryCountDetail() {
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
       {importSummary && <p className="text-sm text-slate-600 no-print">{importSummary}</p>}
+
+      {(() => {
+        const uncategorizedNew = rows.filter((r) => !r.id && !r.category);
+        return (
+          uncategorizedNew.length > 0 && (
+            <div className="no-print bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm flex items-center gap-3">
+              <span className="text-amber-900">
+                <strong>{uncategorizedNew.length}</strong> new item{uncategorizedNew.length !== 1 ? 's' : ''} need{uncategorizedNew.length === 1 ? 's' : ''} a category
+              </span>
+              <select
+                className="border border-amber-300 bg-white rounded px-2 py-1 text-sm"
+                value={bulkCategory}
+                onChange={(e) => setBulkCategory(e.target.value)}
+              >
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={applyBulkCategory}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg px-3 py-1 text-sm whitespace-nowrap"
+              >
+                Apply to All
+              </button>
+            </div>
+          )
+        );
+      })()}
 
       {readOnly && (
         <div className="no-print bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-4 py-2 text-sm">
