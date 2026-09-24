@@ -52,7 +52,7 @@ export const RECORD_CODES = [
     kind: 'form',
     retains: 'Each individual repair or service request and how it was resolved.',
     count: `SELECT COUNT(*) AS n FROM work_requests t JOIN laboratories l ON l.id = t.laboratory_id WHERE {scope}`,
-    where: 'R-LAB-105 Equipment Work Request (EWR)',
+    where: 'Open from here · every laboratory',
     href: '/work-requests',
   },
   {
@@ -84,7 +84,7 @@ export const RECORD_CODES = [
     kind: 'form',
     retains: 'Each borrowing request, its approval, and the signed hardcopy.',
     count: `SELECT COUNT(*) AS n FROM borrowing_requests t JOIN laboratories l ON l.id = t.laboratory_id WHERE {scope}`,
-    where: 'R-LAB-108 Borrowing Request Form (BRF)',
+    where: 'Open from here · every laboratory',
     href: '/borrowing-requests',
   },
   {
@@ -114,7 +114,7 @@ export const RECORD_CODES = [
     kind: 'archive',
     retains: 'Each closed inventory period, frozen as it stood at closing.',
     count: `SELECT COUNT(*) AS n FROM inventory_archives t JOIN laboratories l ON l.id = t.laboratory_id WHERE {scope}`,
-    where: 'R-LAB-111 Inventory Sheet',
+    where: 'Open from here · closed periods',
     href: '/inventory-archive',
   },
   {

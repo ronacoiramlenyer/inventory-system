@@ -48,46 +48,26 @@ export default function Layout() {
     navigate('/login');
   }
 
-  const navItems = [{ to: '/', label: 'Dashboard', end: true }];
-  if (user?.role !== 'secretary') {
-    navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
-    // Named by record code, same as R-LAB-111 below: these pages are where
-    // that record is kept, so the menu says which record it is.
-    navItems.push({
-      to: '/borrowing-requests',
-      label: 'R-LAB-108 Borrowing Request Form (BRF)',
-      badge: notifCounts.borrowing_requests,
-    });
-    // Closed inventory periods, named by the ISO record code they are
-    // retained under rather than by what the page does. Not under a
-    // laboratory, because an audit reads across them -- "show me every count
-    // since June" is the question this page answers, and a custodian's own
-    // periods are simply the ones their department scope leaves visible.
-    // The whole records register, plus a direct entry for R-LAB-111 -- it is
-    // the one record a custodian opens routinely, and closing a period lands
-    // them in it, so it keeps its own shortcut rather than being two clicks
-    // in behind the register.
-    navItems.push({ to: '/records', label: 'Records', end: true });
-    navItems.push({ to: '/inventory-archive', label: 'R-LAB-111 Inventory Sheet' });
-  }
-  navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
-  // Subject Coordinators approve Pending EWRs, and Staff mark an In
-  // Progress one Completed (same as they do for the other request types
-  // above) -- without a nav entry here, neither had a way to even find one
-  // to act on, since it isn't scoped to a single laboratory the way the
-  // EMS list under each lab is.
-  if (
+  // Individual R-LAB records don't get their own menu entries -- the Records
+  // register already lists all twelve and links to each. What the removed
+  // entries did carry was the badge telling a Subject Coordinator or a
+  // Secretary that something was waiting on them, so that count moves onto
+  // Records, and the register itself shows which record it belongs to.
+  const canWorkRequests =
     user?.role === 'secretary' ||
     user?.role === 'admin' ||
     user?.role === 'subject_coordinator' ||
-    user?.role === 'staff'
-  ) {
-    navItems.push({
-      to: '/work-requests',
-      label: 'R-LAB-105 Equipment Work Request (EWR)',
-      badge: notifCounts.filed_requests,
-    });
+    user?.role === 'staff';
+  const recordsBadge =
+    (user?.role !== 'secretary' ? notifCounts.borrowing_requests : 0) +
+    (canWorkRequests ? notifCounts.filed_requests : 0);
+
+  const navItems = [{ to: '/', label: 'Dashboard', end: true }];
+  if (user?.role !== 'secretary') {
+    navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
   }
+  navItems.push({ to: '/records', label: 'Records', badge: recordsBadge });
+  navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
   if (user?.role === 'admin') {
     navItems.push({ to: '/departments', label: 'Departments' }, { to: '/users', label: 'Staff Accounts' });
   }

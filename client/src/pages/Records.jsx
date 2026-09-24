@@ -10,11 +10,25 @@ import api from '../api/client';
 // where those live and counts them. R-LAB-101 and R-LAB-102 have no form
 // behind them: the approved budget document is itself the record, and those
 // are filed here as attachments.
+// Which record a pending-approval count belongs to. The sidebar badge on
+// Records is the sum of these, so the register has to say which record it
+// came from -- otherwise the badge points at a list of twelve with no clue
+// which one is waiting.
+const NEEDS_ACTION_BY_CODE = {
+  'R-LAB-105': 'filed_requests',
+  'R-LAB-108': 'borrowing_requests',
+};
+
 export default function Records() {
   const [rows, setRows] = useState(null);
+  const [pending, setPending] = useState({});
 
   useEffect(() => {
     api.get('/records').then((res) => setRows(res.data));
+    api
+      .get('/notifications/summary')
+      .then((res) => setPending(res.data))
+      .catch(() => setPending({}));
   }, []);
 
   if (!rows) return <p className="text-slate-500">Loading…</p>;
@@ -51,6 +65,11 @@ export default function Records() {
                     </Link>
                   ) : (
                     <span className="font-medium text-slate-700">{r.name}</span>
+                  )}
+                  {pending[NEEDS_ACTION_BY_CODE[r.code]] > 0 && (
+                    <span className="ml-2 inline-block rounded-full bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 text-xs font-medium align-middle">
+                      {pending[NEEDS_ACTION_BY_CODE[r.code]]} waiting on you
+                    </span>
                   )}
                   <div className="text-xs text-slate-500 mt-0.5">{r.retains}</div>
                 </td>
