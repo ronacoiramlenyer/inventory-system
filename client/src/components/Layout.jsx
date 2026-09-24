@@ -52,11 +52,12 @@ export default function Layout() {
   if (user?.role !== 'secretary') {
     navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
     navItems.push({ to: '/borrowing-requests', label: 'Borrowing Requests', badge: notifCounts.borrowing_requests });
-    // Closed inventory periods. Not under a laboratory, because an audit
-    // reads across them -- "show me every count since June" is the question
-    // this page answers, and a custodian's own periods are simply the ones
-    // their department scope leaves visible.
-    navItems.push({ to: '/inventory-archive', label: 'Inventory Archive' });
+    // Closed inventory periods, named by the ISO record code they are
+    // retained under rather than by what the page does. Not under a
+    // laboratory, because an audit reads across them -- "show me every count
+    // since June" is the question this page answers, and a custodian's own
+    // periods are simply the ones their department scope leaves visible.
+    navItems.push({ to: '/inventory-archive', label: 'R-LAB-111 Inventory Sheet' });
   }
   navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
   // Subject Coordinators approve Pending EWRs, and Staff mark an In

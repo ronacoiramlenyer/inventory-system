@@ -460,7 +460,7 @@ export default function InventoryCountDetail() {
               to={`/inventory-archive/${count.archive_id}`}
               className="text-sm text-emerald-700 hover:underline font-medium"
             >
-              View archived copy →
+              View R-LAB-111 record →
             </Link>
           )}
         </div>

@@ -7,7 +7,8 @@ import { StatusChip } from '../utils/inventoryStatus.jsx';
 
 const MIN_ROWS = 10;
 
-// An archived F-LAB-010, exactly as it stood when its period was closed.
+// One R-LAB-111 record: an archived F-LAB-010, exactly as it stood when its
+// period was closed.
 //
 // Everything on this page comes from inventory_archive_items, never from the
 // live items or their Stock Cards, so the form reproduces the same numbers in
@@ -33,7 +34,7 @@ export default function InventoryArchiveDetail() {
     <div className="space-y-4">
       <div className="flex items-center justify-between no-print">
         <Link to="/inventory-archive" className="text-sm text-slate-500 hover:text-slate-800">
-          ← Back to Inventory Archive
+          ← Back to R-LAB-111 Inventory Sheet
         </Link>
         <button
           onClick={() => window.print()}

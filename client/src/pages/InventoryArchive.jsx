@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { StatusChip } from '../utils/inventoryStatus.jsx';
 
-// The list of completed inventory periods. Everything here is frozen: these
-// rows come from inventory_archives, not from the live sheets, so a later
-// stock movement can't change what a closed period says it counted.
+// R-LAB-111: the retained record of every completed inventory period.
+// Everything here is frozen -- these rows come from inventory_archives, not
+// from the live sheets, so a later stock movement can't change what a closed
+// period says it counted. The form itself is still F-LAB-010; R-LAB-111 is
+// the code it is retained under once the period closes.
 export default function InventoryArchive() {
   const [archives, setArchives] = useState(null);
 
@@ -18,10 +20,12 @@ export default function InventoryArchive() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Inventory Archive</h1>
+        <h1 className="text-2xl font-bold text-slate-800">
+          <span className="font-mono text-slate-500 mr-2">R-LAB-111</span>Inventory Sheet
+        </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Completed inventory periods (F-LAB-010). Quantities here are frozen as of closing and are the
-          record an audit is traced against.
+          Completed inventory periods, retained as record R-LAB-111. Quantities here are frozen as of
+          closing and are what an audit is traced against.
         </p>
       </div>
 
@@ -64,7 +68,7 @@ export default function InventoryArchive() {
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   No inventory period has been closed yet. Closing one from a laboratory's Inventory Sheet
-                  archives it here.
+                  retains it here as R-LAB-111.
                 </td>
               </tr>
             )}
