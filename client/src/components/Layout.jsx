@@ -50,23 +50,24 @@ export default function Layout() {
 
   // Individual R-LAB records don't get their own menu entries -- the Records
   // register already lists all twelve and links to each. What the removed
-  // entries did carry was the badge telling a Subject Coordinator or a
-  // Secretary that something was waiting on them, so that count moves onto
-  // Records, and the register itself shows which record it belongs to.
-  const canWorkRequests =
-    user?.role === 'secretary' ||
-    user?.role === 'admin' ||
-    user?.role === 'subject_coordinator' ||
-    user?.role === 'staff';
-  const recordsBadge =
-    (user?.role !== 'secretary' ? notifCounts.borrowing_requests : 0) +
-    (canWorkRequests ? notifCounts.filed_requests : 0);
+  // entries did carry was the badge telling a Subject Coordinator that
+  // something was waiting on them, so that count moves onto Records, and the
+  // register itself shows which record it belongs to.
+  //
+  // A Secretary is the exception. She works one queue all day and never
+  // browses the register, so routing her through it to reach the queue is
+  // two clicks she shouldn't have to make: she gets a direct entry, named
+  // in plain words rather than by record code, and no register at all.
+  const isSecretary = user?.role === 'secretary';
+  const recordsBadge = notifCounts.borrowing_requests + notifCounts.filed_requests;
 
   const navItems = [{ to: '/', label: 'Dashboard', end: true }];
-  if (user?.role !== 'secretary') {
+  if (isSecretary) {
+    navItems.push({ to: '/work-requests', label: 'Equipment Work Request', badge: notifCounts.filed_requests });
+  } else {
     navItems.push({ to: '/laboratories', label: 'Laboratories', badge: user?.role === 'admin' ? pendingCount : 0 });
+    navItems.push({ to: '/records', label: 'Records', badge: recordsBadge });
   }
-  navItems.push({ to: '/records', label: 'Records', badge: recordsBadge });
   navItems.push({ to: '/other-requests', label: 'Other Requests', badge: notifCounts.other_requests });
   if (user?.role === 'admin') {
     navItems.push({ to: '/departments', label: 'Departments' }, { to: '/users', label: 'Staff Accounts' });

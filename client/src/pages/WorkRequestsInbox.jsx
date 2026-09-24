@@ -24,14 +24,17 @@ export default function WorkRequestsInbox() {
   // ones for her. A Subject Coordinator/admin gets everything back, Pending
   // included -- that's the whole point, since Pending is exactly what
   // needs their approval -- so the heading shouldn't call it "Filed" only.
-  // A Secretary's inbox is the filed subset, so their heading says so; the
-  // record code is the same either way.
-  const heading = user.role === 'secretary' ? 'Equipment Work Request (EWR) — Filed' : 'Equipment Work Request (EWR)';
+  // A Secretary reaches this straight from her own menu entry, not through
+  // the records register, so her heading is the plain name of the thing she
+  // is working -- no record code to decode. Everyone else arrives from
+  // R-LAB-105 and the heading carries it through.
+  const isSecretary = user.role === 'secretary';
+  const heading = isSecretary ? 'Equipment Work Request' : 'Equipment Work Request (EWR)';
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-slate-800">
-        <span className="font-mono text-slate-500 mr-2">R-LAB-105</span>
+        {!isSecretary && <span className="font-mono text-slate-500 mr-2">R-LAB-105</span>}
         {heading}
       </h1>
 
