@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { readSheet } from 'read-excel-file/universal';
 import api from '../api/client';
 import { useConfirm } from '../context/ConfirmContext';
 import ProgressBar, { useProgress } from '../components/ProgressBar';
 import LabFormTabs from '../components/LabFormTabs';
 import { PrintHeaderRow, PrintTitleRow, PrintFooter } from '../components/PrintHeaderFooter';
+import { CLOSE_CONFIRMATION, StatusChip } from '../utils/inventoryStatus.jsx';
 import PrintPages from '../components/PrintPages';
 
 const normalize = (s) => String(s ?? '').trim().toLowerCase();
@@ -59,6 +60,7 @@ const PRINT_ROWS_PER_PAGE = 10;
 
 export default function InventoryCountDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const confirmDialog = useConfirm();
   const { progress, label: progressLabel, start, advance, finish, stop } = useProgress();
   const [count, setCount] = useState(null);
@@ -67,7 +69,8 @@ export default function InventoryCountDetail() {
   const [defaultUnit, setDefaultUnit] = useState('pcs');
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [applying, setApplying] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [inventoryDate, setInventoryDate] = useState('');
   const [error, setError] = useState('');
   const [importSummary, setImportSummary] = useState('');
   const [bulkCategory, setBulkCategory] = useState(CATEGORY_OPTIONS[0]);
@@ -79,12 +82,20 @@ export default function InventoryCountDetail() {
       setCount(res.data);
       setRows(res.data.items.map((it) => ({ ...it, quantity_actual: it.quantity_actual ?? '' })));
       setPreparedBy(res.data.prepared_by);
+      setInventoryDate(res.data.inventory_date || '');
     });
   }
 
   useEffect(load, [id]);
 
-  const readOnly = count?.status === 'applied';
+  const status = count?.status;
+  const readOnly = status === 'applied' || status === 'closed';
+  // Before the cutoff, "Quantity as per Record" is still tracking the Stock
+  // Card, so the sheet is open to counting; after it, only remarks and
+  // corrections to the actual counts.
+  const beforeCutoff = status === 'open' || status === 'counting';
+  const afterCutoff = status === 'for_reconciliation' || status === 'ready_to_close';
+  const blockers = count?.close_blockers || [];
 
   // Anything that resolves to an item can be classified: a new row (the save
   // route reads `category` when it creates the item) or a saved row still
@@ -174,6 +185,7 @@ export default function InventoryCountDetail() {
     try {
       const { data } = await api.put(`/inventory-counts/${id}`, {
         prepared_by: preparedBy,
+        inventory_date: inventoryDate || undefined,
         items: rows.map((r) => ({
           id: r.id || undefined,
           description: r.description,
@@ -256,38 +268,75 @@ export default function InventoryCountDetail() {
     }
   }
 
-  async function handleApply() {
-    const unfilled = rows.filter((r) => r.quantity_actual === '' || r.quantity_actual === null);
-    if (unfilled.length > 0) {
-      const proceed = await confirmDialog(
-        `${unfilled.length} item(s) have no actual quantity entered and will be treated as no change. Continue?`,
-        { confirmLabel: 'Continue' }
-      );
-      if (!proceed) return;
-    }
-    const applyConfirmed = await confirmDialog(
-      "Apply these variances to stock? This creates adjustment entries on each item's stock card and cannot be edited afterward.",
-      { confirmLabel: 'Apply' }
+  // Sets the inventory cutoff. Everything up to now has had its recorded
+  // quantity tracking the Stock Card live; from here those numbers are the
+  // ones the count is reconciled and signed against.
+  async function handleCutoff() {
+    const ok = await confirmDialog(
+      'Set the inventory cutoff? "Quantity as per Record" stops following the Stock Card and freezes at ' +
+        'the balances this count was taken against. New receipts and issuances still go on the Stock Card, ' +
+        'but they land in the next period.',
+      { confirmLabel: 'Set cutoff' }
     );
-    if (!applyConfirmed) return;
+    if (!ok) return;
     setError('');
-    setApplying(true);
+    setClosing(true);
     start('Saving changes…');
     try {
-      const saved = await handleSave({ withProgress: false });
-      if (!saved) {
-        stop();
-        return;
-      }
-      advance('Applying adjustments to stock…');
-      await api.post(`/inventory-counts/${id}/apply`);
+      if (!(await handleSave({ withProgress: false }))) return stop();
+      advance('Setting the cutoff…');
+      await api.post(`/inventory-counts/${id}/cutoff`);
       load();
       finish();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to apply adjustments');
+      setError(err.response?.data?.error || 'Failed to set the cutoff');
       stop();
     } finally {
-      setApplying(false);
+      setClosing(false);
+    }
+  }
+
+  async function handleReopenCounting() {
+    const ok = await confirmDialog(
+      'Reopen this sheet for counting? The cutoff is removed and "Quantity as per Record" goes back to ' +
+        'following the Stock Card. Actual quantities already entered are kept.',
+      { confirmLabel: 'Reopen counting' }
+    );
+    if (!ok) return;
+    setError('');
+    try {
+      await api.post(`/inventory-counts/${id}/reopen-counting`);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to reopen counting');
+    }
+  }
+
+  // Close Inventory. One controlled operation on the server: archive the
+  // sheet, close every Stock Card period, open the next one at the counted
+  // quantities, and start the laboratory's next inventory period.
+  async function handleClose() {
+    const ok = await confirmDialog(CLOSE_CONFIRMATION, { confirmLabel: 'Close inventory period' });
+    if (!ok) return;
+    setError('');
+    setClosing(true);
+    start('Saving changes…');
+    try {
+      if (!(await handleSave({ withProgress: false }))) return stop();
+      advance('Closing the inventory period…');
+      const { data } = await api.post(`/inventory-counts/${id}/close`, { confirm: true });
+      finish();
+      if (data.archive?.id) {
+        navigate(`/inventory-archive/${data.archive.id}`);
+      } else {
+        load();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to close the inventory period');
+      load();
+      stop();
+    } finally {
+      setClosing(false);
     }
   }
 
@@ -311,21 +360,21 @@ export default function InventoryCountDetail() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={saving || applying}
+                disabled={saving || closing}
                 className="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
               >
                 Import from Excel
               </button>
               <button
                 onClick={addRow}
-                disabled={saving || applying}
+                disabled={saving || closing}
                 className="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
               >
                 + Add Row
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving || applying}
+                disabled={saving || closing}
                 className={
                   importSummary && !saving
                     ? 'bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 animate-bounce ring-4 ring-amber-300'
@@ -334,13 +383,34 @@ export default function InventoryCountDetail() {
               >
                 {saving ? 'Saving…' : savedFlash ? 'Saved ✓' : 'Save'}
               </button>
-              <button
-                onClick={handleApply}
-                disabled={saving || applying}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
-              >
-                {applying ? 'Applying…' : 'Apply Adjustments to Stock'}
-              </button>
+              {beforeCutoff && (
+                <button
+                  onClick={handleCutoff}
+                  disabled={saving || closing}
+                  className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+                >
+                  Set Cutoff &amp; Reconcile
+                </button>
+              )}
+              {afterCutoff && (
+                <>
+                  <button
+                    onClick={handleReopenCounting}
+                    disabled={saving || closing}
+                    className="bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-sm font-medium rounded-lg px-4 py-2"
+                  >
+                    Reopen Counting
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    disabled={saving || closing || blockers.length > 0}
+                    title={blockers.length ? blockers.join(' ') : undefined}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
+                  >
+                    {closing ? 'Closing…' : 'Close Inventory'}
+                  </button>
+                </>
+              )}
             </>
           )}
           <button
@@ -353,6 +423,82 @@ export default function InventoryCountDetail() {
       </div>
 
       <LabFormTabs laboratoryId={count.laboratory_id} active="inventory-sheet" />
+
+      {/* The inventory period this sheet belongs to. The reference number is
+          the thread an auditor pulls: the same number is written into every
+          Stock Card annotation this period's closing produces, and onto the
+          archived copy of the form. */}
+      <div className="no-print bg-white border border-slate-200 rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-400">Inventory Ref.</div>
+            <div className="font-mono font-semibold text-slate-800">{count.reference_no || '—'}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-400">Period</div>
+            <div className="font-medium text-slate-700">{count.period_label || '—'}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-400">Inventory Date</div>
+            {readOnly ? (
+              <div className="font-medium text-slate-700">{count.inventory_date || '—'}</div>
+            ) : (
+              <input
+                type="date"
+                value={inventoryDate}
+                onChange={(e) => setInventoryDate(e.target.value)}
+                className="border border-slate-300 rounded-lg px-2 py-1 text-sm"
+              />
+            )}
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-400">Status</div>
+            <StatusChip status={status} />
+          </div>
+          {count.archive_id && (
+            <Link
+              to={`/inventory-archive/${count.archive_id}`}
+              className="text-sm text-emerald-700 hover:underline font-medium"
+            >
+              View archived copy →
+            </Link>
+          )}
+        </div>
+
+        {beforeCutoff && (
+          <p className="text-xs text-slate-500 mt-3">
+            Quantity as per Record follows the Stock Card while counting, so anything received or issued
+            mid-count is reflected. Set the cutoff when the physical count is done to freeze it.
+          </p>
+        )}
+        {afterCutoff && blockers.length === 0 && (
+          <p className="text-xs text-emerald-700 mt-3">
+            Every item is counted and every variance explained. This period is ready to close.
+          </p>
+        )}
+        {afterCutoff && blockers.length > 0 && (
+          <div className="mt-3 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <p className="font-semibold mb-1">Before this period can be closed:</p>
+            <ul className="list-disc pl-5 space-y-0.5">
+              {blockers.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {status === 'closed' && (
+          <p className="text-xs text-slate-500 mt-3">
+            Closed {count.closed_at?.slice(0, 10)} by {count.closed_by_name}. This sheet is read-only; the
+            laboratory's next inventory period is already open on the Inventory Sheet tab.
+          </p>
+        )}
+        {status === 'applied' && (
+          <p className="text-xs text-slate-500 mt-3">
+            This sheet was finished under the older Apply action, before inventory periods existed. It stays
+            readable as-is and is not part of the archive.
+          </p>
+        )}
+      </div>
 
       <ProgressBar progress={progress} label={progressLabel} />
 

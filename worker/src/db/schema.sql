@@ -68,6 +68,15 @@ CREATE TABLE IF NOT EXISTS transactions (
   invoice_no TEXT,
   handled_by TEXT,                  -- signature / name of the person who made the entry
   is_period_marker INTEGER NOT NULL DEFAULT 0, -- 1 = visual divider row (e.g. year-end inventory count)
+  -- 'txn'             a real receipt or issuance; the only kind that moves stock
+  -- 'inventory_close' the annotation closing a Stock Card period. Carries no
+  --                   IN or OUT: the completed F-LAB-010 is the documentary
+  --                   explanation for the difference, not a fictitious entry.
+  -- 'period_open'     the new period's Beginning Balance. Sets the running
+  --                   balance to balance_after rather than adjusting it.
+  entry_type TEXT NOT NULL DEFAULT 'txn',
+  balance_after INTEGER,            -- 'period_open' only: the finalized Actual Quantity
+  inventory_count_id INTEGER,       -- the F-LAB-010 session a close/open row came from
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -76,13 +85,30 @@ CREATE TABLE IF NOT EXISTS transactions (
 -- against the system's recorded balance. Descriptions/units/recorded
 -- quantities are snapshotted at creation time so a saved sheet doesn't
 -- change retroactively if items are later renamed or edited.
+-- F-LAB-010 Inventory Sheet: one row per inventory period per laboratory.
+--
+-- A period runs open -> counting -> for_reconciliation -> ready_to_close ->
+-- closed. While it is open or counting, "Quantity as per Record" tracks the
+-- live Stock Card balance; moving to for_reconciliation sets the cutoff and
+-- freezes it, so the variance a signatory reviews is the one they signed
+-- against. Closing is the controlled operation that archives the sheet,
+-- closes every Stock Card period and opens the next one -- see the close
+-- route in inventory-counts.js.
 CREATE TABLE IF NOT EXISTS inventory_counts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   laboratory_id INTEGER NOT NULL REFERENCES laboratories(id) ON DELETE CASCADE,
   prepared_by TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'draft', -- 'draft' | 'applied'
-  applied_at TEXT,
+  -- 'open' | 'counting' | 'for_reconciliation' | 'ready_to_close' | 'closed'
+  status TEXT NOT NULL DEFAULT 'open',
+  reference_no TEXT UNIQUE,         -- INV-YYYY-NNN, shared with the Stock Card annotation
+  period_label TEXT,                -- e.g. "September 2026", for the archive listing
+  inventory_date TEXT,              -- the count's own date, NOT the day it happens to be closed
+  cutoff_at TEXT,                   -- when recorded quantities were frozen
+  applied_at TEXT,                  -- legacy: set by the old Apply action
   applied_by INTEGER REFERENCES users(id),
+  closed_at TEXT,
+  closed_by INTEGER REFERENCES users(id),
+  closed_by_name TEXT,              -- captured as text so the archive survives the account
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -103,6 +129,48 @@ CREATE TABLE IF NOT EXISTS inventory_count_items (
 
 CREATE INDEX IF NOT EXISTS idx_inv_counts_lab ON inventory_counts(laboratory_id);
 CREATE INDEX IF NOT EXISTS idx_inv_count_items_count ON inventory_count_items(inventory_count_id);
+
+-- A permanent, frozen copy of a closed F-LAB-010, kept separately from the
+-- live sheet so it cannot drift when item quantities or Stock Card balances
+-- move afterwards. Nothing here is a foreign key into items or users on
+-- purpose: an archived form has to still print correctly in five years, when
+-- the item has been deleted and the custodian's account is long gone.
+--
+-- UNIQUE(inventory_count_id) is what makes Close Inventory idempotent: a
+-- second attempt on the same session cannot produce a second archive.
+CREATE TABLE IF NOT EXISTS inventory_archives (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  inventory_count_id INTEGER NOT NULL UNIQUE,
+  laboratory_id INTEGER NOT NULL,
+  laboratory_name TEXT NOT NULL,
+  department_id INTEGER,
+  department_name TEXT,
+  reference_no TEXT NOT NULL,
+  period_label TEXT,
+  inventory_date TEXT,
+  conducted_by TEXT,                -- prepared_by at the moment of closing
+  closed_by_name TEXT,
+  closed_at TEXT NOT NULL,
+  item_count INTEGER NOT NULL DEFAULT 0,
+  variance_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_inv_archives_lab ON inventory_archives(laboratory_id);
+
+CREATE TABLE IF NOT EXISTS inventory_archive_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  inventory_archive_id INTEGER NOT NULL REFERENCES inventory_archives(id) ON DELETE CASCADE,
+  source_item_id INTEGER,           -- deliberately not a foreign key; see above
+  item_no INTEGER NOT NULL,
+  description TEXT NOT NULL,
+  unit TEXT NOT NULL,
+  category TEXT,
+  quantity_recorded INTEGER NOT NULL,
+  quantity_actual INTEGER,
+  variance INTEGER,
+  remarks TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_inv_archive_items_archive ON inventory_archive_items(inventory_archive_id);
 
 -- F-LAB-001 Equipment Registry: simple per-item equipment tracking
 -- This is populated directly from items with category = "Equipment"

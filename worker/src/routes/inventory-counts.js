@@ -1,20 +1,26 @@
 import { Hono } from 'hono';
-import { dbAll, dbGet, dbRun } from '../db/helpers.js';
+import { dbAll, dbBatch, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { balanceSubquery } from '../lib/stockBalance.js';
+import {
+  closeBlockers,
+  closingRemark,
+  formatReferenceNo,
+  isClosed,
+  openingRemark,
+  periodLabelFor,
+  tracksLiveBalance,
+} from '../lib/inventoryPeriod.js';
 
 const inventoryCounts = new Hono();
 inventoryCounts.use('*', requireAuth);
 
-const BALANCE_SUBQUERY = `
-  i.initial_balance
-  + COALESCE((SELECT SUM(t.in_qty) FROM transactions t WHERE t.item_id = i.id), 0)
-  - COALESCE((SELECT SUM(t.out_qty) FROM transactions t WHERE t.item_id = i.id), 0)
-  AS current_balance
-`;
+const BALANCE_SUBQUERY = balanceSubquery('i');
 
 const COUNT_SELECT = `
   SELECT ic.*, l.name AS laboratory_name, l.department_id, d.name AS department_name,
     cu.full_name AS created_by_name, au.full_name AS applied_by_name,
+    (SELECT ia.id FROM inventory_archives ia WHERE ia.inventory_count_id = ic.id) AS archive_id,
     (SELECT COUNT(*) FROM inventory_count_items ici WHERE ici.inventory_count_id = ic.id) AS item_count
   FROM inventory_counts ic
   JOIN laboratories l ON l.id = ic.laboratory_id
@@ -23,10 +29,60 @@ const COUNT_SELECT = `
   LEFT JOIN users au ON au.id = ic.applied_by
 `;
 
+// Why this sheet can't be edited right now, or null if it can.
+function editLockReason(count) {
+  if (isClosed(count.status)) {
+    return 'This inventory period is closed. Its archived copy is read-only; start the next period to record a new count.';
+  }
+  if (count.status === 'applied') {
+    return 'This count has already been applied and can no longer be edited';
+  }
+  return null;
+}
+
 function labAccessibleToUser(user, lab) {
   if (!lab) return false;
   if (user.role === 'admin') return true;
   return Number(lab.department_id) === Number(user.department_id) && lab.status === 'approved';
+}
+
+// INV-YYYY-NNN, sequential within the calendar year across the whole school.
+// Derived from the highest number already issued rather than a row count, so
+// deleting a sheet can never hand its number to a later one -- the number is
+// quoted on Stock Card annotations and has to stay unique for good.
+async function nextReferenceNo(db, year) {
+  const prefix = `INV-${year}-`;
+  const row = await dbGet(
+    db,
+    `SELECT COALESCE(MAX(CAST(substr(reference_no, ?) AS INTEGER)), 0) AS n
+     FROM inventory_counts WHERE reference_no LIKE ?`,
+    prefix.length + 1,
+    `${prefix}%`
+  );
+  return formatReferenceNo(year, Number(row?.n || 0) + 1);
+}
+
+// A sheet that predates inventory periods has no reference number, no
+// inventory date and no period label, which leaves it unclosable -- the
+// validation that protects a real close would reject it for good. Rather
+// than back-fill every historical row on deploy, give a sheet what it is
+// missing the first time someone opens it, and only while it is still live.
+async function ensurePeriodFields(db, count) {
+  if (!count || isClosed(count.status) || count.status === 'applied') return count;
+  const patch = {};
+  if (!count.reference_no) {
+    patch.reference_no = await nextReferenceNo(db, new Date().toISOString().slice(0, 4));
+  }
+  if (!count.inventory_date) {
+    patch.inventory_date = (count.created_at || new Date().toISOString()).slice(0, 10);
+  }
+  const label = count.period_label || periodLabelFor(patch.inventory_date || count.inventory_date);
+  if (label && label !== count.period_label) patch.period_label = label;
+  if (!Object.keys(patch).length) return count;
+
+  const sets = Object.keys(patch).map((k) => `${k} = ?`).join(', ');
+  await dbRun(db, `UPDATE inventory_counts SET ${sets} WHERE id = ?`, ...Object.values(patch), count.id);
+  return { ...count, ...patch };
 }
 
 async function createDraftCount(db, laboratoryId, preparedBy, createdBy) {
@@ -36,12 +92,19 @@ async function createDraftCount(db, laboratoryId, preparedBy, createdBy) {
     laboratoryId
   );
 
+  const today = new Date().toISOString().slice(0, 10);
+  const referenceNo = await nextReferenceNo(db, today.slice(0, 4));
+
   const result = await dbRun(
     db,
-    `INSERT INTO inventory_counts (laboratory_id, prepared_by, created_by) VALUES (?, ?, ?)`,
+    `INSERT INTO inventory_counts (laboratory_id, prepared_by, created_by, status, reference_no, inventory_date, period_label)
+     VALUES (?, ?, ?, 'open', ?, ?, ?)`,
     laboratoryId,
     preparedBy,
-    createdBy
+    createdBy,
+    referenceNo,
+    today,
+    periodLabelFor(today)
   );
   const countId = result.lastInsertRowid;
 
@@ -70,6 +133,52 @@ async function getCountWithAccess(db, id, user) {
     user.role === 'admin' ||
     (Number(count.department_id) === Number(user.department_id) && true);
   return { count, allowed };
+}
+
+// Until the cutoff is set, "Quantity as per Record" is a live read of the
+// Stock Card, not a number snapshotted when the sheet was opened -- a receipt
+// booked halfway through counting has to show up, or the variance it produces
+// is one nobody can explain. Variances are recomputed with it so the two
+// never disagree.
+async function refreshRecordedQuantities(db, count) {
+  const balances = await dbAll(
+    db,
+    `SELECT ici.id, ici.quantity_actual, ici.quantity_recorded, ${BALANCE_SUBQUERY}
+     FROM inventory_count_items ici
+     JOIN items i ON i.id = ici.item_id
+     WHERE ici.inventory_count_id = ?`,
+    count.id
+  );
+  const statements = [];
+  for (const row of balances) {
+    const recorded = Number(row.current_balance);
+    if (recorded === row.quantity_recorded) continue;
+    const variance = row.quantity_actual === null ? null : row.quantity_actual - recorded;
+    statements.push(
+      db
+        .prepare('UPDATE inventory_count_items SET quantity_recorded = ?, variance = ? WHERE id = ?')
+        .bind(recorded, variance, row.id)
+    );
+  }
+  await dbBatch(db, statements);
+}
+
+// ready_to_close is not a step anyone clicks -- it is simply what
+// for_reconciliation becomes once nothing is outstanding, and it drops back
+// again if a row is cleared. Only those two states are derived; open,
+// counting and closed are set deliberately elsewhere.
+async function refreshCloseReadiness(db, countId) {
+  const count = await dbGet(db, 'SELECT * FROM inventory_counts WHERE id = ?', countId);
+  if (!count || (count.status !== 'for_reconciliation' && count.status !== 'ready_to_close')) return;
+  const rows = await dbAll(
+    db,
+    'SELECT * FROM inventory_count_items WHERE inventory_count_id = ?',
+    countId
+  );
+  const next = closeBlockers(count, rows).length ? 'for_reconciliation' : 'ready_to_close';
+  if (next !== count.status) {
+    await dbRun(db, 'UPDATE inventory_counts SET status = ? WHERE id = ?', next, countId);
+  }
 }
 
 inventoryCounts.get('/', async (c) => {
@@ -110,13 +219,17 @@ inventoryCounts.get('/current', async (c) => {
 
   const latest = await dbGet(
     c.env.DB,
-    'SELECT id, status FROM inventory_counts WHERE laboratory_id = ? ORDER BY created_at DESC LIMIT 1',
+    'SELECT * FROM inventory_counts WHERE laboratory_id = ? ORDER BY created_at DESC LIMIT 1',
     laboratory_id
   );
 
+  // A closed period is history; an 'applied' one predates periods and is
+  // likewise finished. Either way the laboratory needs a fresh sheet.
   let countId = latest?.id;
-  if (!latest || latest.status === 'applied') {
+  if (!latest || latest.status === 'closed' || latest.status === 'applied') {
     countId = await createDraftCount(c.env.DB, laboratory_id, user.full_name, user.id);
+  } else {
+    await ensurePeriodFields(c.env.DB, latest);
   }
 
   return c.json({ id: countId });
@@ -127,6 +240,11 @@ inventoryCounts.get('/:id', async (c) => {
   const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
   if (!count) return c.json({ error: 'Inventory count not found' }, 404);
   if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+
+  await ensurePeriodFields(c.env.DB, count);
+  if (tracksLiveBalance(count.status)) {
+    await refreshRecordedQuantities(c.env.DB, count);
+  }
 
   // category lives on items, not on the count row -- join it in so the sheet
   // shows what each row is actually classified as. Without this every saved
@@ -139,7 +257,8 @@ inventoryCounts.get('/:id', async (c) => {
      WHERE ici.inventory_count_id = ? ORDER BY ici.item_no`,
     count.id
   );
-  return c.json({ ...count, items });
+  const fresh = await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id);
+  return c.json({ ...fresh, items, close_blockers: closeBlockers(fresh, items) });
 });
 
 inventoryCounts.put('/:id', async (c) => {
@@ -147,14 +266,24 @@ inventoryCounts.put('/:id', async (c) => {
   const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
   if (!count) return c.json({ error: 'Inventory count not found' }, 404);
   if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
-  if (count.status === 'applied') {
-    return c.json({ error: 'This count has already been applied and can no longer be edited' }, 400);
-  }
+  const locked = editLockReason(count);
+  if (locked) return c.json({ error: locked }, 400);
 
-  const { prepared_by, items } = await c.req.json().catch(() => ({}));
+  const { prepared_by, inventory_date, items } = await c.req.json().catch(() => ({}));
 
   if (prepared_by?.trim()) {
     await dbRun(c.env.DB, 'UPDATE inventory_counts SET prepared_by = ? WHERE id = ?', prepared_by.trim(), count.id);
+  }
+  // The inventory's own date, which is what the archived form and both Stock
+  // Card rows are dated -- not the day somebody happens to press Close.
+  if (inventory_date) {
+    await dbRun(
+      c.env.DB,
+      'UPDATE inventory_counts SET inventory_date = ?, period_label = ? WHERE id = ?',
+      inventory_date,
+      periodLabelFor(inventory_date),
+      count.id
+    );
   }
 
   const errors = [];
@@ -263,13 +392,22 @@ inventoryCounts.put('/:id', async (c) => {
     }
   }
 
-  const updated = await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id);
   const rows = await dbAll(
     c.env.DB,
     'SELECT * FROM inventory_count_items WHERE inventory_count_id = ? ORDER BY item_no',
     count.id
   );
-  return c.json({ ...updated, items: rows, errors });
+
+  // An open sheet becomes a count in progress the moment a quantity is
+  // entered on it, so the status reflects what is actually happening
+  // without anyone having to declare it.
+  if (count.status === 'open' && rows.some((r) => r.quantity_actual !== null)) {
+    await dbRun(c.env.DB, `UPDATE inventory_counts SET status = 'counting' WHERE id = ?`, count.id);
+  }
+  await refreshCloseReadiness(c.env.DB, count.id);
+
+  const updated = await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id);
+  return c.json({ ...updated, items: rows, errors, close_blockers: closeBlockers(updated, rows) });
 });
 
 inventoryCounts.delete('/:id/items/:rowId', async (c) => {
@@ -277,9 +415,8 @@ inventoryCounts.delete('/:id/items/:rowId', async (c) => {
   const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
   if (!count) return c.json({ error: 'Inventory count not found' }, 404);
   if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
-  if (count.status === 'applied') {
-    return c.json({ error: 'This count has already been applied and can no longer be edited' }, 400);
-  }
+  const locked = editLockReason(count);
+  if (locked) return c.json({ error: locked }, 400);
 
   const row = await dbGet(
     c.env.DB,
@@ -299,13 +436,95 @@ inventoryCounts.delete('/:id/items/:rowId', async (c) => {
   return c.body(null, 204);
 });
 
-inventoryCounts.post('/:id/apply', async (c) => {
+// Sets the inventory cutoff. Up to here "Quantity as per Record" has been a
+// live read of the Stock Card; from here it is frozen at the balances the
+// count was actually taken against, which is what makes the variance on the
+// signed form mean something.
+inventoryCounts.post('/:id/cutoff', async (c) => {
   const user = c.get('user');
   const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
   if (!count) return c.json({ error: 'Inventory count not found' }, 404);
   if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+  const locked = editLockReason(count);
+  if (locked) return c.json({ error: locked }, 400);
+  if (count.status === 'for_reconciliation' || count.status === 'ready_to_close') {
+    return c.json({ error: 'The cutoff for this inventory has already been set' }, 400);
+  }
+
+  await refreshRecordedQuantities(c.env.DB, count);
+  await dbRun(
+    c.env.DB,
+    `UPDATE inventory_counts SET status = 'for_reconciliation', cutoff_at = ? WHERE id = ?`,
+    new Date().toISOString(),
+    count.id
+  );
+  await refreshCloseReadiness(c.env.DB, count.id);
+  return c.json(await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id));
+});
+
+// Undoes the cutoff, back to counting. A cutoff set on the wrong day would
+// otherwise be a dead end -- the sheet could neither be corrected nor closed
+// against the right balances.
+inventoryCounts.post('/:id/reopen-counting', async (c) => {
+  const user = c.get('user');
+  const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
+  if (!count) return c.json({ error: 'Inventory count not found' }, 404);
+  if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+  const locked = editLockReason(count);
+  if (locked) return c.json({ error: locked }, 400);
+
+  await dbRun(
+    c.env.DB,
+    `UPDATE inventory_counts SET status = 'counting', cutoff_at = NULL WHERE id = ?`,
+    count.id
+  );
+  await refreshRecordedQuantities(c.env.DB, { ...count, status: 'counting' });
+  return c.json(await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id));
+});
+
+// Close Inventory: the one controlled operation that ends a period.
+//
+// For every item on the sheet it closes the Stock Card period with an
+// annotation naming this F-LAB-010, then opens the next period at the counted
+// quantity. The variance is deliberately NOT booked as an IN or OUT: the
+// completed form is the documentary explanation for the difference between
+// the old Ending Balance and the new Beginning Balance, and a fictitious
+// receipt or issuance would misstate what actually moved.
+//
+// It then freezes a copy of the sheet into the archive, marks the period
+// closed, and opens the next one.
+//
+// Idempotent by construction. D1 offers no interactive transaction spanning
+// the whole operation, so instead every write is guarded by what is already
+// there: UNIQUE(inventory_count_id) on inventory_archives allows exactly one
+// archive per session, and each item's Stock Card rows are skipped if this
+// session already wrote them. A retry after a partial failure resumes; it
+// never doubles up.
+inventoryCounts.post('/:id/close', async (c) => {
+  const user = c.get('user');
+  const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
+  if (!count) return c.json({ error: 'Inventory count not found' }, 404);
+  if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
+
+  const existingArchive = await dbGet(
+    c.env.DB,
+    'SELECT * FROM inventory_archives WHERE inventory_count_id = ?',
+    count.id
+  );
+  if (existingArchive || isClosed(count.status)) {
+    return c.json({
+      already_closed: true,
+      archive: existingArchive || null,
+      count: await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id),
+    });
+  }
   if (count.status === 'applied') {
-    return c.json({ error: 'This count has already been applied' }, 400);
+    return c.json({ error: 'This sheet was finished under the old Apply action and cannot be closed.' }, 400);
+  }
+
+  const { confirm } = await c.req.json().catch(() => ({}));
+  if (confirm !== true) {
+    return c.json({ error: 'Closing an inventory period has to be confirmed.' }, 400);
   }
 
   const rows = await dbAll(
@@ -314,52 +533,130 @@ inventoryCounts.post('/:id/apply', async (c) => {
     count.id
   );
 
-  const today = new Date().toISOString().slice(0, 10);
+  const blockers = closeBlockers(count, rows);
+  if (blockers.length) return c.json({ error: blockers[0], blockers }, 400);
+
+  const closedAt = new Date().toISOString();
+  const inventoryDate = count.inventory_date;
+
+  // --- 1/4 Stock Cards: close each period, then open the next one ---
+  const alreadyWritten = await dbAll(
+    c.env.DB,
+    `SELECT DISTINCT item_id FROM transactions WHERE inventory_count_id = ? AND entry_type = 'inventory_close'`,
+    count.id
+  );
+  const done = new Set(alreadyWritten.map((r) => Number(r.item_id)));
+
+  const statements = [];
   for (const row of rows) {
-    if (!row.item_id) continue;
-
-    if (row.variance) {
-      const inQty = row.variance > 0 ? row.variance : 0;
-      const outQty = row.variance < 0 ? Math.abs(row.variance) : 0;
-      await dbRun(
-        c.env.DB,
-        `INSERT INTO transactions (item_id, entry_date, in_qty, out_qty, remarks, handled_by, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    if (!row.item_id || done.has(Number(row.item_id))) continue;
+    const variance = Number(row.variance || 0);
+    statements.push(
+      c.env.DB.prepare(
+        `INSERT INTO transactions (item_id, entry_date, in_qty, out_qty, remarks, handled_by, entry_type, inventory_count_id, created_by)
+         VALUES (?, ?, 0, 0, ?, ?, 'inventory_close', ?, ?)`
+      ).bind(
         row.item_id,
-        today,
-        inQty,
-        outQty,
-        `Physical count adjustment (Inventory Sheet #${count.id})`,
+        inventoryDate,
+        closingRemark(count.reference_no, row.quantity_recorded, row.quantity_actual, variance),
         count.prepared_by,
+        count.id,
         user.id
-      );
-    }
-
-    // A divider row on the item's Stock Card marking this reconciliation
-    // point, whether or not the count changed its balance -- inserted after
-    // any adjustment above so it lands below it (both dated today, and
-    // display order falls back to insertion id).
-    await dbRun(
-      c.env.DB,
-      `INSERT INTO transactions (item_id, entry_date, remarks, handled_by, is_period_marker, created_by)
-       VALUES (?, ?, ?, ?, 1, ?)`,
-      row.item_id,
-      today,
-      `Inventory Sheet #${count.id} applied`,
-      count.prepared_by,
-      user.id
+      ),
+      // Inserted after the closing row in the same batch, so it always sorts
+      // below it: the Stock Card orders by date then insertion id, and both
+      // rows carry the same date.
+      c.env.DB.prepare(
+        `INSERT INTO transactions (item_id, entry_date, in_qty, out_qty, remarks, handled_by, entry_type, balance_after, inventory_count_id, created_by)
+         VALUES (?, ?, 0, 0, ?, ?, 'period_open', ?, ?, ?)`
+      ).bind(
+        row.item_id,
+        inventoryDate,
+        openingRemark(count.reference_no),
+        count.prepared_by,
+        row.quantity_actual,
+        count.id,
+        user.id
+      )
     );
   }
+  await dbBatch(c.env.DB, statements);
 
+  // --- 2/4 Archive: a frozen copy that later stock movements cannot touch ---
+  const varianceCount = rows.filter((r) => Number(r.variance || 0) !== 0).length;
+  let archiveId;
+  try {
+    const res = await dbRun(
+      c.env.DB,
+      `INSERT INTO inventory_archives
+        (inventory_count_id, laboratory_id, laboratory_name, department_id, department_name,
+         reference_no, period_label, inventory_date, conducted_by, closed_by_name, closed_at,
+         item_count, variance_count)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      count.id,
+      count.laboratory_id,
+      count.laboratory_name,
+      count.department_id,
+      count.department_name,
+      count.reference_no,
+      count.period_label,
+      inventoryDate,
+      count.prepared_by,
+      user.full_name,
+      closedAt,
+      rows.length,
+      varianceCount
+    );
+    archiveId = res.lastInsertRowid;
+  } catch (err) {
+    // Lost a race against a second Close on the same session -- the UNIQUE
+    // constraint did its job; hand back the archive that won.
+    const winner = await dbGet(c.env.DB, 'SELECT * FROM inventory_archives WHERE inventory_count_id = ?', count.id);
+    if (!winner) throw err;
+    return c.json({ already_closed: true, archive: winner, count });
+  }
+
+  await dbBatch(
+    c.env.DB,
+    rows.map((row) =>
+      c.env.DB.prepare(
+        `INSERT INTO inventory_archive_items
+          (inventory_archive_id, source_item_id, item_no, description, unit, category,
+           quantity_recorded, quantity_actual, variance, remarks)
+         VALUES (?, ?, ?, ?, ?, (SELECT category FROM items WHERE id = ?), ?, ?, ?, ?)`
+      ).bind(
+        archiveId,
+        row.item_id,
+        row.item_no,
+        row.description,
+        row.unit,
+        row.item_id,
+        row.quantity_recorded,
+        row.quantity_actual,
+        row.variance,
+        row.remarks
+      )
+    )
+  );
+
+  // --- 3/4 Finalize the sheet ---
   await dbRun(
     c.env.DB,
-    `UPDATE inventory_counts SET status = 'applied', applied_at = ?, applied_by = ? WHERE id = ?`,
-    new Date().toISOString(),
+    `UPDATE inventory_counts SET status = 'closed', closed_at = ?, closed_by = ?, closed_by_name = ? WHERE id = ?`,
+    closedAt,
     user.id,
+    user.full_name,
     count.id
   );
 
-  return c.json(await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id));
+  // --- 4/4 Open the next period, already carrying the counted quantities ---
+  const nextCountId = await createDraftCount(c.env.DB, count.laboratory_id, user.full_name, user.id);
+
+  return c.json({
+    archive: await dbGet(c.env.DB, 'SELECT * FROM inventory_archives WHERE id = ?', archiveId),
+    count: await dbGet(c.env.DB, COUNT_SELECT + ' WHERE ic.id = ?', count.id),
+    next_count_id: nextCountId,
+  });
 });
 
 inventoryCounts.delete('/:id', async (c) => {
@@ -367,8 +664,8 @@ inventoryCounts.delete('/:id', async (c) => {
   const { count, allowed } = await getCountWithAccess(c.env.DB, c.req.param('id'), user);
   if (!count) return c.json({ error: 'Inventory count not found' }, 404);
   if (!allowed) return c.json({ error: 'You do not have access to this inventory count' }, 403);
-  if (count.status === 'applied') {
-    return c.json({ error: 'Applied counts cannot be deleted' }, 400);
+  if (isClosed(count.status) || count.status === 'applied') {
+    return c.json({ error: 'A closed inventory period cannot be deleted' }, 400);
   }
   await dbRun(c.env.DB, 'DELETE FROM inventory_counts WHERE id = ?', count.id);
   return c.body(null, 204);

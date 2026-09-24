@@ -9,6 +9,7 @@ import itemsRoutes from './routes/items.js';
 import transactionsRoutes from './routes/transactions.js';
 import dashboardRoutes from './routes/dashboard.js';
 import inventoryCountsRoutes from './routes/inventory-counts.js';
+import inventoryArchivesRoutes from './routes/inventory-archives.js';
 import equipmentRoutes from './routes/equipment.js';
 import { maintenanceScheduleRoutes, calibrationScheduleRoutes } from './routes/schedules.js';
 import workRequestsRoutes from './routes/work-requests.js';
@@ -33,6 +34,7 @@ app.route('/api/items', itemsRoutes);
 app.route('/api', transactionsRoutes); // /api/items/:itemId/stock-card, /api/items/:itemId/transactions, /api/transactions/:id
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/inventory-counts', inventoryCountsRoutes);
+app.route('/api/inventory-archives', inventoryArchivesRoutes);
 app.route('/api/equipment', equipmentRoutes);
 app.route('/api/maintenance-schedule', maintenanceScheduleRoutes);
 app.route('/api/calibration-schedule', calibrationScheduleRoutes);

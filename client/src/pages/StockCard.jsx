@@ -162,6 +162,33 @@ export default function StockCard() {
   const { item, entries } = card;
 
   // Shared by the on-screen table and each printed page's table below.
+  // The two rows Close Inventory writes. Neither is a receipt or an issuance:
+  // the closing line carries the balance through untouched and states the
+  // variance in words, and the line under it opens the next period at the
+  // counted quantity. Rendering them as ordinary IN/OUT entries would be
+  // exactly the fictitious transaction F-LAB-006 is not allowed to contain.
+  function inventoryRow(entry, columns) {
+    const opening = entry.entry_type === 'period_open';
+    const tint = opening ? 'bg-emerald-50' : 'bg-amber-50';
+    const cell = 'border border-slate-300 px-3 py-2';
+    return (
+      <tr key={entry.id} className={tint}>
+        <td className={`${cell} whitespace-nowrap`}>{entry.entry_date}</td>
+        <td className={`${cell} text-right ${opening ? 'font-bold' : 'text-slate-400'}`}>
+          {opening ? entry.beginning_balance : '—'}
+        </td>
+        <td className={`${cell} text-right text-slate-400`}>—</td>
+        <td className={`${cell} text-right text-slate-400`}>—</td>
+        <td className={`${cell} text-right ${opening ? 'font-bold' : 'font-medium'}`}>{entry.ending_balance}</td>
+        <td className={`${cell} italic`}>{entry.remarks}</td>
+        <td className={cell}>{entry.handled_by}</td>
+        {/* No remove control: the server refuses to edit or delete these, since
+            they are the Stock Card's link to the archived F-LAB-010. */}
+        {columns > 7 && <td className={`${cell} no-print`}></td>}
+      </tr>
+    );
+  }
+
   const stockInfoRows = (
     <>
 {/* A compact box confined to the first 2 real columns (plus a
@@ -293,6 +320,17 @@ export default function StockCard() {
       </div>
 
       <LabFormTabs laboratoryId={item.laboratory_id} active="stock-cards" />
+
+      {/* A period that a physical inventory has closed is history: the
+          archived F-LAB-010 was signed against these balances, so the server
+          refuses an entry dated into it. Saying so up front beats letting
+          someone fill the form in and be rejected on save. */}
+      {card.closed_through && (
+        <p className="no-print text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2">
+          Closed by physical inventory through <span className="font-medium">{card.closed_through}</span>. New
+          entries have to be dated after that.
+        </p>
+      )}
 
       {error && <p className="text-sm text-red-600 no-print">{error}</p>}
 
@@ -560,6 +598,8 @@ export default function StockCard() {
                     <td className="border border-slate-300 px-3 py-2"></td>
                     <td className="border border-slate-300 px-3 py-2 no-print"></td>
                   </tr>
+                ) : entry.entry_type === 'inventory_close' || entry.entry_type === 'period_open' ? (
+                  inventoryRow(entry, 8)
                 ) : entry.is_period_marker ? (
                   <tr key={entry.id} className="bg-slate-500 text-white">
                     <td className="border border-slate-500 px-3 py-1 text-center" colSpan={5}>
@@ -638,6 +678,8 @@ export default function StockCard() {
                         </td>
                       ))}
                     </tr>
+                  ) : entry.entry_type === 'inventory_close' || entry.entry_type === 'period_open' ? (
+                    inventoryRow(entry, 7)
                   ) : entry.is_period_marker ? (
                     <tr key={entry.id} className="bg-slate-500 text-white">
                       <td className="border border-slate-500 px-3 py-1 text-center" colSpan={5}>

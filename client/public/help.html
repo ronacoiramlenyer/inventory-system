@@ -325,6 +325,7 @@
     <a href="#qg-login">Logging In</a>
     <a href="#qg-open-lab">Opening Your Laboratory</a>
     <a href="#qg-inventory">Counting Your Inventory</a>
+    <a href="#qg-close">Closing an Inventory Period</a>
     <a href="#qg-equipment">Recording Equipment</a>
     <a href="#qg-schedules">Maintenance &amp; Calibration</a>
     <a href="#qg-work-request">Requesting a Repair</a>
@@ -336,6 +337,7 @@
 
     <h2>Technical Reference</h2>
     <a href="#overview">Roles Overview</a>
+    <a href="#inventory-periods">Inventory Periods &amp; Closing</a>
     <a href="#equipment-units">Equipment Units &amp; 201 Files</a>
     <a href="#badges">Notification Badges</a>
     <a href="#printing-detail">How Printing Works</a>
@@ -386,15 +388,30 @@
         <li>Open your laboratory, then click the <strong>Inventory Sheet</strong> tab.</li>
         <li>For each item, type in the quantity you actually counted.</li>
         <li>Every item needs a category. Tick the rows that still say <em>"No category"</em>, pick one from the dropdown at the top, and click <strong>Assign</strong>. The tick box in the header row selects every row at once. The three categories are <strong>Equipment</strong>, <strong>Tools &amp; Materials</strong> and <strong>Consumables</strong>, and you can re-tag an item later the same way.</li>
-        <li>Click <strong>Save</strong> if you just want to keep your count as a draft for now.</li>
-        <li>Click <strong>Apply Adjustments to Stock</strong> when you're sure the count is final — this updates the official stock balance so it matches what you counted.</li>
+        <li>Click <strong>Save</strong> as often as you like — the sheet keeps your count as you go.</li>
+        <li>When the physical count is done, close the period. That is what makes your counted quantities the official ones; see <a href="#qg-close">Closing an Inventory Period</a> next.</li>
       </ol>
+      <div class="callout"><strong>The Quantity as per Record column moves while you count.</strong> It is a live reading of the Stock Card, so a delivery booked halfway through the count shows up straight away and your variance stays honest. It stops moving the moment you set the cutoff.</div>
       <div class="callout"><strong>New item you don't see on the list?</strong> You can add it directly on this page, then count it the same way.</div>
       <div class="callout"><strong>This sheet counts quantities, not serial numbers.</strong> A row here says "3D Printer &mdash; 5", not which five machines. The moment you tag a row as <strong>Equipment</strong> and save, the system opens one 201 file per unit on F-LAB-001, and that is where each machine's own serial number goes. See <a href="#qg-equipment">Recording Equipment</a> next.</div>
     </div>
 
+    <div class="guide-card" id="qg-close">
+      <h2>4. Closing an Inventory Period</h2>
+      <p class="subtitle">Closing is what turns a finished count into the official record and starts the next cycle. It happens once per period and cannot be undone.</p>
+      <ol class="steps">
+        <li>Check the panel at the top of the sheet: the <strong>Inventory Ref.</strong> (e.g. <span class="mono">INV-2026-003</span>), the <strong>Period</strong>, and the <strong>Inventory Date</strong>. The date is the day the count was taken, not the day you happen to be closing — set it correctly, because it is the date printed on the form and written onto every Stock Card.</li>
+        <li>When you've finished counting, click <strong>Set Cutoff &amp; Reconcile</strong>. Quantity as per Record stops following the Stock Card and freezes at the balances you counted against. Anything received or issued from now on belongs to the next period.</li>
+        <li>Work through the variances. Every item needs an Actual Quantity, and every non-zero variance needs a remark explaining it. The panel lists exactly what is still outstanding, and <strong>Close Inventory</strong> stays greyed out until nothing is.</li>
+        <li>Got the cutoff wrong, or need to recount something? <strong>Reopen Counting</strong> puts the sheet back and keeps the quantities you already entered.</li>
+        <li>Click <strong>Close Inventory</strong> and confirm. You land on the archived copy of the form, ready to print and file.</li>
+      </ol>
+      <div class="callout"><strong>What closing does, in one go:</strong> archives this F-LAB-010 exactly as it stands; writes a closing line onto every item's Stock Card quoting the inventory reference and the book, actual and variance figures; starts each Stock Card's next period with your counted quantity as its Beginning Balance; and opens the laboratory's next inventory period. Your counted quantity is now the recorded quantity.</div>
+      <div class="callout"><strong>No made-up entries.</strong> A shortfall of two bottles is not booked as an issuance of two — nothing was issued. The Stock Card simply closes at the book figure and reopens at the counted one, and the completed F-LAB-010 is the document that explains the difference. That is why the closed period is then sealed: entries dated into it are refused.</div>
+    </div>
+
     <div class="guide-card" id="qg-equipment">
-      <h2>4. Recording Equipment</h2>
+      <h2>5. Recording Equipment</h2>
       <p class="subtitle">This is the Equipment Monitoring Record — the 201 file for each machine in your lab. Every physical unit gets its own, so five identical 3D printers are five records, not one.</p>
       <p><strong>Equipment is not added here — it comes from the Inventory Sheet.</strong> Tag an item as <strong>Equipment</strong> there and save; the system immediately opens one 201 file per unit in that item's balance. Count five, get five. Raise the count to seven later and two more appear on their own.</p>
       <p><strong>To record a unit's serial number and location:</strong></p>
@@ -415,7 +432,7 @@
     </div>
 
     <div class="guide-card" id="qg-schedules">
-      <h2>5. Maintenance &amp; Calibration Schedules</h2>
+      <h2>6. Maintenance &amp; Calibration Schedules</h2>
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Schedules</strong> tab (Preventive Maintenance or Equipment Calibration).</li>
         <li>Click <strong>+ Add Row</strong>.</li>
@@ -426,7 +443,7 @@
     </div>
 
     <div class="guide-card" id="qg-work-request">
-      <h2>6. Requesting an Equipment Repair</h2>
+      <h2>7. Requesting an Equipment Repair</h2>
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Work Requests</strong> tab.</li>
         <li>Click <strong>+ New Request</strong>, pick the <em>unit</em> that needs work — same per-machine list as the Equipment Record, with the serial number and location filled in for you — and describe the problem.</li>
@@ -437,7 +454,7 @@
     </div>
 
     <div class="guide-card" id="qg-borrow">
-      <h2>7. Borrowing Something</h2>
+      <h2>8. Borrowing Something</h2>
       <p class="subtitle">The left-menu <strong>Borrowing Requests</strong> page only lists requests from every lab — to file a new one, start from your own laboratory.</p>
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Borrowing Requests</strong> tab.</li>
@@ -449,7 +466,7 @@
     </div>
 
     <div class="guide-card" id="qg-waste">
-      <h2>8. Logging Waste Disposal</h2>
+      <h2>9. Logging Waste Disposal</h2>
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Waste Log</strong> tab.</li>
         <li>Click <strong>+ Add Entry</strong> and describe what was disposed of, how, and by whom.</li>
@@ -458,7 +475,7 @@
     </div>
 
     <div class="guide-card" id="qg-incident">
-      <h2>9. Reporting an Incident</h2>
+      <h2>10. Reporting an Incident</h2>
       <ol class="steps">
         <li>Open your laboratory, then click the <strong>Incident Report</strong> tab.</li>
         <li>Click <strong>+ New Report</strong> and describe what happened.</li>
@@ -468,7 +485,7 @@
     </div>
 
     <div class="guide-card" id="qg-print">
-      <h2>10. Printing a Form</h2>
+      <h2>11. Printing a Form</h2>
       <ol class="steps">
         <li>Open the form you want to print.</li>
         <li>Click the <strong>Print</strong> button near the top of the page.</li>
@@ -479,7 +496,7 @@
     </div>
 
     <div class="guide-card" id="qg-help">
-      <h2>11. If You Get Stuck</h2>
+      <h2>12. If You Get Stuck</h2>
       <ul>
         <li><strong>Can't find a machine in a Schedule or Work Request dropdown?</strong> Those lists only show equipment units. Open the Inventory Sheet, make sure the item is tagged <strong>Equipment</strong> and saved, and its units will appear. A retired unit is deliberately left out.</li>
         <li><strong>Only one unit showing where you expect several?</strong> The number of 201 files follows the quantity on the Inventory Sheet. If the count says 1, correct the count and the missing units appear.</li>
@@ -509,6 +526,44 @@
           <tr><td>Secretary</td><td>Works filed requests (Equipment Work Requests, Bookstore/Supplies/BGU) across every department, moving them to In Progress / Completed / Rejected.</td></tr>
           <tr><td>Admin</td><td>Everything above, plus Departments, Staff Accounts, laboratory approval, and item corrections on the Stock Card page.</td></tr>
         </table>
+      </section>
+
+      <section class="block" id="inventory-periods">
+        <h2>Inventory Periods &amp; Closing</h2>
+        <p>An F-LAB-010 sheet is an inventory <em>period</em> for one laboratory, identified by a reference number issued in sequence for the calendar year (<span class="mono">INV-2026-003</span>). It moves through five states:</p>
+        <table>
+          <tr><th>Status</th><th>What it means</th></tr>
+          <tr><td><span class="pill">OPEN</span></td><td>New period. Quantity as per Record is a live read of the Stock Card.</td></tr>
+          <tr><td><span class="pill">COUNTING</span></td><td>Set automatically once any Actual Quantity is entered. Still tracking the Stock Card.</td></tr>
+          <tr><td><span class="pill">FOR RECONCILIATION</span></td><td>Cutoff set. Recorded quantities are frozen at the balances the count was taken against.</td></tr>
+          <tr><td><span class="pill">READY TO CLOSE</span></td><td>Derived, not clicked: every item counted, every variance explained. Drops back if a row is cleared.</td></tr>
+          <tr><td><span class="pill">CLOSED</span></td><td>Archived. The sheet is read-only for good.</td></tr>
+        </table>
+
+        <h3>What Close Inventory does</h3>
+        <p>One controlled operation. For every item on the sheet it writes two rows onto the Stock Card, dated the inventory date:</p>
+        <table>
+          <tr><th>Date</th><th>Beginning</th><th>IN</th><th>OUT</th><th>Ending</th><th>Remarks</th></tr>
+          <tr><td>Sep 28</td><td>50</td><td>—</td><td>5</td><td>45</td><td>Regular issuance</td></tr>
+          <tr><td>Sep 30</td><td>—</td><td>—</td><td>—</td><td>45</td><td>Physical Inventory Conducted – F-LAB-010 INV-2026-003. Book Balance: 45. Actual Count: 43. Variance: -2. Stock Card period closed.</td></tr>
+          <tr><td>Sep 30</td><td><strong>43</strong></td><td>—</td><td>—</td><td><strong>43</strong></td><td>Beginning Balance after Physical Inventory – F-LAB-010 INV-2026-003.</td></tr>
+          <tr><td>Oct 2</td><td>43</td><td>20</td><td>—</td><td>63</td><td>Regular receipt</td></tr>
+        </table>
+        <p>Neither new row is a transaction. The closing line carries the balance through untouched; the line below it <em>sets</em> the running balance to the counted quantity rather than adjusting it. A variance is never booked as a fictitious IN or OUT — the completed F-LAB-010 is the documentary explanation for the difference between the old Ending Balance and the new Beginning Balance, and both records carry the same reference number so an auditor can trace either one to the other.</p>
+        <p>It then freezes a copy of the sheet into the archive, marks the period closed, and opens the laboratory's next period with the counted quantities already in place.</p>
+
+        <h3>Controls</h3>
+        <ul>
+          <li><strong>Closing is idempotent.</strong> One inventory session can produce exactly one archive, one closing row and one Beginning Balance row per item, and its Actual Quantities are applied once. Pressing Close twice returns the archive that already exists. If a close were ever interrupted part-way, running it again finishes the job rather than doubling it.</li>
+          <li><strong>A closed period is sealed.</strong> The Stock Card refuses an entry dated on or before its last closing date, and the closing and Beginning Balance rows themselves cannot be edited or deleted — they are the Stock Card's link to the archived form.</li>
+          <li><strong>The archive is frozen.</strong> Archived quantities are stored separately from the live items and Stock Cards, so later stock movements, item edits, even deleting the item, leave the archived form reading exactly as it did at closing.</li>
+          <li><strong>Closing is blocked</strong> unless the sheet has a reference number and an inventory date, every item has an Actual Quantity, every non-zero variance has a remark, and the person confirms.</li>
+        </ul>
+
+        <h3>Inventory Archive</h3>
+        <p>The left-menu <strong>Inventory Archive</strong> lists closed periods across the laboratories you can see — period, reference, laboratory, date conducted, date closed, item count, variance count. Opening one shows the complete F-LAB-010 as it stood at closing, read-only, with a Print button that reproduces the historical form from the archived data.</p>
+
+        <div class="callout"><strong>Replaces the old "Apply Adjustments to Stock".</strong> That button booked the variance as an IN or OUT entry on each Stock Card, which is exactly what F-LAB-006 should not contain. Sheets finished under it keep the status <span class="pill">APPLIED (legacy)</span>, stay readable, and are not part of the archive.</div>
       </section>
 
       <section class="block" id="equipment-units">
@@ -650,6 +705,14 @@
         <p>On F-LAB-001, per unit. One inventory row stands for several machines, so it has nowhere to put five different serial numbers. Open the Equipment Record tab and fill each unit in.</p>
         <h3>A machine was condemned. Do I delete it?</h3>
         <p>No — click <strong>Retire</strong> on its row. Deleting would take its service history with it, which is the part an audit asks for. Retiring keeps the 201 file, drops the inventory quantity by one, and stops a replacement unit being generated.</p>
+        <h3>The Stock Card won't accept an entry — it says the period is closed.</h3>
+        <p>A physical inventory closed that period, and the archived F-LAB-010 was signed against those balances. Date the entry after the closing date. If something genuinely belongs in the closed period, it is an admin correction on the current period, not a back-dated entry.</p>
+        <h3>Close Inventory is greyed out.</h3>
+        <p>The panel above the sheet lists what is outstanding — usually an item with no Actual Quantity, or a variance with no remark. It enables itself as soon as the list is empty.</p>
+        <h3>I closed a period by mistake.</h3>
+        <p>Closing cannot be undone: the archived form is the record and the Stock Cards have already started their next period. Correct the quantities on the new period instead, using the Stock Card's Correct Balance for an admin adjustment, so the correction is visible in the ledger rather than hidden by rewriting history.</p>
+        <h3>Where did "Apply Adjustments to Stock" go?</h3>
+        <p>Replaced by Close Inventory, which does the same job correctly — see <a href="#inventory-periods">Inventory Periods &amp; Closing</a>. The old button booked each variance as a fictitious IN or OUT entry on the Stock Card.</p>
         <h3>The same page number printed on two sheets.</h3>
         <p>Check the print dialog: <strong>Margins</strong> should be <em>Default</em> and <strong>Scale</strong> <em>100%</em>. The form measures where its pages break against those settings, so a custom margin or a scale above 100% can push a table past the bottom edge, and the browser then splits it and repeats its header.</p>
         <h3>I don't see the Equipment Work Requests inbox.</h3>

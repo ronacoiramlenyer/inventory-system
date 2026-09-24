@@ -27,6 +27,8 @@ import IncidentReportDetail from './pages/IncidentReportDetail';
 import Departments from './pages/Departments';
 import Users from './pages/Users';
 import InventoryCountDetail from './pages/InventoryCountDetail';
+import InventoryArchive from './pages/InventoryArchive';
+import InventoryArchiveDetail from './pages/InventoryArchiveDetail';
 import BookstoreRequisition from './pages/BookstoreRequisition';
 import SuppliesRequisition from './pages/SuppliesRequisition';
 import BguJobRequests from './pages/BguJobRequests';
@@ -82,6 +84,8 @@ function AppRoutes() {
         <Route path="other-requests/bgu" element={<BguJobRequests />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
+        <Route path="inventory-archive" element={<InventoryArchive />} />
+        <Route path="inventory-archive/:id" element={<InventoryArchiveDetail />} />
         <Route
           path="departments"
           element={

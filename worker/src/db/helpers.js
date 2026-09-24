@@ -24,3 +24,13 @@ export async function clearEquipmentLinks(db, itemId) {
   await dbRun(db, 'UPDATE calibration_schedule_items SET equipment_item_id = NULL WHERE equipment_item_id = ?', itemId);
   await dbRun(db, 'UPDATE work_requests SET equipment_item_id = NULL WHERE equipment_item_id = ?', itemId);
 }
+
+// D1 has no interactive transaction, but it does run a prepared-statement
+// batch atomically. Closing an inventory period writes two Stock Card rows
+// for every item on the sheet, so a 125-item laboratory is 250 inserts --
+// far too many round trips one at a time, and each one its own commit.
+export async function dbBatch(db, statements, chunkSize = 40) {
+  for (let i = 0; i < statements.length; i += chunkSize) {
+    await db.batch(statements.slice(i, i + chunkSize));
+  }
+}

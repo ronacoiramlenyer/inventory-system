@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet, dbRun } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { balanceExpr } from '../lib/stockBalance.js';
 
 // F-LAB-001 Equipment Monitoring Record. F-LAB-010 carries equipment in
 // aggregate -- one items row with a quantity -- but each physical unit needs
@@ -39,9 +40,7 @@ async function syncUnitsForLab(db, laboratoryId) {
   const items = await dbAll(
     db,
     `SELECT i.id,
-       i.initial_balance
-         + COALESCE((SELECT SUM(t.in_qty) FROM transactions t WHERE t.item_id = i.id), 0)
-         - COALESCE((SELECT SUM(t.out_qty) FROM transactions t WHERE t.item_id = i.id), 0) AS balance,
+       ${balanceExpr('i')} AS balance,
        (SELECT COUNT(*) FROM equipment_records er WHERE er.item_id = i.id AND er.status = 'Active') AS active_units,
        (SELECT COALESCE(MAX(er.unit_no), 0) FROM equipment_records er WHERE er.item_id = i.id) AS max_unit_no
      FROM items i

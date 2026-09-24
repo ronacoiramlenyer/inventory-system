@@ -1,16 +1,12 @@
 import { Hono } from 'hono';
 import { dbAll, dbGet } from '../db/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { balanceSubquery } from '../lib/stockBalance.js';
 
 const dashboard = new Hono();
 dashboard.use('*', requireAuth);
 
-const BALANCE_SUBQUERY = `
-  i.initial_balance
-  + COALESCE((SELECT SUM(t.in_qty) FROM transactions t WHERE t.item_id = i.id), 0)
-  - COALESCE((SELECT SUM(t.out_qty) FROM transactions t WHERE t.item_id = i.id), 0)
-  AS current_balance
-`;
+const BALANCE_SUBQUERY = balanceSubquery('i');
 
 dashboard.get('/summary', async (c) => {
   const user = c.get('user');

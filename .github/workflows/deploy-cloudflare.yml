@@ -48,6 +48,22 @@ jobs:
           npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE calibration_schedule_items ADD COLUMN equipment_record_id INTEGER;" || true
           npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE work_requests ADD COLUMN equipment_record_id INTEGER;" || true
 
+          # Inventory period closing: the Stock Card gains two non-transaction
+          # row kinds (the closing annotation and the new period's Beginning
+          # Balance), and F-LAB-010 gains its reference number and closing
+          # details. Same reason as above -- an existing table needs these
+          # added explicitly before schema.sql indexes them.
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE transactions ADD COLUMN entry_type TEXT NOT NULL DEFAULT 'txn';" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE transactions ADD COLUMN balance_after INTEGER;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE transactions ADD COLUMN inventory_count_id INTEGER;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE inventory_counts ADD COLUMN reference_no TEXT;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE inventory_counts ADD COLUMN period_label TEXT;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE inventory_counts ADD COLUMN inventory_date TEXT;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE inventory_counts ADD COLUMN cutoff_at TEXT;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE inventory_counts ADD COLUMN closed_at TEXT;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE inventory_counts ADD COLUMN closed_by INTEGER;" || true
+          npx wrangler d1 execute "$DB" --remote --command "ALTER TABLE inventory_counts ADD COLUMN closed_by_name TEXT;" || true
+
           # Create any table that isn't there yet. schema.sql is entirely
           # CREATE TABLE/INDEX IF NOT EXISTS, so this is safe on every deploy
           # and is what brings a brand-new D1 database up to the current
@@ -72,6 +88,13 @@ jobs:
           npx wrangler d1 execute "$DB" --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Materials';" || true
           npx wrangler d1 execute "$DB" --remote --command "UPDATE items SET category = 'Tools & Materials' WHERE category = 'Glassware';" || true
           npx wrangler d1 execute "$DB" --remote --command "UPDATE items SET category = 'Consumables' WHERE category = 'Chemicals';" || true
+
+          # Inventory sheets created before periods existed used 'draft' and
+          # 'applied'. A draft becomes the new cycle's open period; an applied
+          # one is finished but was never archived, so it is left as 'applied'
+          # and shown as a legacy sheet rather than back-filled into the
+          # archive with a closing it never actually had.
+          npx wrangler d1 execute "$DB" --remote --command "UPDATE inventory_counts SET status = 'open' WHERE status = 'draft';" || true
 
       # One-time cleanup after renaming the project -- deletes the old
       # inventory-system-api Worker and lsgh-lab-inventory Pages project
