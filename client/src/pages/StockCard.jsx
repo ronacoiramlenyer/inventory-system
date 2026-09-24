@@ -659,7 +659,7 @@ export default function StockCard() {
         {/* One <table> per physical page so each can carry its own page
             number; PrintPages measures the rows to decide where those
             pages end. */}
-        <PrintPages rows={entries} minRows={MIN_ROWS} footer={<PrintFooter code="F-LAB-006" date="04-01-25" />}>
+        <PrintPages rows={entries} minRows={MIN_ROWS} footer={<PrintFooter code="F-LAB-006" rev="Rev. 1" date="09-17-26" />}>
           {(pageEntries, pageIndex, pageCount) => (
             <table className="print-page w-full text-xs border-collapse">
               <thead>
