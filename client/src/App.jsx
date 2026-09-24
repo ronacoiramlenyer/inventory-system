@@ -28,6 +28,8 @@ import Departments from './pages/Departments';
 import Users from './pages/Users';
 import InventoryCountDetail from './pages/InventoryCountDetail';
 import InventoryArchive from './pages/InventoryArchive';
+import Records from './pages/Records';
+import RecordDocuments from './pages/RecordDocuments';
 import InventoryArchiveDetail from './pages/InventoryArchiveDetail';
 import BookstoreRequisition from './pages/BookstoreRequisition';
 import SuppliesRequisition from './pages/SuppliesRequisition';
@@ -84,6 +86,8 @@ function AppRoutes() {
         <Route path="other-requests/bgu" element={<BguJobRequests />} />
         <Route path="items/:id" element={<StockCard />} />
         <Route path="inventory-counts/:id" element={<InventoryCountDetail />} />
+        <Route path="records" element={<Records />} />
+        <Route path="records/:code" element={<RecordDocuments />} />
         <Route path="inventory-archive" element={<InventoryArchive />} />
         <Route path="inventory-archive/:id" element={<InventoryArchiveDetail />} />
         <Route

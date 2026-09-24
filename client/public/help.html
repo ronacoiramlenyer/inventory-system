@@ -337,6 +337,7 @@
 
     <h2>Technical Reference</h2>
     <a href="#overview">Roles Overview</a>
+    <a href="#records-register">Records (R-LAB codes)</a>
     <a href="#inventory-periods">Inventory Periods &amp; Closing</a>
     <a href="#equipment-units">Equipment Units &amp; 201 Files</a>
     <a href="#badges">Notification Badges</a>
@@ -528,6 +529,34 @@
         </table>
       </section>
 
+      <section class="block" id="records-register">
+        <h2>Records (R-LAB codes)</h2>
+        <p>An <span class="mono">F-LAB</span> code names a <em>form</em> — the blank a custodian fills in. An <span class="mono">R-LAB</span> code names the <em>record</em> that filled-in form becomes, and what the laboratory retains. The left-menu <strong>Records</strong> page is the register of all twelve: what each one holds, which form produces it, where to find it, and how many are on file for the laboratories you can see.</p>
+        <table>
+          <tr><th>Code</th><th>Record</th><th>Form</th><th>Where it lives</th></tr>
+          <tr><td class="mono">R-LAB-101</td><td>Annual Approved CAPEX</td><td>—</td><td>Filed on the Records page</td></tr>
+          <tr><td class="mono">R-LAB-102</td><td>Annual Approved OPEX</td><td>—</td><td>Filed on the Records page</td></tr>
+          <tr><td class="mono">R-LAB-103</td><td>Preventive Maintenance Schedule (PMS)</td><td class="mono">F-LAB-002</td><td>Each laboratory's PMS tab</td></tr>
+          <tr><td class="mono">R-LAB-104</td><td>Equipment Calibration Schedule (ECS)</td><td class="mono">F-LAB-003</td><td>Each laboratory's ECS tab</td></tr>
+          <tr><td class="mono">R-LAB-105</td><td>Equipment Work Request (EWR)</td><td class="mono">F-LAB-004</td><td>R-LAB-105 Equipment Work Request (EWR)</td></tr>
+          <tr><td class="mono">R-LAB-106</td><td>EWR Monitoring Sheet (EMS)</td><td class="mono">F-LAB-005</td><td>Each laboratory's EMS tab</td></tr>
+          <tr><td class="mono">R-LAB-107</td><td>Stock Card</td><td class="mono">F-LAB-006</td><td>Each laboratory's Stock Card tab</td></tr>
+          <tr><td class="mono">R-LAB-108</td><td>Borrowing Request Form (BRF)</td><td class="mono">F-LAB-007</td><td>R-LAB-108 Borrowing Request Form (BRF)</td></tr>
+          <tr><td class="mono">R-LAB-109</td><td>Waste Disposal Log</td><td class="mono">F-LAB-008</td><td>Each laboratory's Waste Log tab</td></tr>
+          <tr><td class="mono">R-LAB-110</td><td>Laboratory Incident Report (LIR)</td><td class="mono">F-LAB-009</td><td>Each laboratory's LIR tab</td></tr>
+          <tr><td class="mono">R-LAB-111</td><td>Inventory Sheet</td><td class="mono">F-LAB-010</td><td>R-LAB-111 Inventory Sheet (the archive)</td></tr>
+          <tr><td class="mono">R-LAB-112</td><td>Equipment Monitoring Record (EMR)</td><td class="mono">F-LAB-001</td><td>Each laboratory's EMR tab</td></tr>
+        </table>
+
+        <h3>CAPEX and OPEX are different</h3>
+        <p>Every code except the first two names something the system produces: a Stock Card is a record the moment an entry is written to it, an Incident Report the moment it is filed. <span class="mono">R-LAB-101</span> and <span class="mono">R-LAB-102</span> have no form behind them at all — the approved budget document <em>is</em> the record — so those two are filed directly on the Records page: create an entry for the budget year, then attach the approved document to it.</p>
+        <ul>
+          <li>Any signed-in user can read what is filed; only an admin files, edits, attaches, detaches or removes one.</li>
+          <li>PDF, JPG, PNG or WEBP, up to 1.5MB. No object storage is attached to this Cloudflare account, so the file is held in the database itself — attach the approved copy, not a high-resolution scan.</li>
+        </ul>
+        <div class="callout"><strong>Retention and disposal are not built yet.</strong> The register shows what is held and where, but nothing yet says how long each record is kept or disposes of one at the end of its life. That needs the retention period for each code to be decided first.</div>
+      </section>
+
       <section class="block" id="inventory-periods">
         <h2>Inventory Periods &amp; Closing</h2>
         <p>An F-LAB-010 sheet is an inventory <em>period</em> for one laboratory, identified by a reference number issued in sequence for the calendar year (<span class="mono">INV-2026-003</span>). It moves through five states:</p>
@@ -561,6 +590,7 @@
         </ul>
 
         <h3>R-LAB-111 Inventory Sheet (the archive)</h3>
+        <p>See <a href="#records-register">Records</a> for how the R-LAB codes relate to the F-LAB forms.</p>
         <p>A closed period is retained under the ISO record code <span class="mono">R-LAB-111</span>, which is what the left-menu entry is called. It lists closed periods across the laboratories you can see — period, reference, laboratory, date conducted, date closed, item count, variance count. Opening one shows the complete F-LAB-010 as it stood at closing, read-only, with a Print button that reproduces the historical form from the archived data.</p>
         <div class="callout"><strong>Two codes, one document.</strong> <span class="mono">F-LAB-010</span> is the form a custodian fills in; <span class="mono">R-LAB-111</span> is the record that completed form becomes once its period is closed. The printout still carries F-LAB-010 in its footer, because that is the form it is.</div>
 
@@ -586,11 +616,11 @@
         <p>The number on a left-menu item counts what <em>you</em> can act on right now, not everything outstanding — so the same request never nags two people at once:</p>
         <table>
           <tr><th>Menu item</th><th>Counts</th><th>For</th></tr>
-          <tr><td>Equipment Work Requests</td><td>Pending</td><td>Subject Coordinator, Admin</td></tr>
-          <tr><td>Equipment Work Requests</td><td>Filed / In Progress</td><td>Secretary, Admin (In Progress also Staff)</td></tr>
+          <tr><td>R-LAB-105 Equipment Work Request</td><td>Pending</td><td>Subject Coordinator, Admin</td></tr>
+          <tr><td>R-LAB-105 Equipment Work Request</td><td>Filed / In Progress</td><td>Secretary, Admin (In Progress also Staff)</td></tr>
           <tr><td>Other Requests (Bookstore / Supplies / BGU)</td><td>Same split, badged per tab</td><td>as above</td></tr>
-          <tr><td>Borrowing Requests</td><td>Pending</td><td>Subject Coordinator, Admin</td></tr>
-          <tr><td>Borrowing Requests</td><td>Approved (still out on loan)</td><td>Staff — the custodian chasing it back</td></tr>
+          <tr><td>R-LAB-108 Borrowing Request Form</td><td>Pending</td><td>Subject Coordinator, Admin</td></tr>
+          <tr><td>R-LAB-108 Borrowing Request Form</td><td>Approved (still out on loan)</td><td>Staff — the custodian chasing it back</td></tr>
         </table>
         <p>An admin sees every column, so an admin badge is the sum of all of them. A badge disappearing means the item reached a status that is somebody else's move, or its final one.</p>
       </section>
@@ -717,7 +747,7 @@
         <h3>The same page number printed on two sheets.</h3>
         <p>Check the print dialog: <strong>Margins</strong> should be <em>Default</em> and <strong>Scale</strong> <em>100%</em>. The form measures where its pages break against those settings, so a custom margin or a scale above 100% can push a table past the bottom edge, and the browser then splits it and repeats its header.</p>
         <h3>I don't see the Equipment Work Requests inbox.</h3>
-        <p>It only shows for Secretary and Admin accounts, since it's the cross-department fulfillment queue.</p>
+        <p>It only shows for Secretary and Admin accounts, since it's the cross-department fulfillment queue. In the menu it is called <span class="mono">R-LAB-105</span> Equipment Work Request (EWR), after the record it holds.</p>
         <h3>A request I filed is stuck on "Filed."</h3>
         <p>It's waiting for a Secretary to pick it up and move it to In Progress — reach out if it's been sitting a while.</p>
       </section>

@@ -25,13 +25,27 @@ const MAX_BYTES = 1.5 * 1024 * 1024;
 // `getRow`'s query must NOT select signed_copy_data -- it's fetched
 // separately, only by the GET route, so an ordinary list/detail fetch of
 // the table never pulls image bytes along with it.
-export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanAccessRow }) {
-  router.post('/:id/signed-copy', async (c) => {
+//
+// `columnPrefix` names the column family and the route segment, so the same
+// mechanism serves the CAPEX/OPEX documents filed under R-LAB-101/102, where
+// the attachment is the record itself rather than a signature on one.
+export function addSignedCopyRoutes(
+  router,
+  { table, getRow, keyPrefix, userCanAccessRow, columnPrefix = 'signed_copy', route = 'signed-copy', canWrite = () => true }
+) {
+  const col = {
+    key: `${columnPrefix}_key`,
+    data: `${columnPrefix}_data`,
+    type: `${columnPrefix}_content_type`,
+    by: `${columnPrefix}_uploaded_by`,
+    at: `${columnPrefix}_uploaded_at`,
+  };
+  router.post(`/:id/${route}`, async (c) => {
     const user = c.get('user');
     const id = c.req.param('id');
     const row = await getRow(c.env.DB, id);
     if (!row) return c.json({ error: 'Not found' }, 404);
-    if (!userCanAccessRow(user, row)) {
+    if (!userCanAccessRow(user, row) || !canWrite(user, row)) {
       return c.json({ error: 'You do not have access to this record' }, 403);
     }
 
@@ -53,8 +67,8 @@ export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanA
     const uploadedAt = new Date().toISOString();
     await dbRun(
       c.env.DB,
-      `UPDATE ${table} SET signed_copy_key = ?, signed_copy_data = ?, signed_copy_content_type = ?,
-         signed_copy_uploaded_by = ?, signed_copy_uploaded_at = ? WHERE id = ?`,
+      `UPDATE ${table} SET ${col.key} = ?, ${col.data} = ?, ${col.type} = ?,
+         ${col.by} = ?, ${col.at} = ? WHERE id = ?`,
       label,
       bytes,
       file.type,
@@ -62,10 +76,10 @@ export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanA
       uploadedAt,
       id
     );
-    return c.json({ signed_copy_key: label, signed_copy_uploaded_at: uploadedAt, signed_copy_uploaded_by_name: user.full_name });
+    return c.json({ [col.key]: label, [col.at]: uploadedAt, uploaded_by_name: user.full_name });
   });
 
-  router.get('/:id/signed-copy', async (c) => {
+  router.get(`/:id/${route}`, async (c) => {
     const user = c.get('user');
     const id = c.req.param('id');
     const row = await getRow(c.env.DB, id);
@@ -73,30 +87,30 @@ export function addSignedCopyRoutes(router, { table, getRow, keyPrefix, userCanA
     if (!userCanAccessRow(user, row)) {
       return c.json({ error: 'You do not have access to this record' }, 403);
     }
-    if (!row.signed_copy_key) return c.json({ error: 'No signed copy attached' }, 404);
+    if (!row[col.key]) return c.json({ error: 'Nothing attached' }, 404);
 
-    const blobRow = await dbGet(c.env.DB, `SELECT signed_copy_data, signed_copy_content_type FROM ${table} WHERE id = ?`, id);
-    if (!blobRow?.signed_copy_data) return c.json({ error: 'No signed copy attached' }, 404);
+    const blobRow = await dbGet(c.env.DB, `SELECT ${col.data}, ${col.type} FROM ${table} WHERE id = ?`, id);
+    if (!blobRow?.[col.data]) return c.json({ error: 'Nothing attached' }, 404);
     // D1 doesn't hand a BLOB column back as a real ArrayBuffer/TypedArray --
     // wrapping it explicitly avoids Response() silently stringifying it
     // (e.g. as comma-joined byte values) instead of sending raw bytes.
-    return new Response(new Uint8Array(blobRow.signed_copy_data), {
-      headers: { 'Content-Type': blobRow.signed_copy_content_type || 'application/octet-stream' },
+    return new Response(new Uint8Array(blobRow[col.data]), {
+      headers: { 'Content-Type': blobRow[col.type] || 'application/octet-stream' },
     });
   });
 
-  router.delete('/:id/signed-copy', async (c) => {
+  router.delete(`/:id/${route}`, async (c) => {
     const user = c.get('user');
     const id = c.req.param('id');
     const row = await getRow(c.env.DB, id);
     if (!row) return c.json({ error: 'Not found' }, 404);
-    if (!userCanAccessRow(user, row)) {
+    if (!userCanAccessRow(user, row) || !canWrite(user, row)) {
       return c.json({ error: 'You do not have access to this record' }, 403);
     }
     await dbRun(
       c.env.DB,
-      `UPDATE ${table} SET signed_copy_key = NULL, signed_copy_data = NULL, signed_copy_content_type = NULL,
-         signed_copy_uploaded_by = NULL, signed_copy_uploaded_at = NULL WHERE id = ?`,
+      `UPDATE ${table} SET ${col.key} = NULL, ${col.data} = NULL, ${col.type} = NULL,
+         ${col.by} = NULL, ${col.at} = NULL WHERE id = ?`,
       id
     );
     return c.body(null, 204);

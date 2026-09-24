@@ -102,7 +102,7 @@ export default function WorkRequestDetail() {
 
   const backLink =
     user.role === 'secretary'
-      ? { to: '/work-requests', label: 'Equipment Work Requests' }
+      ? { to: '/work-requests', label: 'R-LAB-105 Equipment Work Request (EWR)' }
       : { to: `/laboratories/${req.laboratory_id}/work-requests`, label: req.laboratory_name };
 
   return (

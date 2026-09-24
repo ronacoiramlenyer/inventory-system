@@ -172,6 +172,35 @@ CREATE TABLE IF NOT EXISTS inventory_archive_items (
 );
 CREATE INDEX IF NOT EXISTS idx_inv_archive_items_archive ON inventory_archive_items(inventory_archive_id);
 
+-- ISO records that are documents filed against the laboratory rather than
+-- forms the app generates -- today R-LAB-101 Annual Approved CAPEX and
+-- R-LAB-102 Annual Approved OPEX. Every other R-LAB record is produced by a
+-- form the app already holds; these two have no form behind them, so the
+-- approved document itself is the record and it gets attached here.
+--
+-- The bytes live in file_data for the same reason as borrowing_requests'
+-- signed copy: no object storage is attached to this account, so a BLOB in
+-- D1 it is, capped well under the 2MB per-row limit. Any query that isn't
+-- serving the file must list columns explicitly rather than using *, so an
+-- ordinary listing never drags a PDF along with it.
+CREATE TABLE IF NOT EXISTS record_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  record_code TEXT NOT NULL,          -- 'R-LAB-101' | 'R-LAB-102'
+  department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL, -- NULL = school-wide
+  title TEXT NOT NULL,
+  period_label TEXT,                  -- the budget year, e.g. "SY 2026-2027"
+  document_date TEXT,
+  notes TEXT,
+  file_key TEXT,                      -- display label, or NULL if nothing attached
+  file_data BLOB,
+  file_content_type TEXT,
+  file_uploaded_by INTEGER REFERENCES users(id),
+  file_uploaded_at TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_record_documents_code ON record_documents(record_code);
+
 -- F-LAB-001 Equipment Registry: simple per-item equipment tracking
 -- This is populated directly from items with category = "Equipment"
 -- Serial numbers and locations are free-text fields on the items table

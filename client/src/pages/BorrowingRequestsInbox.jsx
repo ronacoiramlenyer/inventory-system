@@ -17,7 +17,9 @@ export default function BorrowingRequestsInbox() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-800">Borrowing Requests</h1>
+      <h1 className="text-2xl font-bold text-slate-800">
+        <span className="font-mono text-slate-500 mr-2">R-LAB-108</span>Borrowing Request Form (BRF)
+      </h1>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
