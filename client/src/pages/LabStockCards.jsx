@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LabFormTabs from '../components/LabFormTabs';
+import useWideScreen from '../hooks/useWideScreen';
 
 // Equipment items are excluded from the grouped listing below -- Stock
 // Cards (F-LAB-006) is the IN/OUT quantity ledger for consumable stock,
@@ -15,10 +16,28 @@ import LabFormTabs from '../components/LabFormTabs';
 const CATEGORIES = ['Equipment', 'Tools & Materials', 'Consumables'];
 const UNCATEGORIZED = 'Uncategorized';
 
+// A category block is as wide as the page but only three columns deep, so a
+// laboratory with two hundred tools ran as one very long list down the left
+// of a mostly empty card. Split it down the middle instead: column-major, so
+// an alphabetical list still reads top-to-bottom, then across.
+//
+// Kept to two at most -- a third column would leave the item names too narrow
+// to read without truncating, which is the column that actually matters.
+const MIN_ROWS_TO_SPLIT = 6;
+
+function splitIntoColumns(rows, columns) {
+  if (columns < 2 || rows.length < MIN_ROWS_TO_SPLIT) return [rows];
+  const perColumn = Math.ceil(rows.length / columns);
+  return Array.from({ length: columns }, (_, i) => rows.slice(i * perColumn, (i + 1) * perColumn)).filter(
+    (c) => c.length
+  );
+}
+
 export default function LabStockCards() {
   const { id } = useParams();
   const { user } = useAuth();
   const canEditCategory = user.role === 'staff' || user.role === 'admin';
+  const wide = useWideScreen();
   const [lab, setLab] = useState(null);
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
@@ -128,51 +147,62 @@ export default function LabStockCards() {
         </div>
       )}
 
-      {orderedCategories.map((category) => (
+      {orderedCategories.map((category) => {
+        const columns = splitIntoColumns(groups.get(category), wide ? 2 : 1);
+        return (
         <div key={category} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 font-semibold text-slate-700 text-sm">
             {category}
+            <span className="ml-2 font-normal text-slate-400">{groups.get(category).length}</span>
           </div>
           {/* table-fixed with explicit widths on Unit/Balance -- each
-              category renders its own independent <table>, so with the
+              column renders its own independent <table>, so with the
               default auto layout the Item column's width (and everything
               after it) was sized off that table's own longest item name,
               making the Unit/Balance columns land in different
-              horizontal positions from one category block to the next. */}
-          <table className="w-full text-sm table-fixed">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                {canEditCategory && <th className="px-4 py-2 w-10"></th>}
-                <th className="px-4 py-2 text-left font-medium">Item</th>
-                <th className="px-4 py-2 text-left font-medium w-32">Unit</th>
-                <th className="px-4 py-2 text-right font-medium w-28">Balance</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {groups.get(category).map((item) => (
-                <tr key={item.id}>
-                  {canEditCategory && (
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(item.id)}
-                        onChange={() => toggleSelected(item.id)}
-                      />
-                    </td>
-                  )}
-                  <td className="px-4 py-3 font-medium">
-                    <Link to={`/items/${item.id}`} className="text-emerald-700 hover:underline">
-                      {item.item_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{item.unit_of_measure}</td>
-                  <td className="px-4 py-3 text-right">{item.current_balance}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              horizontal positions from one block to the next. */}
+          <div className={columns.length > 1 ? 'grid grid-cols-[1fr_auto_1fr]' : ''}>
+            {columns.map((columnItems, columnIndex) => (
+              <Fragment key={columnIndex}>
+                {columnIndex > 0 && <div className="w-px bg-slate-200" />}
+                <table className="w-full text-sm table-fixed">
+                  <thead className="bg-slate-50 text-slate-500">
+                    <tr>
+                      {canEditCategory && <th className="px-4 py-2 w-10"></th>}
+                      <th className="px-4 py-2 text-left font-medium">Item</th>
+                      <th className="px-4 py-2 text-left font-medium w-28">Unit</th>
+                      <th className="px-4 py-2 text-right font-medium w-24">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {columnItems.map((item) => (
+                      <tr key={item.id}>
+                        {canEditCategory && (
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selected.has(item.id)}
+                              onChange={() => toggleSelected(item.id)}
+                            />
+                          </td>
+                        )}
+                        <td className="px-4 py-3 font-medium">
+                          <Link to={`/items/${item.id}`} className="text-emerald-700 hover:underline">
+                            {item.item_name}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{item.unit_of_measure}</td>
+                        <td className="px-4 py-3 text-right">{item.current_balance}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Fragment>
+            ))}
+          </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
